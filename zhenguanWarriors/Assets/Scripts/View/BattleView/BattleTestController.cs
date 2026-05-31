@@ -18,9 +18,15 @@ namespace ZhenguanWarriors.View.BattleView
         private TurnManager _turnManager;
         private List<BattleUnit> _allUnits = new();
 
+        private SkillExecutor _skillExecutor;
         private BattleUnit _selectedUnit;
         private Dictionary<BattleUnit, UnitVisual> _unitVisuals = new();
         private bool _isAnimating; // 防止动画中操作
+
+        // 计策交互
+        private string _selectedSkillId;   // null = 普通攻击
+        private Vector2 _scrollPos;
+        private Rect _skillPanelRect;
 
         void Start()
         {
@@ -38,12 +44,14 @@ namespace ZhenguanWarriors.View.BattleView
 
             SetupBattleUnits();
 
+            _skillExecutor = new SkillExecutor(_allUnits, _hexView.Grid);
+
             _turnManager = new TurnManager(_allUnits);
             _turnManager.OnUnitTurnStart += OnUnitTurnStart;
             _turnManager.OnUnitTurnEnd += OnUnitTurnEnd;
             _turnManager.OnPhaseChanged += OnPhaseChanged;
 
-            _battleUI.ShowTip("左键选中己方单位 → 点击格子移动/攻击 | Space=结束回合");
+            _battleUI.ShowTip("选中己方单位 → 点击移动/攻击 | 底部选择计策");
             _turnManager.StartBattle();
         }
 
@@ -96,21 +104,23 @@ namespace ZhenguanWarriors.View.BattleView
 
         private void SetupBattleUnits()
         {
-            // 玩家方——李世民
+            // 玩家方——李世民（君主光环 + 鼓舞）
             var liShiMin = new BattleUnit("lishimin", "李世民", Faction.Player, ClassType.Cavalry,
                 str: 82, cmd: 95, @int: 88, agi: 78, luk: 90,
                 hp: 120, mp: 50, move: 5, attackRange: 1)
             {
-                Position = new HexCoord(1, 3)
+                Position = new HexCoord(1, 3),
+                SkillIds = new List<string> { "rally" }
             };
             _allUnits.Add(liShiMin);
 
-            // 玩家方——李靖
+            // 玩家方——李靖（统帅 + 火攻）
             var liJing = new BattleUnit("li_jing", "李靖", Faction.Player, ClassType.Cavalry,
                 str: 90, cmd: 85, @int: 75, agi: 70, luk: 75,
                 hp: 100, mp: 30, move: 6, attackRange: 1)
             {
-                Position = new HexCoord(2, 5)
+                Position = new HexCoord(2, 5),
+                SkillIds = new List<string> { "fire_attack" }
             };
             _allUnits.Add(liJing);
 
@@ -158,10 +168,17 @@ namespace ZhenguanWarriors.View.BattleView
                 return;
             }
 
-            // 如果已经选中了单位——尝试移动/攻击
+            // 如果已经选中了单位——尝试计策/攻击/移动
             if (_selectedUnit != null && _selectedUnit.State == UnitState.Ready)
             {
-                // 点击敌人→攻击
+                // 计策优先：如果选中了计策
+                if (!string.IsNullOrEmpty(_selectedSkillId))
+                {
+                    TryUseSkill(_selectedUnit, cell);
+                    return;
+                }
+
+                // 点击敌人→普通攻击
                 if (unitAtCell != null && unitAtCell.Faction == Faction.Enemy
                     && _selectedUnit.Position.Distance(cell) <= _selectedUnit.AttackRange)
                 {
@@ -169,11 +186,29 @@ namespace ZhenguanWarriors.View.BattleView
                     return;
                 }
 
+                // 点击友方→如果有治疗计策选中，尝试治疗
+                if (unitAtCell != null && unitAtCell.Faction == Faction.Player && !_selectedUnit.HasActed)
+                {
+                    // 检查是否有治疗计策并自动使用
+                    var healSkill = _selectedUnit.SkillIds
+                        .Select(id => SkillLibrary.Get(id))
+                        .FirstOrDefault(s => s != null && s.type == SkillType.Heal
+                            && _selectedUnit.CurrentMp >= s.mpCost
+                            && _selectedUnit.Position.Distance(cell) <= s.range);
+                    if (healSkill != null)
+                    {
+                        _selectedSkillId = healSkill.id;
+                        TryUseSkill(_selectedUnit, cell);
+                        return;
+                    }
+                }
+
                 // 点击空地→移动
                 var range = _hexView.PathFinder.GetMoveRange(
                     _selectedUnit.Position, _selectedUnit.MoveRange);
                 if (range.ContainsKey(cell))
                 {
+                    _selectedSkillId = null; // 移动时取消计策选择
                     StartCoroutine(MoveUnitAnimation(_selectedUnit, cell));
                     return;
                 }
@@ -194,8 +229,19 @@ namespace ZhenguanWarriors.View.BattleView
             if (_unitVisuals.TryGetValue(unit, out var visual))
                 visual.SetSelected(true);
 
-            _battleUI?.ShowTip($"选中 {unit.Name} (HP:{unit.CurrentHp}/{unit.MaxHp})");
+            // 显示计策信息
+            string skillInfo = "";
+            if (unit.HasSkills)
+            {
+                var names = unit.SkillIds
+                    .Select(id => SkillLibrary.Get(id))
+                    .Where(s => s != null)
+                    .Select(s => $"{s.name}({s.mpCost}MP)");
+                skillInfo = " | 计策: " + string.Join(" ", names);
+            }
+            _battleUI?.ShowTip($"选中 {unit.Name} [HP:{unit.CurrentHp}/{unit.MaxHp} MP:{unit.CurrentMp}]{skillInfo}");
         }
+        private void DeselectUnit()
 
         private void DeselectUnit()
         {
@@ -203,6 +249,7 @@ namespace ZhenguanWarriors.View.BattleView
                 oldVis.SetSelected(false);
 
             _selectedUnit = null;
+            _selectedSkillId = null;
             _hexView.ClearHighlights();
         }
 
@@ -320,6 +367,131 @@ namespace ZhenguanWarriors.View.BattleView
             _unitVisuals.Remove(unit);
         }
 
+        // ========== 计策系统 ==========
+
+        /// <summary>尝试释放计策</summary>
+        private void TryUseSkill(BattleUnit caster, HexCoord targetCell)
+        {
+            var skill = SkillLibrary.Get(_selectedSkillId);
+            if (skill == null)
+            {
+                _selectedSkillId = null;
+                return;
+            }
+
+            // 距离检测
+            int dist = caster.Position.Distance(targetCell);
+            if (dist > skill.range)
+            {
+                _battleUI?.ShowTip($"目标超出{skill.name}的射程（{skill.range}格）");
+                return;
+            }
+
+            // 目标有效性检测
+            if (skill.targetType == SkillTargetType.Enemy)
+            {
+                var targetUnit = _turnManager.GetUnitAt(targetCell);
+                if (targetUnit == null || targetUnit.Faction == caster.Faction)
+                {
+                    _battleUI?.ShowTip("请选择一个敌人为目标");
+                    return;
+                }
+            }
+            else if (skill.targetType == SkillTargetType.Ally)
+            {
+                var targetUnit = _turnManager.GetUnitAt(targetCell);
+                if (targetUnit == null || targetUnit.Faction != caster.Faction)
+                {
+                    _battleUI?.ShowTip("请选择一个友军为目标");
+                    return;
+                }
+            }
+
+            // MP检测
+            if (caster.CurrentMp < skill.mpCost)
+            {
+                _battleUI?.ShowTip($"MP不足！需要{skill.mpCost}，当前{caster.CurrentMp}");
+                _selectedSkillId = null;
+                return;
+            }
+
+            _isAnimating = true;
+            string log = _skillExecutor.Execute(skill, caster, targetCell);
+            _battleUI?.ShowTip(log);
+            Debug.Log(log);
+
+            // 更新血条
+            foreach (var kv in _unitVisuals)
+                kv.Value.UpdateHpBar();
+
+            _hexView.ClearHighlights();
+            _selectedSkillId = null;
+            _selectedUnit = null;
+            _isAnimating = false;
+            EndUnitAction();
+        }
+
+        /// <summary>OnGUI 计策选择面板</summary>
+        void OnGUI()
+        {
+            // 只在选中己方单位且未行动时显示
+            if (_selectedUnit == null || _selectedUnit.HasActed
+                || _selectedUnit.State != UnitState.Ready)
+                return;
+
+            if (_selectedUnit.SkillIds.Count == 0)
+                return;
+
+            float btnW = 90;
+            float btnH = 40;
+            float pad = 5;
+            float startX = 10;
+            float startY = Screen.height - 60;
+
+            // 绘制背景
+            float totalW = (_selectedUnit.SkillIds.Count + 1) * (btnW + pad) + pad;
+            GUI.Box(new Rect(5, startY - 5, totalW + 10, btnH + 15), "");
+
+            // "普通攻击" 按钮
+            Color normalColor = GUI.backgroundColor;
+            if (string.IsNullOrEmpty(_selectedSkillId))
+                GUI.backgroundColor = Color.green;
+            if (GUI.Button(new Rect(startX, startY, btnW, btnH), "⚔ 攻击"))
+            {
+                _selectedSkillId = null;
+                _battleUI?.ShowTip($"普通攻击模式");
+            }
+            GUI.backgroundColor = normalColor;
+
+            // 计策按钮
+            float x = startX + btnW + pad;
+            foreach (var skillId in _selectedUnit.SkillIds)
+            {
+                var skill = SkillLibrary.Get(skillId);
+                if (skill == null) continue;
+
+                bool canUse = _selectedUnit.CurrentMp >= skill.mpCost;
+                if (!canUse) GUI.enabled = false;
+
+                if (_selectedSkillId == skillId)
+                    GUI.backgroundColor = Color.cyan;
+                else
+                    GUI.backgroundColor = Color.white;
+
+                string label = $"{skill.name}\n({skill.mpCost}MP)";
+                if (GUI.Button(new Rect(x, startY, btnW, btnH), label))
+                {
+                    _selectedSkillId = (_selectedSkillId == skillId) ? null : skillId;
+                    string mode = _selectedSkillId != null
+                        ? $"选择{skill.name}目标" : "普通攻击模式";
+                    _battleUI?.ShowTip(mode);
+                }
+                GUI.backgroundColor = normalColor;
+                GUI.enabled = true;
+                x += btnW + pad;
+            }
+        }
+
         /// <summary>当前单位结束行动</summary>
         private void EndUnitAction()
         {
@@ -398,10 +570,31 @@ namespace ZhenguanWarriors.View.BattleView
 
             if (dist <= enemy.AttackRange)
             {
-                // 攻击
-                var result = CombatCalculator.CalcPhysicalDamage(enemy, target, 0, 0);
-                target.TakeDamage(result.damage);
-                Debug.Log($"AI {enemy.Name} 攻击 {target.Name}：{(result.isHit ? $"造成{result.damage}伤害" : "未命中")}");
+                // AI 尝试使用计策
+                bool usedSkill = false;
+                if (enemy.HasSkills && enemy.CurrentMp > 0)
+                {
+                    var offenseSkill = enemy.SkillIds
+                        .Select(id => SkillLibrary.Get(id))
+                        .FirstOrDefault(s => s != null
+                            && (s.type == SkillType.FireAttack || s.type == SkillType.RockSlide)
+                            && enemy.CurrentMp >= s.mpCost
+                            && dist <= s.range);
+                    if (offenseSkill != null)
+                    {
+                        _selectedSkillId = offenseSkill.id;
+                        string log = _skillExecutor.Execute(offenseSkill, enemy, target.Position);
+                        Debug.Log($"AI {enemy.Name} 释放{offenseSkill.name}：{log}");
+                        usedSkill = true;
+                    }
+                }
+
+                if (!usedSkill)
+                {
+                    var result = CombatCalculator.CalcPhysicalDamage(enemy, target, 0, 0);
+                    target.TakeDamage(result.damage);
+                    Debug.Log($"AI {enemy.Name} 攻击 {target.Name}：{(result.isHit ? $"造成{result.damage}伤害" : "未命中")}");
+                }
 
                 if (_unitVisuals.TryGetValue(target, out var tVis))
                     tVis.UpdateHpBar();

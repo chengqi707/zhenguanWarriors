@@ -15,6 +15,7 @@ namespace ZhenguanWarriors.View.BattleView
         public SpriteRenderer hpBarFill;
         public SpriteRenderer selectionRing;
         public TextMesh nameLabel;
+        private SpriteRenderer _mpBarFill;
 
         [Header("颜色")]
         public Color playerColor = new Color(0.2f, 0.5f, 0.9f);   // 蓝
@@ -66,6 +67,18 @@ namespace ZhenguanWarriors.View.BattleView
             float barY = unitRadius + 0.12f;
             hpBarBg.transform.localPosition = new Vector3(0, barY, -0.01f);
             hpBarFill.transform.localPosition = new Vector3(0, barY, -0.02f);
+
+            // --- MP 条（蓝色，在HP条下方） ---
+            var mpBg = CreateBarSprite("MpBarBg", 0.6f, 0.04f, new Color(0.15f, 0.15f, 0.25f),
+                transform, Vector3.forward * -0.01f);
+            mpBg.transform.localPosition = new Vector3(0, barY - 0.07f, -0.01f);
+            var mpFill = CreateBarSprite("MpBarFill", 0.6f, 0.04f, new Color(0.3f, 0.5f, 1f),
+                transform, Vector3.forward * -0.02f);
+            mpFill.transform.localPosition = new Vector3(0, barY - 0.07f, -0.02f);
+
+            // 存引用以便更新
+            var mpFillRef = mpFill;
+            _mpBarFill = mpFill;
 
             // --- 选中高亮环 ---
             selectionRing = CreateRingSprite("SelectionRing", unitRadius + 0.08f,
@@ -224,16 +237,23 @@ namespace ZhenguanWarriors.View.BattleView
         {
             if (hpBarFill == null || _unit == null) return;
 
-            float ratio = (float)_unit.CurrentHp / _unit.MaxHp;
-            hpBarFill.transform.localScale = new Vector3(ratio, 1f, 1f);
+            float hpRatio = (float)_unit.CurrentHp / _unit.MaxHp;
+            hpBarFill.transform.localScale = new Vector3(hpRatio, 1f, 1f);
 
             // 颜色按血量变化
-            if (ratio > 0.5f)
+            if (hpRatio > 0.5f)
                 hpBarFill.color = hpGood;
-            else if (ratio > 0.25f)
+            else if (hpRatio > 0.25f)
                 hpBarFill.color = hpMid;
             else
                 hpBarFill.color = hpLow;
+
+            // MP条更新
+            if (_mpBarFill != null)
+            {
+                float mpRatio = _unit.MaxMp > 0 ? (float)_unit.CurrentMp / _unit.MaxMp : 0f;
+                _mpBarFill.transform.localScale = new Vector3(mpRatio, 1f, 1f);
+            }
         }
 
         public void SetSelected(bool selected)

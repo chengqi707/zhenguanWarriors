@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using ZhenguanWarriors.Core.Character;
 
 namespace ZhenguanWarriors.Core.Battle
@@ -53,6 +54,10 @@ namespace ZhenguanWarriors.Core.Battle
         public int CurrentMp { get; set; }
         public int MoveRange { get; set; }      // 移动力
         public int AttackRange { get; set; }    // 攻击范围
+
+        // ========== 计策 ==========
+        public List<string> SkillIds { get; set; } = new();  // 已知计策ID列表
+        public bool HasSkills => SkillIds.Count > 0;
 
         // ========== 位置状态 ==========
         public HexCoord Position { get; set; }
