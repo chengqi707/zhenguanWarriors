@@ -242,8 +242,6 @@ namespace ZhenguanWarriors.View.BattleView
             _battleUI?.ShowTip($"选中 {unit.Name} [HP:{unit.CurrentHp}/{unit.MaxHp} MP:{unit.CurrentMp}]{skillInfo}");
         }
         private void DeselectUnit()
-
-        private void DeselectUnit()
         {
             if (_selectedUnit != null && _unitVisuals.TryGetValue(_selectedUnit, out var oldVis))
                 oldVis.SetSelected(false);
