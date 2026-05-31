@@ -1,3 +1,5 @@
+using ZhenguanWarriors.Core.Battle;
+
 namespace ZhenguanWarriors.Core.Character
 {
     /// <summary>
