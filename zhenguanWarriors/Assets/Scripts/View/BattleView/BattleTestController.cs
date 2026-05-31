@@ -1,5 +1,6 @@
 using UnityEngine;
 using ZhenguanWarriors.Core.Battle;
+using ZhenguanWarriors.Core.Combat;
 using System.Collections.Generic;
 using System.Linq;
 
