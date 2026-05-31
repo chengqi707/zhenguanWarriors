@@ -51,11 +51,13 @@
 - DifficultyAdjuster：难度参数（MVP仅Normal）
 
 ### 3.4 角色系统 (CharacterSystem)
-- CharacterData：武将基础属性（武/统/智/敏/运）
-- ClassType：兵种（步兵/骑兵/弓兵/器械），转职树
-- Equipment：武器/防具/饰品，属性加成
+- CharacterData：角色基础属性（武/统/智/敏/运 + 性别 + 阵营类型）
+- ClassType：兵种（步兵/重步/骑兵/弓兵/器械/谋士），转职树
+- CharacterRole：角色定位（君主/武将/谋士/女性），影响 UI 和事件触发
+- Equipment：武器/防具/饰品，部分装备性别/职业限定
 - SkillTree：技能习得（等级触发 + 选择分支）
 - ExperienceSystem：经验计算、升级属性成长
+- BondSystem：羁绊系统（多角色同阵触发额外属性加成）
 
 ### 3.5 剧情系统 (StorySystem)
 - DialogPlayer：对话播放器（立绘 + 文本 + 选项）
@@ -104,11 +106,47 @@ Assets/
 {
   "id": "lishimin",
   "name": "李世民",
+  "role": "monarch",
+  "gender": "male",
   "class": "cavalry",
   "baseStats": { "str": 82, "cmd": 95, "int": 88, "agi": 78, "luk": 90 },
   "growth":  { "str": 4,  "cmd": 5,  "int": 4,  "agi": 3,  "luk": 4  },
   "skills": ["charge", "rally", "ambush"],
+  "bonds": ["zhangsun_empress", "li_jing"],
   "portrait": "Sprites/Portraits/lishimin"
+}
+```
+
+示例 - 谋士配置 `Characters/fang_xuanling.json`：
+```json
+{
+  "id": "fang_xuanling",
+  "name": "房玄龄",
+  "role": "strategist",
+  "gender": "male",
+  "class": "strategist",
+  "baseStats": { "str": 25, "cmd": 70, "int": 92, "agi": 60, "luk": 80 },
+  "growth":  { "str": 1,  "cmd": 3,  "int": 5,  "agi": 3,  "luk": 4  },
+  "skills": ["fire_attack", "rally", "insight", "logistics"],
+  "passive": "战前增加资金20%，全队经验+10%",
+  "portrait": "Sprites/Portraits/fang_xuanling"
+}
+```
+
+示例 - 女性角色配置 `Characters/pingyang_princess.json`：
+```json
+{
+  "id": "pingyang_princess",
+  "name": "平阳公主",
+  "role": "female",
+  "gender": "female",
+  "class": "cavalry",
+  "baseStats": { "str": 70, "cmd": 85, "int": 75, "agi": 80, "luk": 85 },
+  "growth":  { "str": 4,  "cmd": 4,  "int": 3,  "agi": 4,  "luk": 4  },
+  "skills": ["charge", "niangzi_army", "rally"],
+  "passive": "娘子军：全场女性角色攻击+20%",
+  "bonds": ["chai_shao"],
+  "portrait": "Sprites/Portraits/pingyang"
 }
 ```
 
@@ -232,3 +270,4 @@ Selector（根）
 
 ## 12. 版本记录
 - v0.1（2026-05-31）初稿，对应 MVP 架构
+- v0.2（2026-05-31）新增谋士兵种、角色定位（君主/武将/谋士/女性）、羁绊系统
