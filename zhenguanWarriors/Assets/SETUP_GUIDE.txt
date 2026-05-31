@@ -1,0 +1,37 @@
+贞观勇士 - Unity 项目初始化指南
+=====================================
+
+【第一次打开 Unity 项目的步骤】
+
+1. 打开 Unity Hub
+2. 在 Projects 列表中找到 "zhenguanWarriors" 项目
+   （路径：C:\chengqi\Android\AndroidProject\zhenguanWarriors\zhenguanWarriors）
+3. 点击打开（Unity 会导入所有资源，第一次打开需等待 2-5 分钟）
+
+【运行战斗 Demo】
+
+1. 在 Unity Editor 的 Project 窗口中，双击打开：
+   Assets > Scenes > SampleScene.scene
+2. 在 Hierarchy 窗口空白处右键 → Create Empty
+   改名为 "BattleSystem"
+3. 选中 BattleSystem，在 Inspector 底部点 Add Component
+   搜索并添加 "BattleSceneStarter"
+4. 点击顶部的 Play 按钮（▶）
+
+【操作说明】
+- 左键点击蓝色方块（己方单位）→ 选中后显示蓝色半透明移动范围
+- 再点击移动范围内的格子 → 移动
+- 点击相邻红色方块（敌方单位）→ 攻击
+- 按 Space 键快速结束当前玩家回合
+- 敌方 AI 会自动行动
+
+【已生成的核心代码】
+Assets/Scripts/Core/Battle/    — 六边形网格、寻路、回合控制、单位状态机
+Assets/Scripts/Core/Combat/    — 伤害计算
+Assets/Scripts/View/BattleView/ — 可视化网格、交互控制、场景启动器
+Assets/Data/                   — JSON 配置表目录（待填充数据）
+
+【常见问题】
+- VS Code 没有智能提示？→ 安装 .NET SDK，打开 VS Code 安装 C# Dev Kit 扩展
+- 场景是黑的？→ 确认摄像机是 Orthographic（BattleSceneStarter 会自动设置）
+- 看不到网格？→ 检查 Scene 窗口有无报错，Game 窗口可能需调整摄像机位置
