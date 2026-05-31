@@ -1,5 +1,6 @@
 using System;
 using ZhenguanWarriors.Core.Battle;
+using ZhenguanWarriors.Core.Character;
 
 namespace ZhenguanWarriors.Core.Combat
 {
@@ -33,6 +34,10 @@ namespace ZhenguanWarriors.Core.Combat
 
             // 暴击加成
             if (isCrit) baseDamage *= 1.5f;
+
+            // ★ 兵种相克加成
+            float classBonus = ClassData.GetCounterMultiplier(attacker.UnitClass, defender.UnitClass);
+            baseDamage *= classBonus;
 
             // 地形防御
             baseDamage *= (100 - terrainDefBonus) / 100f;

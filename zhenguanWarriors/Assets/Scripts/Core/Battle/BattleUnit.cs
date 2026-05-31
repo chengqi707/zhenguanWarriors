@@ -1,4 +1,5 @@
 using System;
+using ZhenguanWarriors.Core.Character;
 
 namespace ZhenguanWarriors.Core.Battle
 {
@@ -35,6 +36,7 @@ namespace ZhenguanWarriors.Core.Battle
         public string Id { get; }
         public string Name { get; }
         public Faction Faction { get; }
+        public ClassType UnitClass { get; set; }  // 兵种
         public int Level { get; set; }
 
         // ========== 战斗五维 ==========
@@ -61,13 +63,14 @@ namespace ZhenguanWarriors.Core.Battle
         public bool IsDead => !IsAlive;
 
         // ========== 构造函数 ==========
-        public BattleUnit(string id, string name, Faction faction,
+        public BattleUnit(string id, string name, Faction faction, ClassType unitClass,
             int str, int cmd, int @int, int agi, int luk,
             int hp, int mp, int move, int attackRange)
         {
             Id = id;
             Name = name;
             Faction = faction;
+            UnitClass = unitClass;
             Strength = str;
             Command = cmd;
             Intelligence = @int;
@@ -77,8 +80,8 @@ namespace ZhenguanWarriors.Core.Battle
             CurrentHp = hp;
             MaxMp = mp;
             CurrentMp = mp;
-            MoveRange = move;
-            AttackRange = attackRange;
+            MoveRange = move > 0 ? move : ClassData.GetBaseMove(unitClass);
+            AttackRange = attackRange > 0 ? attackRange : ClassData.GetBaseAttackRange(unitClass);
             Level = 1;
         }
 

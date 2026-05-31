@@ -1,6 +1,7 @@
 using UnityEngine;
 using ZhenguanWarriors.Core.Battle;
 using ZhenguanWarriors.Core.Combat;
+using ZhenguanWarriors.Core.Character;
 using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
@@ -96,7 +97,7 @@ namespace ZhenguanWarriors.View.BattleView
         private void SetupBattleUnits()
         {
             // 玩家方——李世民
-            var liShiMin = new BattleUnit("lishimin", "李世民", Faction.Player,
+            var liShiMin = new BattleUnit("lishimin", "李世民", Faction.Player, ClassType.Cavalry,
                 str: 82, cmd: 95, @int: 88, agi: 78, luk: 90,
                 hp: 120, mp: 50, move: 5, attackRange: 1)
             {
@@ -105,7 +106,7 @@ namespace ZhenguanWarriors.View.BattleView
             _allUnits.Add(liShiMin);
 
             // 玩家方——李靖
-            var liJing = new BattleUnit("li_jing", "李靖", Faction.Player,
+            var liJing = new BattleUnit("li_jing", "李靖", Faction.Player, ClassType.Cavalry,
                 str: 90, cmd: 85, @int: 75, agi: 70, luk: 75,
                 hp: 100, mp: 30, move: 6, attackRange: 1)
             {
@@ -114,7 +115,7 @@ namespace ZhenguanWarriors.View.BattleView
             _allUnits.Add(liJing);
 
             // 敌方——校尉
-            var enemy1 = new BattleUnit("enemy_1", "刘校尉", Faction.Enemy,
+            var enemy1 = new BattleUnit("enemy_1", "刘校尉", Faction.Enemy, ClassType.Infantry,
                 str: 60, cmd: 50, @int: 30, agi: 40, luk: 30,
                 hp: 60, mp: 10, move: 4, attackRange: 1)
             {
@@ -123,7 +124,7 @@ namespace ZhenguanWarriors.View.BattleView
             _allUnits.Add(enemy1);
 
             // 敌方——步兵
-            var enemy2 = new BattleUnit("enemy_2", "张步兵", Faction.Enemy,
+            var enemy2 = new BattleUnit("enemy_2", "张步兵", Faction.Enemy, ClassType.HeavyInfantry,
                 str: 55, cmd: 60, @int: 20, agi: 35, luk: 25,
                 hp: 80, mp: 0, move: 3, attackRange: 1)
             {

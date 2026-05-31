@@ -1,5 +1,6 @@
 using UnityEngine;
 using ZhenguanWarriors.Core.Battle;
+using ZhenguanWarriors.Core.Character;
 
 namespace ZhenguanWarriors.View.BattleView
 {
@@ -84,6 +85,19 @@ namespace ZhenguanWarriors.View.BattleView
             nameLabel.transform.localPosition = new Vector3(0, -unitRadius - 0.15f, -0.03f);
             var labelMr = labelGo.AddComponent<MeshRenderer>();
             labelMr.material = nameLabel.font.material;
+
+            // --- 兵种标签 ---
+            var classGo = new GameObject("ClassLabel");
+            classGo.transform.SetParent(transform, false);
+            var classLabel = classGo.AddComponent<TextMesh>();
+            classLabel.text = ClassData.GetName(_unit.UnitClass);
+            classLabel.fontSize = 8;
+            classLabel.color = new Color(0.8f, 0.8f, 0.6f);
+            classLabel.anchor = TextAnchor.MiddleCenter;
+            classLabel.alignment = TextAlignment.Center;
+            classLabel.transform.localPosition = new Vector3(0, -unitRadius - 0.35f, -0.03f);
+            var classMr = classGo.AddComponent<MeshRenderer>();
+            classMr.material = classLabel.font.material;
         }
 
         // ========== 生成纹理方法 ==========
