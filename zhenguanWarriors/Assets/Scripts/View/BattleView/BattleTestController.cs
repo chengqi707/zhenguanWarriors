@@ -36,7 +36,6 @@ namespace ZhenguanWarriors.View.BattleView
                 _battleUI = gameObject.AddComponent<BattleUI>();
 
             SetupBattleUnits();
-            SetupCamera();
 
             _turnManager = new TurnManager(_allUnits);
             _turnManager.OnUnitTurnStart += OnUnitTurnStart;
@@ -51,24 +50,45 @@ namespace ZhenguanWarriors.View.BattleView
         {
             if (_isAnimating) return;
 
-            if (Input.GetMouseButtonDown(0))
-                HandleClick();
+            // 手机触摸输入
+            if (Input.touchCount > 0)
+            {
+                Touch touch = Input.GetTouch(0);
+                if (touch.phase == TouchPhase.Began)
+                    HandleScreenTap(touch.position);
+            }
+            // 鼠标点击（Editor/PC 调试用）
+            else if (Input.GetMouseButtonDown(0))
+            {
+                HandleScreenTap(Input.mousePosition);
+            }
 
             if (Input.GetKeyDown(KeyCode.Space))
                 EndCurrentTurn();
         }
 
-        // ========== 摄像机设置 ==========
-
-        private void SetupCamera()
+        /// <summary>屏幕坐标 → 世界坐标 → 处理点击</summary>
+        private void HandleScreenTap(Vector2 screenPos)
         {
-            Camera cam = Camera.main;
-            if (cam != null)
+            // Camera.main 安全检测
+            if (Camera.main == null)
             {
-                cam.orthographic = true;
-                cam.orthographicSize = 5f;
-                cam.transform.position = new Vector3(6f, 4f, -10f);
+                Debug.LogError("Camera.main 为空");
+                return;
             }
+
+            // 检查 HexGridView 是否就绪
+            if (_hexView == null || _hexView.Grid == null)
+            {
+                Debug.LogError("HexGridView 尚未初始化");
+                return;
+            }
+
+            Vector3 worldPos = Camera.main.ScreenToWorldPoint(
+                new Vector3(screenPos.x, screenPos.y, 0));
+            worldPos.z = 0;
+
+            ProcessClick(worldPos);
         }
 
         // ========== 设置单位 ==========
@@ -121,12 +141,9 @@ namespace ZhenguanWarriors.View.BattleView
 
         // ========== 交互处理 ==========
 
-        private void HandleClick()
+        private void ProcessClick(Vector3 worldPos)
         {
-            Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            mousePos.z = 0;
-
-            var clickedCell = _hexView.WorldToHex(mousePos);
+            var clickedCell = _hexView.WorldToHex(worldPos);
             if (clickedCell == null) return;
 
             HexCoord cell = clickedCell.Value;
