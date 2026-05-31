@@ -102,7 +102,7 @@ namespace ZhenguanWarriors.View.BattleView
             }
         }
 
-        /// <summary>构建六边形 Mesh</summary>
+        /// <summary>构建六边形 Mesh（Pointy-top：尖顶朝上）</summary>
         private Mesh BuildHexMesh(float size)
         {
             var mesh = new Mesh();
@@ -111,7 +111,7 @@ namespace ZhenguanWarriors.View.BattleView
 
             for (int i = 0; i < 6; i++)
             {
-                float angle = Mathf.Deg2Rad * (60 * i - 30); // flat-top
+                float angle = Mathf.Deg2Rad * (90 - 60 * i); // pointy-top
                 verts[i] = new Vector3(size * Mathf.Cos(angle),
                                         size * Mathf.Sin(angle), 0);
             }
@@ -130,19 +130,19 @@ namespace ZhenguanWarriors.View.BattleView
             return mesh;
         }
 
-        /// <summary>HexCoord → 世界坐标（Flat-top）</summary>
+        /// <summary>HexCoord → 世界坐标（Pointy-top）</summary>
         public Vector3 HexToWorld(HexCoord c)
         {
-            float x = hexSize * 1.5f * c.q;
-            float y = hexSize * (Mathf.Sqrt(3) * 0.5f * c.q + Mathf.Sqrt(3) * c.r);
+            float x = hexSize * (Mathf.Sqrt(3) * c.q + Mathf.Sqrt(3) * 0.5f * c.r);
+            float y = hexSize * (1.5f * c.r);
             return new Vector3(x, y, 0);
         }
 
-        /// <summary>世界坐标 → HexCoord</summary>
+        /// <summary>世界坐标 → HexCoord（Pointy-top 逆推）</summary>
         public HexCoord? WorldToHex(Vector3 pos)
         {
-            float q = (2f / 3f * pos.x) / hexSize;
-            float r = (-1f / 3f * pos.x + Mathf.Sqrt(3) / 3f * pos.y) / hexSize;
+            float r = (2f / 3f * pos.y) / hexSize;
+            float q = (Mathf.Sqrt(3) / 3f * pos.x - 1f / 3f * pos.y) / hexSize;
             return HexRound(q, r);
         }
 
@@ -166,13 +166,13 @@ namespace ZhenguanWarriors.View.BattleView
             return _grid.InBounds(coord) ? coord : null;
         }
 
-        /// <summary>获取六边形顶点（用于碰撞体）</summary>
+        /// <summary>获取六边形顶点（用于碰撞体，Pointy-top）</summary>
         private Vector2[] GetHexVertices2D(float size)
         {
             var pts = new Vector2[6];
             for (int i = 0; i < 6; i++)
             {
-                float angle = Mathf.Deg2Rad * (60 * i - 30);
+                float angle = Mathf.Deg2Rad * (90 - 60 * i);
                 pts[i] = new Vector2(size * Mathf.Cos(angle),
                                      size * Mathf.Sin(angle));
             }
