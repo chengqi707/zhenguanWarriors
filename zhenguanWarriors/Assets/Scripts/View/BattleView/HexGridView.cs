@@ -200,8 +200,6 @@ namespace ZhenguanWarriors.View.BattleView
                 if (_hexObjects.TryGetValue(pos, out var go))
                 {
                     var mr = go.GetComponent<MeshRenderer>();
-                    var originalColor = mr.color;
-                    // 做一个半透高亮
                     mr.material.color = moveRangeColor;
                 }
             }
