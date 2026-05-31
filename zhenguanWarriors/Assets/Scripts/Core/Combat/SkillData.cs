@@ -121,8 +121,7 @@ namespace ZhenguanWarriors.Core.Combat
 
                 ["revive"] = new SkillData(
                     "revive", "回春", SkillType.Revive, SkillTargetType.Ally,
-                    mpCost: 40, range: 2, power: 30,
-                    desc: "复活目标并恢复30%HP（每关限1次）"),
+                    40, 2, 30, false, 0, "复活目标并恢复30%HP（每关限1次）"),
             };
         }
     }
