@@ -56,20 +56,23 @@
   </PropertyGroup>
   <ItemGroup>
     <Analyzer Include="C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\Extensions\Microsoft\Visual Studio Tools for Unity\Analyzers\Microsoft.Unity.Analyzers.dll" />
-    <Analyzer Include="C:\chengqi\Android\AndroidProject\zhenguanWarriors\zhenguanWarriors\Library\PackageCache\com.unity.collab-proxy@2.12.4\Lib\Editor\Unity.Plastic.Newtonsoft.Json.dll" />
-    <Analyzer Include="C:\chengqi\Android\AndroidProject\zhenguanWarriors\zhenguanWarriors\Library\PackageCache\com.unity.collab-proxy@2.12.4\Lib\Editor\log4netPlastic.dll" />
-    <Analyzer Include="C:\chengqi\Android\AndroidProject\zhenguanWarriors\zhenguanWarriors\Library\PackageCache\com.unity.collab-proxy@2.12.4\Lib\Editor\Unity.Plastic.Antlr3.Runtime.dll" />
     <Analyzer Include="C:\Program Files\Tuanjie\Hub\Editor\2022.3.62t8\Editor\Data\Tools\Unity.SourceGenerators\Unity.SourceGenerators.dll" />
     <Analyzer Include="C:\Program Files\Tuanjie\Hub\Editor\2022.3.62t8\Editor\Data\Tools\Unity.SourceGenerators\Unity.Properties.SourceGenerator.dll" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Scripts\Core\Battle\TurnManager.cs" />
+    <Compile Include="Assets\Scripts\View\BattleView\BattleTestController.cs" />
+    <Compile Include="Assets\Scripts\View\BattleView\BattleSceneStarter.cs" />
     <Compile Include="Assets\Scripts\Core\Battle\HexCoord.cs" />
     <Compile Include="Assets\Scripts\Core\Battle\HexGrid.cs" />
     <Compile Include="Assets\Scripts\Core\Battle\PathFinder.cs" />
     <Compile Include="Assets\Scripts\Core\Combat\CombatCalculator.cs" />
+    <Compile Include="Assets\Scripts\View\BattleView\HexGridView.cs" />
     <Compile Include="Assets\Scripts\Core\Battle\BattleUnit.cs" />
     <Compile Include="Assets\Scripts\Core\Battle\TerrainType.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Assets\SETUP_GUIDE.txt" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
