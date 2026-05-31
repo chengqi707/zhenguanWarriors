@@ -1,93 +1,86 @@
 using UnityEngine;
-using TMPro;
 using ZhenguanWarriors.Core.Battle;
 
 namespace ZhenguanWarriors.View.BattleView
 {
     /// <summary>
-    /// 战斗 UI：回合信息、操作提示等
+    /// 战斗 UI：回合信息、操作提示（使用内建 TextMesh，无需TMP）
     /// </summary>
     public class BattleUI : MonoBehaviour
     {
-        [Header("UI 引用")]
-        public TextMeshPro turnInfoText;
-        public TextMeshPro phaseText;
-        public TextMeshPro tipText;
+        private TextMesh _turnInfoText;
+        private TextMesh _phaseText;
+        private TextMesh _tipText;
 
         private void Start()
         {
-            CreateCanvas();
+            CreateUI();
         }
 
-        private void CreateCanvas()
+        private void CreateUI()
         {
-            // 创建 UI Canvas（World Space 模式，方便与场景配合）
-            var canvasGo = new GameObject("BattleCanvas");
-            canvasGo.transform.SetParent(transform, false);
-
-            var canvas = canvasGo.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.WorldSpace;
-            var rect = canvas.GetComponent<RectTransform>();
-            rect.sizeDelta = new Vector2(12, 8);
-            rect.localScale = Vector3.one * 0.02f;
-            rect.position = new Vector3(6, 0, -2);
-
             // 回合标题（左上）
-            turnInfoText = CreateText("TurnText", "第 1 回合",
-                new Vector3(-6, 3.5f, 0), 3.5f, Color.white, rect);
+            _turnInfoText = CreateText("TurnText", "第 1 回合",
+                new Vector3(0.5f, 7.0f, -1f), 28, Color.white,
+                TextAnchor.UpperLeft);
 
             // 阶段文字（左上第二行）
-            phaseText = CreateText("PhaseText", "玩家回合",
-                new Vector3(-6, 2.8f, 0), 2.2f, new Color(0.6f, 0.8f, 1f), rect);
+            _phaseText = CreateText("PhaseText", "玩家回合",
+                new Vector3(0.5f, 6.3f, -1f), 20, new Color(0.6f, 0.8f, 1f),
+                TextAnchor.UpperLeft);
+
+            // 底部操作提示背景（深色条）
+            var bgGo = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            bgGo.name = "TipBg";
+            bgGo.transform.localScale = new Vector3(12f, 0.8f, 1f);
+            bgGo.transform.position = new Vector3(6f, 0.5f, -1f);
+            var bgRenderer = bgGo.GetComponent<Renderer>();
+            bgRenderer.material = new Material(Shader.Find("Sprites/Default"));
+            bgRenderer.material.color = new Color(0, 0, 0, 0.5f);
 
             // 底部操作提示
-            tipText = CreateText("TipText", "左键选中己方单位 → 点击格子移动/攻击",
-                new Vector3(0, -3.5f, 0), 1.8f, new Color(0.7f, 0.7f, 0.7f), rect);
-
-            // 添加一个半透明背景条（底部提示）
-            var bgGo = new GameObject("TipBg");
-            bgGo.transform.SetParent(rect, false);
-            var bgImage = bgGo.AddComponent<UnityEngine.UI.Image>();
-            bgImage.color = new Color(0, 0, 0, 0.4f);
-            var bgRect = bgGo.GetComponent<RectTransform>();
-            bgRect.sizeDelta = new Vector2(14, 1.2f);
-            bgRect.anchoredPosition = new Vector2(0, -3.5f);
+            _tipText = CreateText("TipText", "左键选中己方单位 → 点击格子移动/攻击  |  Space=结束回合",
+                new Vector3(6f, 0.5f, -0.5f), 16, new Color(0.8f, 0.8f, 0.8f),
+                TextAnchor.MiddleCenter);
         }
 
-        private TextMeshPro CreateText(string name, string text,
-            Vector3 pos, float fontSize, Color color, Transform parent)
+        private TextMesh CreateText(string name, string content,
+            Vector3 position, int fontSize, Color color, TextAnchor anchor)
         {
             var go = new GameObject(name);
-            go.transform.SetParent(parent, false);
-            go.transform.localPosition = pos;
+            go.transform.position = position;
 
-            var tmp = go.AddComponent<TextMeshPro>();
-            tmp.text = text;
-            tmp.fontSize = fontSize;
-            tmp.color = color;
-            tmp.alignment = TextAlignmentOptions.Center;
-            return tmp;
+            var text = go.AddComponent<TextMesh>();
+            text.text = content;
+            text.fontSize = fontSize;
+            text.color = color;
+            text.anchor = anchor;
+            text.alignment = TextAlignment.Center;
+
+            // TextMesh 需要 MeshRenderer
+            var mr = go.AddComponent<MeshRenderer>();
+            mr.material = text.font.material;
+
+            // 让文字始终面向摄像机（用 Billboard 方式？不——固定位置更稳定）
+            // 在 orthographic 摄像机下，World Space TextMesh 总是可见
+
+            return text;
         }
 
         // ========== 公共更新方法 ==========
 
         public void UpdateTurnInfo(int turnNumber, string phaseName)
         {
-            if (turnInfoText != null)
-                turnInfoText.text = $"第 {turnNumber} 回合";
-            if (phaseText != null)
-                phaseText.text = phaseName;
+            if (_turnInfoText != null)
+                _turnInfoText.text = $"第 {turnNumber} 回合";
+            if (_phaseText != null)
+                _phaseText.text = phaseName;
         }
 
         public void ShowTip(string tip)
         {
-            if (tipText != null)
-                tipText.text = tip;
-        }
-
-        public void ShowActionLog(string log)
-        {
-            Debug.Log(log);
+            if (_tipText != null)
+                _tipText.text = tip;
         }
     }
 }

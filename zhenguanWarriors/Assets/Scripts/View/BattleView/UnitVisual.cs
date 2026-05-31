@@ -13,7 +13,7 @@ namespace ZhenguanWarriors.View.BattleView
         public SpriteRenderer hpBarBg;
         public SpriteRenderer hpBarFill;
         public SpriteRenderer selectionRing;
-        public TMPro.TextMeshPro nameLabel;
+        public TextMesh nameLabel;
 
         [Header("颜色")]
         public Color playerColor = new Color(0.2f, 0.5f, 0.9f);   // 蓝
@@ -72,16 +72,18 @@ namespace ZhenguanWarriors.View.BattleView
                 transform, Vector3.forward * 0.01f);
             selectionRing.gameObject.SetActive(false);
 
-            // --- 名字标签 ---
+            // --- 名字标签（TextMesh，无需TMP） ---
             var labelGo = new GameObject("NameLabel");
             labelGo.transform.SetParent(transform, false);
-            nameLabel = labelGo.AddComponent<TMPro.TextMeshPro>();
+            nameLabel = labelGo.AddComponent<TextMesh>();
             nameLabel.text = _unit.Name;
-            nameLabel.fontSize = 1.2f;
-            nameLabel.alignment = TMPro.TextAlignmentOptions.Center;
+            nameLabel.fontSize = 10;
             nameLabel.color = Color.white;
+            nameLabel.anchor = TextAnchor.MiddleCenter;
+            nameLabel.alignment = TextAlignment.Center;
             nameLabel.transform.localPosition = new Vector3(0, -unitRadius - 0.15f, -0.03f);
-            nameLabel.sortingOrder = 10;
+            var labelMr = labelGo.AddComponent<MeshRenderer>();
+            labelMr.material = nameLabel.font.material;
         }
 
         // ========== 生成纹理方法 ==========
