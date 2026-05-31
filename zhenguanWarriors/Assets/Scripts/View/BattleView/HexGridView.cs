@@ -217,10 +217,12 @@ namespace ZhenguanWarriors.View.BattleView
 
         private void SetupCamera()
         {
+            var cam = Camera.main;
+            cam.orthographic = true;
             float cx = gridWidth * hexSize * 0.75f;
             float cy = gridHeight * hexSize * 0.5f;
-            Camera.main.transform.position = new Vector3(cx, cy, -10);
-            Camera.main.orthographicSize = Mathf.Max(gridWidth, gridHeight) * hexSize * 0.6f;
+            cam.transform.position = new Vector3(cx, cy, -10);
+            cam.orthographicSize = Mathf.Max(gridWidth, gridHeight) * hexSize * 0.6f;
         }
     }
 }
