@@ -1452,9 +1452,6 @@ namespace ZhenguanWarriors.View.BattleView
                 GUI.backgroundColor = Theme.Gold;
                 if (GUI.Button(new Rect(btnStartX + btnW + gap, btnY, btnW, 40), "▶ 下一关",
                     Theme.MakeButton(15)))
-                    {
-                    string nextId = _levelOrder[_currentLevelIndex + 1];
-                    GameState.UnlockedLevels.Add(nextId);
                 {
                     string nextId = _levelOrder[_currentLevelIndex + 1];
                     GameState.UnlockedLevels.Add(nextId);
