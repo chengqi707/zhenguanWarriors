@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ZhenguanWarriors.Core.Character;
 
 namespace ZhenguanWarriors.Core.Battle
 {
@@ -32,12 +33,18 @@ namespace ZhenguanWarriors.Core.Battle
                 _cells[c] = t;
         }
 
-        /// <summary>是否可通行</summary>
+        /// <summary>是否可通行（不考虑兵种）</summary>
         public bool IsWalkable(HexCoord c, bool ignoreUnits = false) =>
             InBounds(c) && TerrainData.MoveCost(GetTerrain(c)) < int.MaxValue;
 
-        /// <summary>获取某格范围内所有可通行的格子</summary>
-        public List<HexCoord> GetReachableCells(HexCoord start, int movePoints)
+        /// <summary>是否可通行（考虑兵种地形适性）</summary>
+        public bool IsWalkable(HexCoord c, ClassType unitClass) =>
+            InBounds(c)
+            && ClassData.CanEnterTerrain(unitClass, GetTerrain(c))
+            && TerrainData.MoveCost(GetTerrain(c)) < int.MaxValue;
+
+        /// <summary>获取某兵种在某格范围内的可通行格子（考虑兵种地形适性）</summary>
+        public List<HexCoord> GetReachableCells(HexCoord start, int movePoints, ClassType unitClass)
         {
             var visited = new HashSet<HexCoord> { start };
             var frontier = new Queue<(HexCoord coord, int cost)>();
@@ -48,10 +55,12 @@ namespace ZhenguanWarriors.Core.Battle
                 var (current, cost) = frontier.Dequeue();
                 foreach (var next in current.Neighbors())
                 {
-                    if (!IsWalkable(next) || visited.Contains(next))
+                    if (!IsWalkable(next, unitClass) || visited.Contains(next))
                         continue;
 
-                    int nextCost = cost + TerrainData.MoveCost(GetTerrain(next));
+                    int terrainCost = TerrainData.MoveCost(GetTerrain(next));
+                    float multiplier = ClassData.GetTerrainCostMultiplier(unitClass, GetTerrain(next));
+                    int nextCost = cost + (int)(terrainCost * multiplier);
                     if (nextCost <= movePoints)
                     {
                         visited.Add(next);

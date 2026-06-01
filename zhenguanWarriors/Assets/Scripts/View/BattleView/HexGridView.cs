@@ -1,5 +1,6 @@
 using UnityEngine;
 using ZhenguanWarriors.Core.Battle;
+using ZhenguanWarriors.Core.Character;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -190,11 +191,11 @@ namespace ZhenguanWarriors.View.BattleView
             _ => Color.magenta
         };
 
-        /// <summary>高亮移动范围</summary>
-        public void ShowMoveRange(HexCoord start, int movePoints)
+        /// <summary>高亮移动范围（考虑兵种地形适性）</summary>
+        public void ShowMoveRange(HexCoord start, int movePoints, ClassType unitClass)
         {
             ClearHighlights();
-            var range = _pathFinder.GetMoveRange(start, movePoints);
+            var range = _pathFinder.GetMoveRange(start, movePoints, unitClass);
             foreach (var (pos, _) in range)
             {
                 if (_hexObjects.TryGetValue(pos, out var go))
@@ -212,6 +213,16 @@ namespace ZhenguanWarriors.View.BattleView
             {
                 var mr = go.GetComponent<MeshRenderer>();
                 mr.material.color = GetTerrainColor(_grid.GetTerrain(pos));
+            }
+        }
+
+        /// <summary>更新指定格子的地形颜色（地形改变后调用）</summary>
+        public void RefreshCellColor(HexCoord cell)
+        {
+            if (_hexObjects.TryGetValue(cell, out var go))
+            {
+                var mr = go.GetComponent<MeshRenderer>();
+                mr.material.color = GetTerrainColor(_grid.GetTerrain(cell));
             }
         }
 

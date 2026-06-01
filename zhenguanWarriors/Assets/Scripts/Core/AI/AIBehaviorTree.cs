@@ -1,0 +1,325 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using ZhenguanWarriors.Core.Battle;
+using ZhenguanWarriors.Core.Character;
+using ZhenguanWarriors.Core.Combat;
+
+namespace ZhenguanWarriors.Core.AI
+{
+    /// <summary>
+    /// AI行动类型
+    /// </summary>
+    public enum AIActionType
+    {
+        Move,
+        Attack,
+        UseSkill,
+        Retreat,
+        Skip
+    }
+
+    /// <summary>
+    /// AI行动决策
+    /// </summary>
+    public class AIAction
+    {
+        public AIActionType Type;
+        public HexCoord TargetCell;     // 移动目标 / 计策目标
+        public BattleUnit TargetUnit;   // 攻击目标
+        public SkillData Skill;         // 使用的计策
+        public string Reason;           // 决策原因（调试用）
+    }
+
+    /// <summary>
+    /// AI行为树——敌方单位每回合的决策逻辑
+    /// </summary>
+    public class AIBehaviorTree
+    {
+        private readonly List<BattleUnit> _allUnits;
+        private readonly HexGrid _grid;
+        private readonly WeatherSystem _weather;
+        private readonly SkillExecutor _skillExecutor;
+        private readonly string _difficulty; // "easy" / "normal" / "hard"
+
+        public AIBehaviorTree(List<BattleUnit> allUnits, HexGrid grid,
+            WeatherSystem weather, SkillExecutor skillExecutor, string difficulty = "normal")
+        {
+            _allUnits = allUnits;
+            _grid = grid;
+            _weather = weather;
+            _skillExecutor = skillExecutor;
+            _difficulty = difficulty;
+        }
+
+        /// <summary>为指定敌方单位做决策</summary>
+        public AIAction Decide(BattleUnit unit)
+        {
+            if (!unit.IsAlive)
+                return new AIAction { Type = AIActionType.Skip, Reason = "已阵亡" };
+
+            // === 1. 撤退判断 ===
+            var retreat = CheckRetreat(unit);
+            if (retreat != null) return retreat;
+
+            // 极简难度：只用集火+移动，不用计策不撤退
+            if (_difficulty == "easy")
+                return DecideAttackOrMove(unit);
+
+            // === 2. 高价值计策 ===
+            var skillAction = CheckSkillUsage(unit);
+            if (skillAction != null) return skillAction;
+
+            // === 3. 集火攻击 ===
+            var attack = CheckAttack(unit);
+            if (attack != null) return attack;
+
+            // === 4. 移动逼近 ===
+            var move = CheckMoveTowards(unit);
+            if (move != null) return move;
+
+            return new AIAction { Type = AIActionType.Skip, Reason = "无行动" };
+        }
+
+        // ========== 1. 撤退判断 ==========
+        private AIAction CheckRetreat(BattleUnit unit)
+        {
+            // 简单/极简难度不撤退
+            if (_difficulty == "easy") return null;
+
+            float hpRatio = (float)unit.CurrentHp / unit.MaxHp;
+            int retreatThreshold = _difficulty == "hard" ? 25 : 30;
+            if (hpRatio > retreatThreshold / 100f) return null;
+
+            // 找最近的友方治疗者或安全后方
+            var allies = GetAliveUnits(unit.Faction)
+                .Where(u => u != unit && u.HasSkills
+                    && u.SkillIds.Any(id => {
+                        var s = SkillLibrary.Get(id);
+                        return s != null && s.type == SkillType.Heal;
+                    }))
+                .ToList();
+
+            HexCoord retreatTarget;
+            if (allies.Count > 0)
+            {
+                var healer = allies.OrderBy(a => unit.Position.Distance(a.Position)).First();
+                retreatTarget = healer.Position;
+            }
+            else
+            {
+                // 向阵营后方撤退（假设敌方在右侧，向左退）
+                retreatTarget = new HexCoord(Math.Max(0, unit.Position.q - 3), unit.Position.r);
+            }
+
+            var path = FindPath(unit, retreatTarget);
+            if (path.Count > 1)
+            {
+                var nextStep = path[1];
+                return new AIAction
+                {
+                    Type = AIActionType.Retreat,
+                    TargetCell = nextStep,
+                    Reason = $"HP低（{unit.CurrentHp}/{unit.MaxHp}），撤退"
+                };
+            }
+            return null;
+        }
+
+        // ========== 2. 高价值计策 ==========
+        private AIAction CheckSkillUsage(BattleUnit unit)
+        {
+            if (!unit.HasSkills || unit.CurrentMp <= 0) return null;
+
+            foreach (var skillId in unit.SkillIds)
+            {
+                var skill = SkillLibrary.Get(skillId);
+                if (skill == null || unit.CurrentMp < skill.mpCost) continue;
+
+                // 极简难度不用计策
+                if (_difficulty == "easy" && skill.type != SkillType.Heal) continue;
+
+                // AOE计策：找范围内敌人最多的点
+                if (skill.isAOE && skill.targetType == SkillTargetType.Enemy)
+                {
+                    var bestTarget = FindBestAOETarget(unit, skill);
+                    if (bestTarget.enemyCount >= (_difficulty == "hard" ? 2 : 3))
+                    {
+                        return new AIAction
+                        {
+                            Type = AIActionType.UseSkill,
+                            Skill = skill,
+                            TargetCell = bestTarget.cell,
+                            Reason = $"AOE计策覆盖{bestTarget.enemyCount}个敌人"
+                        };
+                    }
+                }
+
+                // 单体攻击计策：找范围内HP最低的敌人
+                if (!skill.isAOE && skill.targetType == SkillTargetType.Enemy
+                    && skill.power > 0)
+                {
+                    var enemies = GetAliveUnits(GetEnemyFaction(unit.Faction))
+                        .Where(e => unit.Position.Distance(e.Position) <= skill.range)
+                        .OrderBy(e => e.CurrentHp)
+                        .ToList();
+
+                    if (enemies.Count > 0)
+                    {
+                        return new AIAction
+                        {
+                            Type = AIActionType.UseSkill,
+                            Skill = skill,
+                            TargetCell = enemies[0].Position,
+                            Reason = $"单体计策攻击最弱目标 {enemies[0].Name}"
+                        };
+                    }
+                }
+            }
+            return null;
+        }
+
+        // ========== 3. 集火攻击 ==========
+        private AIAction CheckAttack(BattleUnit unit)
+        {
+            var enemies = GetAliveUnits(GetEnemyFaction(unit.Faction))
+                .Where(e => unit.Position.Distance(e.Position) <= unit.AttackRange)
+                .ToList();
+
+            if (enemies.Count == 0) return null;
+
+            // 威胁评估排序
+            var scored = enemies.Select(e => new
+            {
+                unit = e,
+                score = EvaluateThreat(e, unit)
+            }).OrderByDescending(x => x.score).ToList();
+
+            var target = scored[0].unit;
+            return new AIAction
+            {
+                Type = AIActionType.Attack,
+                TargetUnit = target,
+                Reason = $"攻击目标 {target.Name}（威胁值{scored[0].score:F0}）"
+            };
+        }
+
+        // ========== 4. 移动逼近 ==========
+        private AIAction CheckMoveTowards(BattleUnit unit)
+        {
+            var enemies = GetAliveUnits(GetEnemyFaction(unit.Faction));
+            if (enemies.Count == 0) return null;
+
+            // 找威胁值最低且最近的敌人（保留1移动力撤退空间）
+            var target = enemies
+                .Select(e => new { unit = e, dist = unit.Position.Distance(e.Position), threat = EvaluateThreat(e, unit) })
+                .OrderBy(e => e.dist)
+                .ThenBy(e => e.threat)
+                .First().unit;
+
+            var path = FindPath(unit, target.Position);
+            if (path.Count <= 1) return null;
+
+            // 走到攻击范围内即可，保留1格移动力
+            int maxSteps = Math.Min(path.Count - 1, unit.MoveRange - 1);
+            if (maxSteps < 1) maxSteps = 1;
+
+            var dest = path[maxSteps];
+            // 确保目标格没有友方单位挡路
+            if (IsCellOccupiedByAlly(dest, unit.Faction) && maxSteps > 1)
+            {
+                // 找前一个可用格
+                for (int i = maxSteps - 1; i >= 1; i--)
+                {
+                    if (!IsCellOccupiedByAlly(path[i], unit.Faction))
+                    {
+                        dest = path[i];
+                        break;
+                    }
+                }
+            }
+
+            if (dest == unit.Position) return null;
+
+            return new AIAction
+            {
+                Type = AIActionType.Move,
+                TargetCell = dest,
+                Reason = $"向 {target.Name} 逼近"
+            };
+        }
+
+        // ========== 辅助方法 ==========
+
+        private AIAction DecideAttackOrMove(BattleUnit unit)
+        {
+            var attack = CheckAttack(unit);
+            if (attack != null) return attack;
+            return CheckMoveTowards(unit) ?? new AIAction { Type = AIActionType.Skip };
+        }
+
+        private Faction GetEnemyFaction(Faction self) => self == Faction.Enemy ? Faction.Player : Faction.Enemy;
+
+        private List<BattleUnit> GetAliveUnits(Faction faction) =>
+            _allUnits.Where(u => u.Faction == faction && u.IsAlive).ToList();
+
+        private List<HexCoord> FindPath(BattleUnit unit, HexCoord target)
+        {
+            var pf = new PathFinder(_grid);
+            return pf.FindPath(unit.Position, target, unit.UnitClass);
+        }
+
+        private bool IsCellOccupiedByAlly(HexCoord cell, Faction faction) =>
+            _allUnits.Any(u => u.IsAlive && u.Faction == faction && u.Position == cell);
+
+        /// <summary>威胁评估</summary>
+        private float EvaluateThreat(BattleUnit target, BattleUnit self)
+        {
+            float threat = 0;
+            // HP权重：HP越低越优先集火
+            threat += (1f - (float)target.CurrentHp / target.MaxHp) * 300f;
+            // 输出权重
+            threat += target.Strength * 2f;
+            // 距离权重：近的优先
+            int dist = self.Position.Distance(target.Position);
+            threat -= dist * 10f;
+            // 兵种克制加成
+            float counter = ClassData.GetCounterMultiplier(self.UnitClass, target.UnitClass);
+            if (counter > 1f) threat += 150f;
+            // 关键单位加成
+            if (target.Name.Contains("李世民")) threat += 500f;
+            if (target.UnitClass == ClassType.Strategist) threat += 200f;
+            if (target.SkillIds.Any(id => {
+                var s = SkillLibrary.Get(id);
+                return s != null && s.type == SkillType.Heal;
+            })) threat += 150f;
+
+            return threat;
+        }
+
+        /// <summary>找最佳AOE目标点</summary>
+        private (HexCoord cell, int enemyCount) FindBestAOETarget(BattleUnit caster, SkillData skill)
+        {
+            var enemies = GetAliveUnits(GetEnemyFaction(caster.Faction));
+            int bestCount = 0;
+            HexCoord bestCell = caster.Position;
+
+            // 在施法范围内搜索所有可达格
+            var pf = new PathFinder(_grid);
+            var reachable = pf.GetMoveRange(caster.Position, skill.range, caster.UnitClass);
+
+            foreach (var (cell, _) in reachable)
+            {
+                int count = cell.Range(skill.aoeRadius)
+                    .Count(c => _grid.InBounds(c) && enemies.Any(e => e.Position == c && e.IsAlive));
+                if (count > bestCount)
+                {
+                    bestCount = count;
+                    bestCell = cell;
+                }
+            }
+
+            return (bestCell, bestCount);
+        }
+    }
+}

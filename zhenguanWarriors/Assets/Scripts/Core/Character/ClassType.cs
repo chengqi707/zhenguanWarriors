@@ -71,11 +71,80 @@ namespace ZhenguanWarriors.Core.Character
         public static float GetTerrainCostMultiplier(ClassType t, TerrainType terrain) =>
             (t, terrain) switch
             {
+                // 骑兵：森林减速，山地极难，水域不可
                 (ClassType.Cavalry, TerrainType.Forest) => 1.5f,
-                (ClassType.Cavalry, TerrainType.Mountain) => 2.0f,
-                (ClassType.HeavyInfantry, TerrainType.Water) => 2.0f,
+                (ClassType.Cavalry, TerrainType.Mountain) => 3.0f,
+                (ClassType.Cavalry, TerrainType.Water) => 4.0f,
+                (ClassType.Cavalry, TerrainType.City) => 1.0f,
+                // 重步兵：山地有利，水域极难
                 (ClassType.HeavyInfantry, TerrainType.Mountain) => 0.5f,
+                (ClassType.HeavyInfantry, TerrainType.Water) => 3.0f,
+                (ClassType.HeavyInfantry, TerrainType.Forest) => 1.5f,
+                // 步兵：标准
+                (ClassType.Infantry, TerrainType.Forest) => 1.0f,
+                (ClassType.Infantry, TerrainType.Mountain) => 1.5f,
+                (ClassType.Infantry, TerrainType.City) => 0.8f,
+                // 弓兵：森林有利（隐蔽），山地标准
+                (ClassType.Archer, TerrainType.Forest) => 0.8f,
+                (ClassType.Archer, TerrainType.Mountain) => 1.2f,
+                // 器械：全地形减速（笨重），山地极难
+                (ClassType.Siege, TerrainType.Plain) => 1.0f,
+                (ClassType.Siege, TerrainType.Forest) => 2.0f,
+                (ClassType.Siege, TerrainType.Mountain) => 4.0f,
+                (ClassType.Siege, TerrainType.Water) => 4.0f,
+                (ClassType.Siege, TerrainType.City) => 1.0f,
+                // 谋士：标准
+                (ClassType.Strategist, TerrainType.Forest) => 1.0f,
+                (ClassType.Strategist, TerrainType.Mountain) => 1.5f,
                 _ => 1.0f
             };
+
+        /// <summary>
+        /// 兵种是否可进入某地形（false=不可通行）
+        /// </summary>
+        public static bool CanEnterTerrain(ClassType t, TerrainType terrain) =>
+            (t, terrain) switch
+            {
+                // 骑兵不可进入山地（悬崖峭壁）
+                (ClassType.Cavalry, TerrainType.Mountain) => false,
+                // 器械不可进入水域
+                (ClassType.Siege, TerrainType.Water) => false,
+                // 城墙任何人都不可进（由TerrainData处理）
+                (_, TerrainType.Wall) => false,
+                _ => true
+            };
+
+        // ========== 兵种通用特性 ==========
+
+        /// <summary>兵种特性类型</summary>
+        public enum ClassTrait
+        {
+            None,
+            Charge,      // 骑兵冲锋：平原移动后首次攻击+20%
+            LongShot,    // 弓兵远射：射程+1
+            SiegeAOE,    // 器械AOE：普攻对目标周围1格造成伤害
+            HealBonus,   // 谋士治疗强化（通用）
+        }
+
+        /// <summary>获取兵种通用特性</summary>
+        public static ClassTrait GetClassTrait(ClassType t) => t switch
+        {
+            ClassType.Cavalry => ClassTrait.Charge,
+            ClassType.Archer => ClassTrait.LongShot,
+            ClassType.Siege => ClassTrait.SiegeAOE,
+            _ => ClassTrait.None
+        };
+
+        /// <summary>兵种特性中文描述</summary>
+        public static string GetTraitDescription(ClassType t) => t switch
+        {
+            ClassType.Cavalry => "冲锋：平原移动后首次攻击伤害+20%",
+            ClassType.Archer => "远射：射程+1",
+            ClassType.Siege => "破阵：普攻对目标及周围1格造成伤害",
+            ClassType.Strategist => "远程：普攻射程2格，计策强化",
+            ClassType.HeavyInfantry => "铁壁：受到物理伤害-10%",
+            ClassType.Infantry => "均衡：不受地形负面移动力影响",
+            _ => ""
+        };
     }
 }

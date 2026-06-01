@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
+using ZhenguanWarriors.Core.Character;
 
 namespace ZhenguanWarriors.Core.Battle
 {
     /// <summary>
-    /// A* 寻路——基于六边形网格，支持地形消耗
+    /// A* 寻路——基于六边形网格，支持地形消耗与兵种适性
     /// </summary>
     public class PathFinder
     {
@@ -13,12 +14,17 @@ namespace ZhenguanWarriors.Core.Battle
         public PathFinder(HexGrid grid) => _grid = grid;
 
         /// <summary>
-        /// 寻路。返回从起点到终点的路径（含起点、终点），
+        /// 寻路（不考虑兵种）
+        /// </summary>
+        public List<HexCoord> FindPath(HexCoord start, HexCoord end) => FindPath(start, end, ClassType.Infantry);
+
+        /// <summary>
+        /// 寻路（考虑兵种地形适性）。返回从起点到终点的路径（含起点、终点），
         /// 不可达时返回空列表。
         /// </summary>
-        public List<HexCoord> FindPath(HexCoord start, HexCoord end)
+        public List<HexCoord> FindPath(HexCoord start, HexCoord end, ClassType unitClass)
         {
-            if (!_grid.IsWalkable(end))
+            if (!_grid.IsWalkable(end, unitClass))
                 return new List<HexCoord>();
 
             var frontier = new SortedSet<(int priority, int index, HexCoord coord)>();
@@ -39,10 +45,12 @@ namespace ZhenguanWarriors.Core.Battle
 
                 foreach (var next in current.Neighbors())
                 {
-                    if (!_grid.IsWalkable(next))
+                    if (!_grid.IsWalkable(next, unitClass))
                         continue;
 
-                    int moveCost = TerrainData.MoveCost(_grid.GetTerrain(next));
+                    int terrainCost = TerrainData.MoveCost(_grid.GetTerrain(next));
+                    float multiplier = ClassData.GetTerrainCostMultiplier(unitClass, _grid.GetTerrain(next));
+                    int moveCost = (int)(terrainCost * multiplier);
                     int newCost = costSoFar[current] + moveCost;
 
                     if (!costSoFar.ContainsKey(next) || newCost < costSoFar[next])
@@ -72,9 +80,15 @@ namespace ZhenguanWarriors.Core.Battle
         }
 
         /// <summary>
-        /// 在移动范围内寻找最短路径（BFS，用于移动范围显示）
+        /// 在移动范围内寻找最短路径（不考虑兵种）
         /// </summary>
-        public Dictionary<HexCoord, int> GetMoveRange(HexCoord start, int movePoints)
+        public Dictionary<HexCoord, int> GetMoveRange(HexCoord start, int movePoints) =>
+            GetMoveRange(start, movePoints, ClassType.Infantry);
+
+        /// <summary>
+        /// 在移动范围内寻找最短路径（考虑兵种地形适性，用于移动范围显示）
+        /// </summary>
+        public Dictionary<HexCoord, int> GetMoveRange(HexCoord start, int movePoints, ClassType unitClass)
         {
             var costs = new Dictionary<HexCoord, int> { [start] = 0 };
             var frontier = new Queue<HexCoord>();
@@ -87,10 +101,12 @@ namespace ZhenguanWarriors.Core.Battle
 
                 foreach (var next in current.Neighbors())
                 {
-                    if (!_grid.IsWalkable(next))
+                    if (!_grid.IsWalkable(next, unitClass))
                         continue;
 
-                    int moveCost = TerrainData.MoveCost(_grid.GetTerrain(next));
+                    int terrainCost = TerrainData.MoveCost(_grid.GetTerrain(next));
+                    float multiplier = ClassData.GetTerrainCostMultiplier(unitClass, _grid.GetTerrain(next));
+                    int moveCost = (int)(terrainCost * multiplier);
                     int newCost = currentCost + moveCost;
 
                     if (newCost <= movePoints &&

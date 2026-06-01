@@ -9,6 +9,7 @@ namespace ZhenguanWarriors.Core.Combat
     {
         FireAttack,     // 火攻——范围火伤
         RockSlide,      // 落石——地形依赖高伤
+        WaterAttack,    // 水攻——改变地形+范围伤害
         Rally,          // 鼓舞——群体加攻
         Heal,           // 医疗——单体治疗
         Volley,         // 乱射——多目标弓技
@@ -92,7 +93,12 @@ namespace ZhenguanWarriors.Core.Combat
                 ["rock_slide"] = new SkillData(
                     "rock_slide", "落石", SkillType.RockSlide, SkillTargetType.Enemy,
                     mpCost: 25, range: 3, power: 70, isAOE: true, aoeRadius: 0,
-                    desc: "对目标造成大量伤害，山地地形伤害+50%"),
+                    desc: "对目标造成大量伤害，山地地形伤害+50%，附近山地触发连环落石"),
+
+                ["water_attack"] = new SkillData(
+                    "water_attack", "水攻", SkillType.WaterAttack, SkillTargetType.Enemy,
+                    mpCost: 35, range: 4, power: 40, isAOE: true, aoeRadius: 2,
+                    desc: "对大范围敌人造成伤害，低地变为水域，邻近水域时威力大增"),
 
                 ["rally"] = new SkillData(
                     "rally", "鼓舞", SkillType.Rally, SkillTargetType.Ally,

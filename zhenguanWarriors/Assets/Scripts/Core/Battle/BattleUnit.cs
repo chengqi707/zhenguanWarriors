@@ -63,6 +63,7 @@ namespace ZhenguanWarriors.Core.Battle
         public HexCoord Position { get; set; }
         public UnitState State { get; set; } = UnitState.Idle;
         public bool HasActed { get; set; }      // 本回合是否已行动
+        public bool HasMovedThisTurn { get; set; } // 本回合是否移动过（用于冲锋判定）
 
         public bool IsAlive => CurrentHp > 0;
         public bool IsDead => !IsAlive;
@@ -126,6 +127,7 @@ namespace ZhenguanWarriors.Core.Battle
         public void NewTurn()
         {
             HasActed = false;
+            HasMovedThisTurn = false;
             if (State == UnitState.Done)
                 State = UnitState.Ready;
         }

@@ -7,17 +7,19 @@ using ZhenguanWarriors.Core.Character;
 namespace ZhenguanWarriors.Core.Combat
 {
     /// <summary>
-    /// 计策执行器——处理所有计策的效果
+    /// 计策执行器——处理所有计策的效果（含环境联动）
     /// </summary>
     public class SkillExecutor
     {
         private readonly List<BattleUnit> _allUnits;
         private readonly HexGrid _grid;
+        private readonly WeatherSystem _weather;
 
-        public SkillExecutor(List<BattleUnit> allUnits, HexGrid grid)
+        public SkillExecutor(List<BattleUnit> allUnits, HexGrid grid, WeatherSystem weather = null)
         {
             _allUnits = allUnits;
             _grid = grid;
+            _weather = weather;
         }
 
         /// <summary>
@@ -32,6 +34,7 @@ namespace ZhenguanWarriors.Core.Combat
             {
                 SkillType.FireAttack => ExecuteFireAttack(caster, targetCell, skill),
                 SkillType.RockSlide => ExecuteRockSlide(caster, targetCell, skill),
+                SkillType.WaterAttack => ExecuteWaterAttack(caster, targetCell, skill),
                 SkillType.Rally => ExecuteRally(caster, skill),
                 SkillType.Heal => ExecuteHeal(caster, targetCell, skill),
                 SkillType.Volley => ExecuteFireAttack(caster, targetCell, skill), // 类似火攻
@@ -67,8 +70,50 @@ namespace ZhenguanWarriors.Core.Combat
 
         private string ExecuteFireAttack(BattleUnit caster, HexCoord target, SkillData skill)
         {
-            var targets = target.Range(skill.aoeRadius)
-                .Where(c => _grid.InBounds(c))
+            // 天气影响：雨天完全无效
+            if (_weather != null && _weather.CurrentWeather == WeatherType.Rain)
+            {
+                return $"{caster.Name} 释放【{skill.name}】——但大雨倾盆，火焰无法燃起！";
+            }
+
+            // 收集所有受影响的格子
+            var affectedCells = new HashSet<HexCoord>();
+            affectedCells.UnionWith(target.Range(skill.aoeRadius).Where(c => _grid.InBounds(c)));
+
+            // ★ 大风扩散：沿风向多扩散1格
+            if (_weather != null && _weather.CurrentWeather == WeatherType.Windy && _weather.Wind != WindDirection.None)
+            {
+                var windOffset = _weather.GetWindOffset();
+                var windSpread = target + windOffset;
+                if (_grid.InBounds(windSpread))
+                    affectedCells.Add(windSpread);
+            }
+
+            // ★ 林地连烧：相邻林地格被点燃，最多扩散3格
+            var forestCells = affectedCells.Where(c => _grid.GetTerrain(c) == TerrainType.Forest).ToList();
+            var burnQueue = new Queue<(HexCoord cell, int depth)>();
+            foreach (var fc in forestCells)
+                burnQueue.Enqueue((fc, 0));
+
+            while (burnQueue.Count > 0)
+            {
+                var (current, depth) = burnQueue.Dequeue();
+                if (depth >= 3) continue; // 最多扩散3格
+
+                foreach (var neighbor in current.Neighbors())
+                {
+                    if (_grid.InBounds(neighbor)
+                        && _grid.GetTerrain(neighbor) == TerrainType.Forest
+                        && !affectedCells.Contains(neighbor))
+                    {
+                        affectedCells.Add(neighbor);
+                        burnQueue.Enqueue((neighbor, depth + 1));
+                    }
+                }
+            }
+
+            // 收集目标单位
+            var targets = affectedCells
                 .Select(c => UnitAt(c))
                 .Where(u => u != null && u.Faction != caster.Faction && u.IsAlive)
                 .ToList();
@@ -76,16 +121,72 @@ namespace ZhenguanWarriors.Core.Combat
             if (targets.Count == 0)
                 return "范围内没有敌人";
 
+            // 天气伤害倍率
+            float weatherMult = _weather?.FireDamageMultiplier ?? 1.0f;
+            int adjustedPower = (int)(skill.power * weatherMult);
+
             int totalDamage = 0;
             foreach (var t in targets)
             {
                 int damage = CombatCalculator.CalcMagicDamage(
-                    caster.Intelligence, t.Intelligence, skill.power);
+                    caster.Intelligence, t.Intelligence, adjustedPower);
                 t.TakeDamage(damage);
                 totalDamage += damage;
             }
 
-            return $"{caster.Name} 释放【{skill.name}】对 {targets.Count} 个敌人造成 {totalDamage} 点伤害";
+            string weatherText = _weather?.CurrentWeather switch
+            {
+                WeatherType.Snow => "（大雪削弱了火势）",
+                WeatherType.Windy => "（大风助长了火势！）",
+                _ => ""
+            };
+
+            return $"{caster.Name} 释放【{skill.name}】对 {targets.Count} 个敌人造成 {totalDamage} 点伤害{weatherText}";
+        }
+
+        // ========== 水攻 ==========
+
+        private string ExecuteWaterAttack(BattleUnit caster, HexCoord target, SkillData skill)
+        {
+            var affectedCells = target.Range(skill.aoeRadius)
+                .Where(c => _grid.InBounds(c))
+                .ToList();
+
+            // 检查是否邻近水域——若目标格或周围有水，威力+30%
+            bool nearWater = affectedCells.Any(c =>
+                c.Range(1).Any(n => _grid.InBounds(n) && _grid.GetTerrain(n) == TerrainType.Water));
+            float powerMult = nearWater ? 1.3f : 1.0f;
+
+            var targets = affectedCells
+                .Select(c => UnitAt(c))
+                .Where(u => u != null && u.Faction != caster.Faction && u.IsAlive)
+                .ToList();
+
+            int adjustedPower = (int)(skill.power * powerMult);
+            int totalDamage = 0;
+            foreach (var t in targets)
+            {
+                int damage = CombatCalculator.CalcMagicDamage(
+                    caster.Intelligence, t.Intelligence, adjustedPower);
+                t.TakeDamage(damage);
+                totalDamage += damage;
+            }
+
+            // ★ 改变地形：低地（平原/森林）变为水域
+            int flooded = 0;
+            foreach (var c in affectedCells)
+            {
+                var terrain = _grid.GetTerrain(c);
+                if (terrain == TerrainType.Plain || terrain == TerrainType.Forest)
+                {
+                    _grid.SetTerrain(c, TerrainType.Water);
+                    flooded++;
+                }
+            }
+
+            string waterText = nearWater ? "（决堤！威力大增）" : "";
+            string floodText = flooded > 0 ? $"，{flooded}格低地变为水域" : "";
+            return $"{caster.Name} 释放【{skill.name}】对 {targets.Count} 个敌人造成 {totalDamage} 点伤害{waterText}{floodText}";
         }
 
         // ========== 落石 ==========
@@ -96,8 +197,25 @@ namespace ZhenguanWarriors.Core.Combat
             TerrainType terrain = _grid.GetTerrain(target);
             float terrainBonus = (terrain == TerrainType.Mountain || terrain == TerrainType.City) ? 1.5f : 1.0f;
 
-            var targets = target.Range(skill.aoeRadius)
-                .Where(c => _grid.InBounds(c))
+            var affectedCells = new HashSet<HexCoord>();
+            affectedCells.UnionWith(target.Range(skill.aoeRadius).Where(c => _grid.InBounds(c)));
+
+            // ★ 连环落石：若目标附近2格内有山地，额外触发连带伤害
+            var nearbyMountains = affectedCells
+                .SelectMany(c => c.Range(2))
+                .Where(c => _grid.InBounds(c) && _grid.GetTerrain(c) == TerrainType.Mountain)
+                .ToList();
+
+            if (nearbyMountains.Count > 0)
+            {
+                foreach (var m in nearbyMountains)
+                {
+                    affectedCells.UnionWith(m.Range(1).Where(c => _grid.InBounds(c)));
+                }
+                terrainBonus = Math.Max(terrainBonus, 1.3f); // 连环落石最低也有30%加成
+            }
+
+            var targets = affectedCells
                 .Select(c => UnitAt(c))
                 .Where(u => u != null && u.Faction != caster.Faction && u.IsAlive)
                 .ToList();
@@ -116,7 +234,8 @@ namespace ZhenguanWarriors.Core.Combat
             }
 
             string terrainText = terrainBonus > 1f ? "（地形加成！）" : "";
-            return $"{caster.Name} 释放【{skill.name}】对 {targets.Count} 个敌人造成 {totalDamage} 点伤害{terrainText}";
+            string chainText = nearbyMountains.Count > 0 ? "【连环落石！】" : "";
+            return $"{caster.Name} 释放【{skill.name}】{chainText}对 {targets.Count} 个敌人造成 {totalDamage} 点伤害{terrainText}";
         }
 
         // ========== 鼓舞 ==========

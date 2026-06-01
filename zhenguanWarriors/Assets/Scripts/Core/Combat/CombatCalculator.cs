@@ -13,7 +13,8 @@ namespace ZhenguanWarriors.Core.Combat
         /// <summary>计算物理伤害</summary>
         public static (int damage, bool isCrit, bool isHit) CalcPhysicalDamage(
             BattleUnit attacker, BattleUnit defender,
-            int terrainDefBonus = 0, int terrainHitBonus = 0)
+            int terrainDefBonus = 0, int terrainHitBonus = 0,
+            TerrainType attackerTerrain = TerrainType.Plain)
         {
             // 命中判定
             int hitRate = attacker.Agility * 3 - defender.Agility * 2 + terrainHitBonus;
@@ -39,8 +40,22 @@ namespace ZhenguanWarriors.Core.Combat
             float classBonus = ClassData.GetCounterMultiplier(attacker.UnitClass, defender.UnitClass);
             baseDamage *= classBonus;
 
+            // ★ 骑兵冲锋：平原移动后首次攻击+20%
+            if (attacker.UnitClass == ClassType.Cavalry
+                && attacker.HasMovedThisTurn
+                && attackerTerrain == TerrainType.Plain)
+            {
+                baseDamage *= 1.2f;
+            }
+
             // 地形防御
             baseDamage *= (100 - terrainDefBonus) / 100f;
+
+            // ★ 重步兵铁壁：受到物理伤害-10%
+            if (defender.UnitClass == ClassType.HeavyInfantry)
+            {
+                baseDamage *= 0.9f;
+            }
 
             // 随机波动 ±5%
             float variance = UnityEngine.Random.Range(0.95f, 1.05f);

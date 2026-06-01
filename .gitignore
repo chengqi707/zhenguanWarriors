@@ -6,13 +6,7 @@ zhenguanWarriors/Build/
 zhenguanWarriors/Builds/
 zhenguanWarriors/MemoryCaptures/
 
-# Unity .meta 文件备份（仅在重命名/删除时自动生成）
-# 不要提交 .meta 对应的源文件删除了但 .meta 还在的情况
-# 所有 .meta 应该提交，以下只排除临时情况
-zhenguanWarriors/*.csproj
-zhenguanWarriors/*.sln
-
-# VS Code / Rider / VS
+# VS / VS Code / Rider 用户设置
 zhenguanWarriors/.vs/
 zhenguanWarriors/.vscode/
 zhenguanWarriors/obj/

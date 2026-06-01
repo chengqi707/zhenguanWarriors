@@ -2,6 +2,7 @@ using UnityEngine;
 using ZhenguanWarriors.Core.Battle;
 using ZhenguanWarriors.Core.Combat;
 using ZhenguanWarriors.Core.Character;
+using ZhenguanWarriors.Core.AI;
 using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
@@ -19,6 +20,8 @@ namespace ZhenguanWarriors.View.BattleView
         private List<BattleUnit> _allUnits = new();
 
         private SkillExecutor _skillExecutor;
+        private WeatherSystem _weather;
+        private AIBehaviorTree _aiTree;
         private BattleUnit _selectedUnit;
         private Dictionary<BattleUnit, UnitVisual> _unitVisuals = new();
         private bool _isAnimating; // 防止动画中操作
@@ -27,6 +30,11 @@ namespace ZhenguanWarriors.View.BattleView
         private string _selectedSkillId;   // null = 普通攻击
         private Vector2 _scrollPos;
         private Rect _skillPanelRect;
+
+        // 单挑
+        private DuelSystem _duelSystem;
+        private bool _inDuel = false;
+        private BattleUnit _duelEnemy;
 
         void Start()
         {
@@ -44,7 +52,10 @@ namespace ZhenguanWarriors.View.BattleView
 
             SetupBattleUnits();
 
-            _skillExecutor = new SkillExecutor(_allUnits, _hexView.Grid);
+            // 天气系统（当前晴天，可切换测试）
+            _weather = new WeatherSystem(WeatherType.Sunny, WindDirection.None);
+            _skillExecutor = new SkillExecutor(_allUnits, _hexView.Grid, _weather);
+            _aiTree = new AIBehaviorTree(_allUnits, _hexView.Grid, _weather, _skillExecutor, "normal");
 
             _turnManager = new TurnManager(_allUnits);
             _turnManager.OnUnitTurnStart += OnUnitTurnStart;
@@ -114,13 +125,13 @@ namespace ZhenguanWarriors.View.BattleView
             };
             _allUnits.Add(liShiMin);
 
-            // 玩家方——李靖（统帅 + 火攻）
+            // 玩家方——李靖（统帅 + 火攻 + 水攻）
             var liJing = new BattleUnit("li_jing", "李靖", Faction.Player, ClassType.Cavalry,
                 str: 90, cmd: 85, @int: 75, agi: 70, luk: 75,
-                hp: 100, mp: 30, move: 6, attackRange: 1)
+                hp: 100, mp: 50, move: 6, attackRange: 1)
             {
                 Position = new HexCoord(2, 5),
-                SkillIds = new List<string> { "fire_attack" }
+                SkillIds = new List<string> { "fire_attack", "water_attack" }
             };
             _allUnits.Add(liJing);
 
@@ -205,7 +216,7 @@ namespace ZhenguanWarriors.View.BattleView
 
                 // 点击空地→移动
                 var range = _hexView.PathFinder.GetMoveRange(
-                    _selectedUnit.Position, _selectedUnit.MoveRange);
+                    _selectedUnit.Position, _selectedUnit.MoveRange, _selectedUnit.UnitClass);
                 if (range.ContainsKey(cell))
                 {
                     _selectedSkillId = null; // 移动时取消计策选择
@@ -224,7 +235,7 @@ namespace ZhenguanWarriors.View.BattleView
         {
             DeselectUnit();
             _selectedUnit = unit;
-            _hexView.ShowMoveRange(unit.Position, unit.MoveRange);
+            _hexView.ShowMoveRange(unit.Position, unit.MoveRange, unit.UnitClass);
 
             if (_unitVisuals.TryGetValue(unit, out var visual))
                 visual.SetSelected(true);
@@ -293,6 +304,7 @@ namespace ZhenguanWarriors.View.BattleView
                 visual.transform.position = endPos;
             }
 
+            unit.HasMovedThisTurn = true;
             _battleUI?.ShowTip($"{unit.Name} 移动到 ({target.q},{target.r})");
             _isAnimating = false;
             EndUnitAction();
@@ -302,7 +314,8 @@ namespace ZhenguanWarriors.View.BattleView
 
         private void AttackUnit(BattleUnit attacker, BattleUnit defender)
         {
-            var result = CombatCalculator.CalcPhysicalDamage(attacker, defender, 0, 0);
+            var attackerTerrain = _hexView.Grid.GetTerrain(attacker.Position);
+            var result = CombatCalculator.CalcPhysicalDamage(attacker, defender, 0, 0, attackerTerrain);
 
             defender.TakeDamage(result.damage);
 
@@ -418,6 +431,16 @@ namespace ZhenguanWarriors.View.BattleView
             _battleUI?.ShowTip(log);
             Debug.Log(log);
 
+            // 水攻后刷新地形颜色
+            if (skill.type == SkillType.WaterAttack)
+            {
+                foreach (var c in targetCell.Range(skill.aoeRadius))
+                {
+                    if (_hexView.Grid.InBounds(c))
+                        _hexView.RefreshCellColor(c);
+                }
+            }
+
             // 更新血条
             foreach (var kv in _unitVisuals)
                 kv.Value.UpdateHpBar();
@@ -429,15 +452,19 @@ namespace ZhenguanWarriors.View.BattleView
             EndUnitAction();
         }
 
-        /// <summary>OnGUI 计策选择面板</summary>
+        /// <summary>OnGUI 计策选择面板 + 单挑按钮</summary>
         void OnGUI()
         {
+            // 单挑面板优先
+            if (_inDuel && _duelSystem != null)
+            {
+                DrawDuelPanel();
+                return;
+            }
+
             // 只在选中己方单位且未行动时显示
             if (_selectedUnit == null || _selectedUnit.HasActed
                 || _selectedUnit.State != UnitState.Ready)
-                return;
-
-            if (_selectedUnit.SkillIds.Count == 0)
                 return;
 
             float btnW = 90;
@@ -446,13 +473,22 @@ namespace ZhenguanWarriors.View.BattleView
             float startX = 10;
             float startY = Screen.height - 60;
 
+            // 收集所有按钮：攻击 + 计策 + 单挑
+            int btnCount = 1 + _selectedUnit.SkillIds.Count;
+
+            // 检查是否有可单挑的相邻敌人
+            var duelTarget = FindDuelTarget(_selectedUnit);
+            bool canDuel = duelTarget != null;
+            if (canDuel) btnCount++;
+
             // 绘制背景
-            float totalW = (_selectedUnit.SkillIds.Count + 1) * (btnW + pad) + pad;
+            float totalW = btnCount * (btnW + pad) + pad;
             GUI.Box(new Rect(5, startY - 5, totalW + 10, btnH + 15), "");
 
-            // "普通攻击" 按钮
             Color normalColor = GUI.backgroundColor;
-            if (string.IsNullOrEmpty(_selectedSkillId))
+
+            // "普通攻击" 按钮
+            if (string.IsNullOrEmpty(_selectedSkillId) && !canDuel)
                 GUI.backgroundColor = Color.green;
             if (GUI.Button(new Rect(startX, startY, btnW, btnH), "⚔ 攻击"))
             {
@@ -487,6 +523,119 @@ namespace ZhenguanWarriors.View.BattleView
                 GUI.backgroundColor = normalColor;
                 GUI.enabled = true;
                 x += btnW + pad;
+            }
+
+            // 单挑按钮
+            if (canDuel)
+            {
+                GUI.backgroundColor = new Color(1f, 0.4f, 0.1f);
+                if (GUI.Button(new Rect(x, startY, btnW, btnH), $"⚔ 单挑\n{duelTarget.Name}"))
+                {
+                    StartDuel(_selectedUnit, duelTarget);
+                }
+                GUI.backgroundColor = normalColor;
+            }
+        }
+
+        // ========== 单挑系统 ==========
+
+        private BattleUnit FindDuelTarget(BattleUnit unit)
+        {
+            return _allUnits
+                .Where(u => u.Faction != unit.Faction && u.IsAlive
+                    && DuelSystem.CanDuel(unit, u))
+                .FirstOrDefault();
+        }
+
+        private void StartDuel(BattleUnit player, BattleUnit enemy)
+        {
+            _duelSystem = new DuelSystem(player, enemy);
+            _duelEnemy = enemy;
+            _inDuel = true;
+            DeselectUnit();
+            _battleUI?.ShowTip($"{player.Name} 向 {enemy.Name} 发起单挑！");
+        }
+
+        private void DrawDuelPanel()
+        {
+            float w = 400;
+            float h = 300;
+            float x = (Screen.width - w) / 2;
+            float y = (Screen.height - h) / 2;
+
+            GUI.Box(new Rect(x, y, w, h), "单挑对决");
+
+            float rowH = 30;
+            float infoY = y + 40;
+
+            // 双方信息
+            GUI.Label(new Rect(x + 20, infoY, 160, rowH), $"{_duelSystem.Player.Name}");
+            GUI.Label(new Rect(x + 220, infoY, 160, rowH), $"{_duelSystem.Enemy.Name}");
+
+            infoY += rowH;
+            GUI.Label(new Rect(x + 20, infoY, 160, rowH), $"HP: {_duelSystem.PlayerDuelHp}");
+            GUI.Label(new Rect(x + 220, infoY, 160, rowH), $"HP: {_duelSystem.EnemyDuelHp}");
+
+            infoY += rowH;
+            GUI.Label(new Rect(x + 20, infoY, 160, rowH), $"必杀槽: {_duelSystem.PlayerSpecialGauge}");
+            GUI.Label(new Rect(x + 220, infoY, 160, rowH), $"必杀槽: {_duelSystem.EnemySpecialGauge}");
+
+            infoY += rowH + 10;
+            GUI.Label(new Rect(x + 20, infoY, 360, rowH), $"第 {_duelSystem.Round + 1} / {_duelSystem.MaxRounds} 回合");
+
+            // 操作按钮
+            float btnY = y + h - 60;
+            float btnW = 100;
+            float btnH2 = 40;
+            float btnX = x + (w - 330) / 2;
+
+            if (GUI.Button(new Rect(btnX, btnY, btnW, btnH2), "攻击"))
+            {
+                ExecuteDuelRound(DuelAction.Attack);
+            }
+            btnX += 110;
+
+            if (GUI.Button(new Rect(btnX, btnY, btnW, btnH2), "防御"))
+            {
+                ExecuteDuelRound(DuelAction.Defend);
+            }
+            btnX += 110;
+
+            GUI.enabled = _duelSystem.PlayerSpecialGauge > 0;
+            if (GUI.Button(new Rect(btnX, btnY, btnW, btnH2), "必杀"))
+            {
+                ExecuteDuelRound(DuelAction.Special);
+            }
+            GUI.enabled = true;
+        }
+
+        private void ExecuteDuelRound(DuelAction playerAction)
+        {
+            // 敌方随机选择
+            var enemyAction = (DuelAction)UnityEngine.Random.Range(0, 3);
+            _duelSystem.ExecuteRound(playerAction, enemyAction);
+
+            if (_duelSystem.IsFinished)
+            {
+                string resultLog = _duelSystem.ApplyResult();
+                _battleUI?.ShowTip(resultLog);
+                Debug.Log(resultLog);
+
+                // 更新血条和检查阵亡
+                foreach (var kv in _unitVisuals)
+                    kv.Value.UpdateHpBar();
+
+                var deadUnits = _allUnits.Where(u => u.IsDead).ToList();
+                foreach (var du in deadUnits)
+                {
+                    if (_unitVisuals.TryGetValue(du, out var deadVis))
+                        StartCoroutine(DeathAnimation(deadVis, du));
+                }
+
+                _inDuel = false;
+                _duelSystem = null;
+                _duelEnemy = null;
+                EndUnitAction();
             }
         }
 
@@ -550,70 +699,102 @@ namespace ZhenguanWarriors.View.BattleView
             }
         }
 
-        // ========== 简易 AI ==========
+        // ========== AI行为树驱动 ==========
 
         private void EnemyAI(BattleUnit enemy)
         {
-            if (!enemy.IsAlive) return;
-
-            // 找最近的玩家单位
-            var targets = _allUnits
-                .Where(u => u.Faction == Faction.Player && u.IsAlive)
-                .OrderBy(u => enemy.Position.Distance(u.Position))
-                .ToList();
-
-            if (targets.Count == 0) return;
-            var target = targets[0];
-            int dist = enemy.Position.Distance(target.Position);
-
-            if (dist <= enemy.AttackRange)
+            if (!enemy.IsAlive)
             {
-                // AI 尝试使用计策
-                bool usedSkill = false;
-                if (enemy.HasSkills && enemy.CurrentMp > 0)
-                {
-                    var offenseSkill = enemy.SkillIds
-                        .Select(id => SkillLibrary.Get(id))
-                        .FirstOrDefault(s => s != null
-                            && (s.type == SkillType.FireAttack || s.type == SkillType.RockSlide)
-                            && enemy.CurrentMp >= s.mpCost
-                            && dist <= s.range);
-                    if (offenseSkill != null)
-                    {
-                        _selectedSkillId = offenseSkill.id;
-                        string log = _skillExecutor.Execute(offenseSkill, enemy, target.Position);
-                        Debug.Log($"AI {enemy.Name} 释放{offenseSkill.name}：{log}");
-                        usedSkill = true;
-                    }
-                }
-
-                if (!usedSkill)
-                {
-                    var result = CombatCalculator.CalcPhysicalDamage(enemy, target, 0, 0);
-                    target.TakeDamage(result.damage);
-                    Debug.Log($"AI {enemy.Name} 攻击 {target.Name}：{(result.isHit ? $"造成{result.damage}伤害" : "未命中")}");
-                }
-
-                if (_unitVisuals.TryGetValue(target, out var tVis))
-                    tVis.UpdateHpBar();
-
-                if (target.IsDead && _unitVisuals.TryGetValue(target, out var deadVis))
-                    Destroy(deadVis.gameObject);
+                _turnManager.EndUnitAction();
+                return;
             }
-            else
+
+            var action = _aiTree.Decide(enemy);
+            Debug.Log($"AI {enemy.Name} 决策: {action.Reason}");
+
+            switch (action.Type)
             {
-                // 移动一步接近
-                var path = _hexView.PathFinder.FindPath(enemy.Position, target.Position);
-                if (path.Count > 1)
-                {
-                    var nextStep = path[1];
-                    enemy.Position = nextStep;
-                    if (_unitVisuals.TryGetValue(enemy, out var eVis))
-                        eVis.UpdatePosition();
-                }
+                case AIActionType.Attack:
+                    ExecuteAIAttack(enemy, action.TargetUnit);
+                    break;
+
+                case AIActionType.UseSkill:
+                    ExecuteAISkill(enemy, action);
+                    break;
+
+                case AIActionType.Move:
+                case AIActionType.Retreat:
+                    enemy.Position = action.TargetCell;
+                    enemy.HasMovedThisTurn = true;
+                    if (_unitVisuals.TryGetValue(enemy, out var vis))
+                        vis.UpdatePosition();
+                    _battleUI?.ShowTip($"{enemy.Name} {action.Reason}");
+                    break;
+
+                case AIActionType.Skip:
+                    break;
             }
 
             _turnManager.EndUnitAction();
+        }
+
+        private void ExecuteAIAttack(BattleUnit attacker, BattleUnit defender)
+        {
+            if (defender == null || defender.IsDead) return;
+
+            var attackerTerrain = _hexView.Grid.GetTerrain(attacker.Position);
+            var result = CombatCalculator.CalcPhysicalDamage(attacker, defender, 0, 0, attackerTerrain);
+            defender.TakeDamage(result.damage);
+
+            string log = $"AI {attacker.Name} 攻击 {defender.Name}：{(result.isHit ? $"造成{result.damage}伤害" : "未命中")}";
+            if (result.isCrit) log += "【暴击】";
+            Debug.Log(log);
+            _battleUI?.ShowTip(log);
+
+            if (_unitVisuals.TryGetValue(defender, out var defVis))
+            {
+                defVis.UpdateHpBar();
+                StartCoroutine(FlashEffect(defVis));
+            }
+
+            if (defender.IsDead)
+            {
+                Debug.Log($"{defender.Name} 阵亡！");
+                if (_unitVisuals.TryGetValue(defender, out var deadVis))
+                    StartCoroutine(DeathAnimation(deadVis, defender));
+            }
+        }
+
+        private void ExecuteAISkill(BattleUnit caster, AIAction action)
+        {
+            if (action.Skill == null) return;
+
+            string log = _skillExecutor.Execute(action.Skill, caster, action.TargetCell);
+            Debug.Log($"AI {caster.Name} 释放{action.Skill.name}：{log}");
+            _battleUI?.ShowTip(log);
+
+            // 水攻后刷新地形颜色
+            if (action.Skill.type == SkillType.WaterAttack)
+            {
+                foreach (var c in action.TargetCell.Range(action.Skill.aoeRadius))
+                {
+                    if (_hexView.Grid.InBounds(c))
+                        _hexView.RefreshCellColor(c);
+                }
+            }
+
+            foreach (var kv in _unitVisuals)
+                kv.Value.UpdateHpBar();
+
+            // 检查阵亡
+            var deadUnits = _allUnits.Where(u => u.IsDead).ToList();
+            foreach (var du in deadUnits)
+            {
+                if (_unitVisuals.TryGetValue(du, out var deadVis))
+                {
+                    StartCoroutine(DeathAnimation(deadVis, du));
+                }
+            }
         }
     }
 }
