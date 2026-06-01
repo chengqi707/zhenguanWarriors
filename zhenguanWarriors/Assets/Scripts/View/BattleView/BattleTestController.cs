@@ -4,6 +4,8 @@ using ZhenguanWarriors.Core.Combat;
 using ZhenguanWarriors.Core.Character;
 using ZhenguanWarriors.Core.Level;
 using ZhenguanWarriors.Core.AI;
+using ZhenguanWarriors.Core.Save;
+using ZhenguanWarriors.Core.Story;
 using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
@@ -58,9 +60,12 @@ namespace ZhenguanWarriors.View.BattleView
             "level_01", "level_02", "level_03", "level_04",
             "level_05", "level_06", "level_07", "level_08"
         };
-        private static HashSet<string> _unlockedLevels = new() { "level_01" };
         private int _currentLevelIndex;
         private Vector2 _levelSelectScroll;
+
+        // ========== 剧情系统 ==========
+        private DialogueUI _dialogueUI;
+        private bool _waitingForDialogue;   // 等待对话结束后继续流程
 
         // ========== 结算界面 ==========
         private string _resultsTitle;
@@ -82,12 +87,26 @@ namespace ZhenguanWarriors.View.BattleView
             if (_battleUI == null)
                 _battleUI = gameObject.AddComponent<BattleUI>();
 
+            // 获取对话系统
+            _dialogueUI = GetComponent<DialogueUI>();
+            if (_dialogueUI == null)
+                _dialogueUI = gameObject.AddComponent<DialogueUI>();
+
+            // 同步 GameState 与关卡解锁
+            if (GameState.CurrentSave != null)
+            {
+                // 从存档恢复关卡进度
+            }
+
             // 先显示关卡选择
             _gamePhase = GamePhase.LevelSelect;
         }
 
         void Update()
         {
+            // 等待对话时阻止所有输入
+            if (_waitingForDialogue) return;
+
             // 仅战斗阶段处理输入
             if (_gamePhase != GamePhase.Battle) return;
             if (_isAnimating) return;
@@ -111,7 +130,7 @@ namespace ZhenguanWarriors.View.BattleView
 
         // ========== 战前编组 ==========
 
-        /// <summary>初始化玩家队伍（从角色数据库 + 关卡可用角色加载）</summary>
+        /// <summary>初始化玩家队伍（从角色数据库 + 关卡可用角色加载，优先从存档恢复）</summary>
         private void InitPlayerParty()
         {
             _playerParty.Clear();
@@ -123,31 +142,77 @@ namespace ZhenguanWarriors.View.BattleView
 
             var db = CharacterDatabase.GetAll();
 
-            // 先加必出角色
-            foreach (var charId in _currentLevel.requiredCharacters)
+            // 先加必出角色，再加可选角色（补满8人）
+            var allCharIds = new List<string>();
+            allCharIds.AddRange(_currentLevel.requiredCharacters);
+            foreach (var cid in _currentLevel.availableCharacters)
             {
-                if (db.ContainsKey(charId))
-                {
-                    var unit = CharacterDatabase.CreateInstance(charId);
-                    if (unit != null) _playerParty.Add(unit);
-                }
+                if (!allCharIds.Contains(cid))
+                    allCharIds.Add(cid);
             }
 
-            // 再加可选角色（补满8人）
-            foreach (var charId in _currentLevel.availableCharacters)
+            foreach (var charId in allCharIds)
             {
                 if (_playerParty.Count >= 8) break;
-                if (_playerParty.Any(u => u.Id == charId)) continue; // 已添加
-                if (db.ContainsKey(charId))
+                if (!db.ContainsKey(charId)) continue;
+
+                BattleUnit unit;
+
+                // 优先从存档恢复角色状态
+                var savedChar = FindSavedCharacter(charId);
+                if (savedChar != null)
                 {
-                    var unit = CharacterDatabase.CreateInstance(charId);
-                    if (unit != null) _playerParty.Add(unit);
+                    unit = RestoreCharacterFromSave(savedChar);
                 }
+                else
+                {
+                    unit = CharacterDatabase.CreateInstance(charId);
+                }
+
+                if (unit != null) _playerParty.Add(unit);
             }
 
-            // 默认装备
+            // 默认装备（仅当没有从存档恢复装备时）
             AutoEquipDefault();
             _selectedPartyIndex = 0;
+        }
+
+        /// <summary>从存档查找角色</summary>
+        private CharacterSaveData FindSavedCharacter(string charId)
+        {
+            if (GameState.CurrentSave?.characters == null) return null;
+            return GameState.CurrentSave.characters.FirstOrDefault(c => c.id == charId);
+        }
+
+        /// <summary>从存档恢复角色状态</summary>
+        private BattleUnit RestoreCharacterFromSave(CharacterSaveData saved)
+        {
+            var charData = CharacterDatabase.Get(saved.id);
+            if (charData == null) return null;
+
+            var unit = new BattleUnit(
+                saved.id, saved.name, Faction.Player, charData.UnitClass,
+                saved.baseStr, saved.baseCmd, saved.baseInt, saved.baseAgi, saved.baseLuk,
+                charData.MaxHp, charData.MaxMp,
+                charData.BaseMoveRange, charData.BaseAttackRange,
+                charData.Gender)
+            {
+                Level = saved.level,
+                Experience = saved.experience,
+                StrGrowth = saved.strGrowth,
+                CmdGrowth = saved.cmdGrowth,
+                IntGrowth = saved.intGrowth,
+                AgiGrowth = saved.agiGrowth,
+                LukGrowth = saved.lukGrowth,
+                SkillIds = saved.skillIds != null ? new List<string>(saved.skillIds) : new List<string>()
+            };
+
+            // 恢复装备
+            if (!string.IsNullOrEmpty(saved.weaponId)) unit.Equip(saved.weaponId);
+            if (!string.IsNullOrEmpty(saved.armorId)) unit.Equip(saved.armorId);
+            if (!string.IsNullOrEmpty(saved.trinketId)) unit.Equip(saved.trinketId);
+
+            return unit;
         }
 
         /// <summary>自动装备默认装备</summary>
@@ -155,6 +220,9 @@ namespace ZhenguanWarriors.View.BattleView
         {
             foreach (var unit in _playerParty)
             {
+                // 已有装备的不覆盖（从存档恢复的保持不变）
+                if (!string.IsNullOrEmpty(unit.WeaponId)) continue;
+
                 // 根据兵种自动配装
                 var cls = unit.UnitClass;
                 // 武器默认
@@ -903,6 +971,9 @@ namespace ZhenguanWarriors.View.BattleView
         /// <summary>OnGUI 计策选择面板 + 单挑按钮 + 战前编组</summary>
         void OnGUI()
         {
+            // 剧情对话期间不显示任何战斗UI
+            if (_waitingForDialogue) return;
+
             // 关卡选择
             if (_gamePhase == GamePhase.LevelSelect)
             {
@@ -1138,7 +1209,7 @@ namespace ZhenguanWarriors.View.BattleView
                 var level = LevelLibrary.Get(levelId);
                 if (level == null) continue;
 
-                bool unlocked = _unlockedLevels.Contains(levelId);
+                bool unlocked = GameState.UnlockedLevels.Contains(levelId);
                 float itemY = i * (cardH + 10);
 
                 // 卡片背景
@@ -1209,7 +1280,35 @@ namespace ZhenguanWarriors.View.BattleView
             // 初始化玩家队伍
             InitPlayerParty();
 
-            _gamePhase = GamePhase.PreBattle;
+            // 检查关前剧情
+            string storyId = $"story_{levelId}_pre";
+            // 优先使用 GameState 中待播放的剧情，其次根据关卡ID查找
+            string pendingStory = GameState.PendingStoryId;
+            if (!string.IsNullOrEmpty(pendingStory) && pendingStory == storyId)
+            {
+                GameState.PendingStoryId = null;
+                PlayLevelStory(storyId);
+            }
+            else if (StoryLibrary.Get(storyId) != null)
+            {
+                PlayLevelStory(storyId);
+            }
+            else
+            {
+                _gamePhase = GamePhase.PreBattle;
+            }
+        }
+
+        /// <summary>播放关卡剧情，结束后进入战前编组</summary>
+        private void PlayLevelStory(string storyId)
+        {
+            if (_dialogueUI == null) return;
+            _waitingForDialogue = true;
+            _dialogueUI.PlayStory(storyId, () =>
+            {
+                _waitingForDialogue = false;
+                _gamePhase = GamePhase.PreBattle;
+            });
         }
 
         // ========== 结算界面 ==========
@@ -1277,7 +1376,7 @@ namespace ZhenguanWarriors.View.BattleView
                 if (GUI.Button(new Rect(btnStartX + btnW + gap, btnY, btnW, 40), "▶ 下一关"))
                 {
                     string nextId = _levelOrder[_currentLevelIndex + 1];
-                    _unlockedLevels.Add(nextId);
+                    GameState.UnlockedLevels.Add(nextId);
                     SelectLevel(nextId);
                 }
                 GUI.enabled = true;
@@ -1432,13 +1531,38 @@ namespace ZhenguanWarriors.View.BattleView
             }
         }
 
-        /// <summary>显示结算界面</summary>
+        /// <summary>显示结算界面（含存档+关后剧情）</summary>
         private void ShowResults(bool isVictory)
         {
             _resultsTitle = isVictory ? "🎉 胜利！" : "💀 战败";
             _resultsMessage = _victoryChecker?.ResultMessage
                 ?? (isVictory ? "战斗结束" : "战斗失败");
 
+            if (isVictory)
+            {
+                // 胜利时自动存档
+                AutoSaveGame();
+
+                // 检查是否有关后剧情
+                string postStoryId = $"story_{_currentLevel?.levelId}_post";
+                if (StoryLibrary.Get(postStoryId) != null && _dialogueUI != null)
+                {
+                    _waitingForDialogue = true;
+                    _dialogueUI.PlayStory(postStoryId, () =>
+                    {
+                        _waitingForDialogue = false;
+                        ShowResultsScreen(isVictory);
+                    });
+                    return;
+                }
+            }
+
+            ShowResultsScreen(isVictory);
+        }
+
+        /// <summary>显示结算界面（实际渲染）</summary>
+        private void ShowResultsScreen(bool isVictory)
+        {
             // 收集战斗记录（存活角色统计）
             _resultsLog.Clear();
             var alivePlayers = _allUnits.Where(u => u.Faction == Faction.Player && u.IsAlive).ToList();
@@ -1459,10 +1583,15 @@ namespace ZhenguanWarriors.View.BattleView
                 int nextIdx = _currentLevelIndex + 1;
                 if (nextIdx < _levelOrder.Count)
                 {
-                    _unlockedLevels.Add(_levelOrder[nextIdx]);
+                    GameState.UnlockedLevels.Add(_levelOrder[nextIdx]);
                     string nextName = LevelLibrary.Get(_levelOrder[nextIdx])?.name ?? _levelOrder[nextIdx];
                     _resultsLog.Add($"");
                     _resultsLog.Add($"📢 解锁下一关: {nextName}");
+
+                    // 设置下一关的关前剧情
+                    string nextStoryId = $"story_{_levelOrder[nextIdx]}_pre";
+                    if (StoryLibrary.Get(nextStoryId) != null)
+                        GameState.PendingStoryId = nextStoryId;
                 }
                 else
                 {
@@ -1472,6 +1601,25 @@ namespace ZhenguanWarriors.View.BattleView
             }
 
             _gamePhase = GamePhase.Results;
+        }
+
+        /// <summary>自动存档</summary>
+        private void AutoSaveGame()
+        {
+            if (_currentLevel == null) return;
+            var party = _playerParty.Count > 0 ? _playerParty :
+                _allUnits.Where(u => u.Faction == Faction.Player).ToList();
+            if (party.Count == 0) return;
+
+            var saveData = SaveManager.BuildSaveData(
+                _currentLevel.levelId,
+                _currentLevelIndex,
+                _currentLevel.name,
+                party,
+                GameState.UnlockedLevels
+            );
+            SaveManager.AutoSave(saveData);
+            GameState.CurrentSave = saveData;
         }
 
         // ========== AI行为树驱动 ==========
