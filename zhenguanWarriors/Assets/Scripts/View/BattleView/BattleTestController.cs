@@ -2,6 +2,7 @@ using UnityEngine;
 using ZhenguanWarriors.Core.Battle;
 using ZhenguanWarriors.Core.Combat;
 using ZhenguanWarriors.Core.Character;
+using ZhenguanWarriors.Core.Level;
 using ZhenguanWarriors.Core.AI;
 using System.Collections.Generic;
 using System.Collections;
@@ -16,8 +17,8 @@ namespace ZhenguanWarriors.View.BattleView
     public class BattleTestController : MonoBehaviour
     {
         // ========== 游戏阶段 ==========
-        private enum GamePhase { PreBattle, Battle }
-        private GamePhase _gamePhase = GamePhase.PreBattle;
+        private enum GamePhase { LevelSelect, PreBattle, Battle, Results }
+        private GamePhase _gamePhase = GamePhase.LevelSelect;
 
         private HexGridView _hexView;
         private BattleUI _battleUI;
@@ -50,6 +51,23 @@ namespace ZhenguanWarriors.View.BattleView
         private Vector2 _partyScrollPos;
         private Vector2 _equipScrollPos;
 
+        // ========== 关卡系统 ==========
+        private LevelData _currentLevel;
+        private VictoryChecker _victoryChecker;
+        private List<string> _levelOrder = new() {
+            "level_01", "level_02", "level_03", "level_04",
+            "level_05", "level_06", "level_07", "level_08"
+        };
+        private static HashSet<string> _unlockedLevels = new() { "level_01" };
+        private int _currentLevelIndex;
+        private Vector2 _levelSelectScroll;
+
+        // ========== 结算界面 ==========
+        private string _resultsTitle;
+        private string _resultsMessage;
+        private List<string> _resultsLog = new();
+        private Vector2 _resultsScroll;
+
         void Start()
         {
             _hexView = GetComponent<HexGridView>();
@@ -64,12 +82,13 @@ namespace ZhenguanWarriors.View.BattleView
             if (_battleUI == null)
                 _battleUI = gameObject.AddComponent<BattleUI>();
 
-            // 初始化玩家队伍（从角色数据库选取默认阵容）
-            InitPlayerParty();
+            // 先显示关卡选择
+            _gamePhase = GamePhase.LevelSelect;
         }
 
         void Update()
         {
+            // 仅战斗阶段处理输入
             if (_gamePhase != GamePhase.Battle) return;
             if (_isAnimating) return;
 
@@ -92,23 +111,37 @@ namespace ZhenguanWarriors.View.BattleView
 
         // ========== 战前编组 ==========
 
-        /// <summary>初始化玩家队伍（从角色数据库加载）</summary>
+        /// <summary>初始化玩家队伍（从角色数据库 + 关卡可用角色加载）</summary>
         private void InitPlayerParty()
         {
-            var db = CharacterDatabase.GetAll();
-            // 默认出场阵容：李世民 + 李靖 + 长孙无忌 + 可选的其他角色
-            string[] defaultRoster = { "lishimin", "li_jing", "zhangsun_wuji", "chai_shao",
-                                       "liu_hongji", "yin_kaishan", "duan_zhixuan", "pingyang_princess" };
-
-            foreach (var charId in defaultRoster)
+            _playerParty.Clear();
+            if (_currentLevel == null)
             {
-                if (db.TryGetValue(charId, out var charData))
+                Debug.LogError("未选择关卡");
+                return;
+            }
+
+            var db = CharacterDatabase.GetAll();
+
+            // 先加必出角色
+            foreach (var charId in _currentLevel.requiredCharacters)
+            {
+                if (db.ContainsKey(charId))
                 {
                     var unit = CharacterDatabase.CreateInstance(charId);
-                    if (unit != null)
-                    {
-                        _playerParty.Add(unit);
-                    }
+                    if (unit != null) _playerParty.Add(unit);
+                }
+            }
+
+            // 再加可选角色（补满8人）
+            foreach (var charId in _currentLevel.availableCharacters)
+            {
+                if (_playerParty.Count >= 8) break;
+                if (_playerParty.Any(u => u.Id == charId)) continue; // 已添加
+                if (db.ContainsKey(charId))
+                {
+                    var unit = CharacterDatabase.CreateInstance(charId);
+                    if (unit != null) _playerParty.Add(unit);
                 }
             }
 
@@ -401,8 +434,10 @@ namespace ZhenguanWarriors.View.BattleView
                 _playerParty[i].NewTurn();
             }
 
-            // 天气系统
-            _weather = new WeatherSystem(WeatherType.Sunny, WindDirection.None);
+            // 天气系统（从关卡数据读取）
+            WeatherType weatherType = _currentLevel?.weather ?? WeatherType.Sunny;
+            WindDirection windDir = _currentLevel?.wind ?? WindDirection.None;
+            _weather = new WeatherSystem(weatherType, windDir);
             _skillExecutor = new SkillExecutor(_allUnits, _hexView.Grid, _weather);
             _aiTree = new AIBehaviorTree(_allUnits, _hexView.Grid, _weather, _skillExecutor, "normal");
 
@@ -413,8 +448,10 @@ namespace ZhenguanWarriors.View.BattleView
                 _unitVisuals[unit] = visual;
             }
 
-            // 回合管理器
+            // 回合管理器 + VictoryChecker
             _turnManager = new TurnManager(_allUnits);
+            _victoryChecker = new VictoryChecker(_currentLevel, _allUnits, _turnManager);
+            _turnManager.OnCustomVictoryCheck = OnCustomVictoryCheck;
             _turnManager.OnUnitTurnStart += OnUnitTurnStart;
             _turnManager.OnUnitTurnEnd += OnUnitTurnEnd;
             _turnManager.OnPhaseChanged += OnPhaseChanged;
@@ -423,42 +460,33 @@ namespace ZhenguanWarriors.View.BattleView
             _turnManager.StartBattle();
         }
 
-        /// <summary>创建敌方单位</summary>
+        /// <summary>从关卡数据创建敌方单位</summary>
         private void CreateEnemyUnits()
         {
-            // 敌方——校尉
-            var enemy1 = new BattleUnit("enemy_1", "刘校尉", Faction.Enemy, ClassType.Infantry,
-                str: 60, cmd: 50, @int: 30, agi: 40, luk: 30,
-                hp: 60, mp: 10, move: 4, attackRange: 1,
-                gender: Gender.Male)
+            if (_currentLevel == null)
             {
-                Position = new HexCoord(8, 3),
-                StrGrowth = 2, CmdGrowth = 2, IntGrowth = 1, AgiGrowth = 2, LukGrowth = 1
-            };
-            _allUnits.Add(enemy1);
+                Debug.LogError("没有关卡数据，无法创建敌人");
+                return;
+            }
 
-            // 敌方——重步
-            var enemy2 = new BattleUnit("enemy_2", "张步兵", Faction.Enemy, ClassType.HeavyInfantry,
-                str: 55, cmd: 60, @int: 20, agi: 35, luk: 25,
-                hp: 80, mp: 0, move: 3, attackRange: 1,
-                gender: Gender.Male)
+            foreach (var cfg in _currentLevel.enemies)
             {
-                Position = new HexCoord(9, 5),
-                StrGrowth = 2, CmdGrowth = 3, IntGrowth = 1, AgiGrowth = 1, LukGrowth = 1
-            };
-            _allUnits.Add(enemy2);
-
-            // 敌方——弓兵
-            var enemy3 = new BattleUnit("enemy_3", "王弓兵", Faction.Enemy, ClassType.Archer,
-                str: 45, cmd: 35, @int: 25, agi: 45, luk: 30,
-                hp: 45, mp: 10, move: 4, attackRange: 2,
-                gender: Gender.Male)
-            {
-                Position = new HexCoord(10, 2),
-                SkillIds = new List<string> { "volley" },
-                StrGrowth = 2, CmdGrowth = 1, IntGrowth = 2, AgiGrowth = 3, LukGrowth = 2
-            };
-            _allUnits.Add(enemy3);
+                var enemy = new BattleUnit(cfg.id, cfg.name, Faction.Enemy, cfg.unitClass,
+                    cfg.str, cfg.cmd, cfg.@int, cfg.agi, cfg.luk,
+                    cfg.hp, cfg.mp, cfg.move, cfg.attackRange,
+                    Gender.Male)
+                {
+                    Position = cfg.position,
+                    Level = cfg.level,
+                    SkillIds = cfg.skillIds != null ? new List<string>(cfg.skillIds) : new List<string>(),
+                    StrGrowth = Mathf.Max(1, cfg.level / 2),
+                    CmdGrowth = Mathf.Max(1, cfg.level / 2),
+                    IntGrowth = Mathf.Max(1, cfg.level / 3),
+                    AgiGrowth = Mathf.Max(1, cfg.level / 3),
+                    LukGrowth = Mathf.Max(1, cfg.level / 4)
+                };
+                _allUnits.Add(enemy);
+            }
         }
 
         /// <summary>屏幕坐标 → 世界坐标 → 处理点击</summary>
@@ -875,10 +903,24 @@ namespace ZhenguanWarriors.View.BattleView
         /// <summary>OnGUI 计策选择面板 + 单挑按钮 + 战前编组</summary>
         void OnGUI()
         {
+            // 关卡选择
+            if (_gamePhase == GamePhase.LevelSelect)
+            {
+                DrawLevelSelectUI();
+                return;
+            }
+
             // 战前编组UI
             if (_gamePhase == GamePhase.PreBattle)
             {
                 DrawPreBattleUI();
+                return;
+            }
+
+            // 结算界面
+            if (_gamePhase == GamePhase.Results)
+            {
+                DrawResultsUI();
                 return;
             }
 
@@ -1066,6 +1108,232 @@ namespace ZhenguanWarriors.View.BattleView
             }
         }
 
+        // ========== 关卡选择 UI ==========
+
+        private void DrawLevelSelectUI()
+        {
+            GUI.Box(new Rect(0, 0, Screen.width, Screen.height), "");
+
+            // 标题
+            GUI.Label(new Rect(Screen.width / 2 - 100, 20, 240, 40),
+                "🏯 贞观勇士 · 征战天下",
+                new GUIStyle { fontSize = 24, fontStyle = FontStyle.Bold,
+                    normal = { textColor = Color.white },
+                    alignment = TextAnchor.MiddleCenter });
+
+            // 关卡列表
+            float cardW = 300;
+            float cardH = 100;
+            float startX = (Screen.width - cardW) / 2;
+            float startY = 80;
+
+            _levelSelectScroll = GUI.BeginScrollView(
+                new Rect(startX - 10, startY, cardW + 30, Screen.height - startY - 30),
+                _levelSelectScroll,
+                new Rect(0, 0, cardW, _levelOrder.Count * (cardH + 10)));
+
+            for (int i = 0; i < _levelOrder.Count; i++)
+            {
+                string levelId = _levelOrder[i];
+                var level = LevelLibrary.Get(levelId);
+                if (level == null) continue;
+
+                bool unlocked = _unlockedLevels.Contains(levelId);
+                float itemY = i * (cardH + 10);
+
+                // 卡片背景
+                Color bgColor = unlocked ? new Color(0.2f, 0.3f, 0.5f) : new Color(0.15f, 0.15f, 0.15f);
+                GUI.backgroundColor = bgColor;
+                GUI.Box(new Rect(0, itemY, cardW, cardH), "");
+
+                // 关卡名 + 编号
+                GUI.Label(new Rect(15, itemY + 10, cardW - 30, 25),
+                    $"第{i + 1}关 {level.name}",
+                    new GUIStyle { fontSize = 16, fontStyle = FontStyle.Bold,
+                        normal = { textColor = unlocked ? Color.white : Color.gray } });
+
+                // 关卡信息
+                string victoryDesc = level.victoryType switch
+                {
+                    VictoryConditionType.DefeatAll => "全灭敌军",
+                    VictoryConditionType.DefeatBoss => "击破主将",
+                    VictoryConditionType.DefendTurns => $"坚守{level.defendTurns}回合",
+                    VictoryConditionType.Survive => "主角存活",
+                    _ => "未知"
+                };
+                string weatherEmoji = level.weather switch
+                {
+                    WeatherType.Sunny => "☀", WeatherType.Rain => "🌧",
+                    WeatherType.Snow => "❄", WeatherType.Fog => "🌫",
+                    WeatherType.Windy => "💨", _ => ""
+                };
+                GUI.Label(new Rect(15, itemY + 40, cardW - 30, 20),
+                    $"{weatherEmoji} {victoryDesc}  敌方{level.enemies.Count}人   {level.width}x{level.height}",
+                    new GUIStyle { fontSize = 12, normal = { textColor = Color.gray } });
+
+                // 可用角色
+                string roster = string.Join(" ", level.availableCharacters.Take(4)
+                    .Select(id => CharacterDatabase.Get(id)?.Name ?? id));
+                if (level.availableCharacters.Count > 4) roster += " …";
+                GUI.Label(new Rect(15, itemY + 60, cardW - 30, 20),
+                    $"出场: {roster}",
+                    new GUIStyle { fontSize = 11, normal = { textColor = new Color(0.7f, 0.9f, 0.7f) } });
+
+                // 锁定遮罩
+                if (!unlocked)
+                {
+                    GUI.Label(new Rect(cardW - 60, itemY + 30, 50, 40),
+                        "🔒", new GUIStyle { fontSize = 24, alignment = TextAnchor.MiddleCenter });
+                }
+
+                // 点击进入编组（仅未锁定关卡）
+                if (unlocked && GUI.Button(new Rect(0, itemY, cardW, cardH), "", GUIStyle.none))
+                {
+                    SelectLevel(levelId);
+                }
+            }
+            GUI.EndScrollView();
+        }
+
+        /// <summary>选择关卡，进入战前编组</summary>
+        private void SelectLevel(string levelId)
+        {
+            _currentLevel = LevelLibrary.Get(levelId);
+            if (_currentLevel == null) return;
+
+            _currentLevelIndex = _levelOrder.IndexOf(levelId);
+
+            // 根据关卡数据重建网格
+            _hexView.RebuildFromLevelData(_currentLevel);
+
+            // 初始化玩家队伍
+            InitPlayerParty();
+
+            _gamePhase = GamePhase.PreBattle;
+        }
+
+        // ========== 结算界面 ==========
+
+        private void DrawResultsUI()
+        {
+            GUI.Box(new Rect(0, 0, Screen.width, Screen.height), "");
+
+            float w = 400;
+            float h = 350;
+            float x = (Screen.width - w) / 2;
+            float y = (Screen.height - h) / 2;
+
+            bool isVictory = _resultsTitle.Contains("胜利");
+            Color titleColor = isVictory ? Color.green : Color.red;
+
+            // 标题
+            GUI.Label(new Rect(x, y + 10, w, 40),
+                _resultsTitle,
+                new GUIStyle { fontSize = 28, fontStyle = FontStyle.Bold,
+                    alignment = TextAnchor.MiddleCenter,
+                    normal = { textColor = titleColor } });
+
+            // 结果信息
+            GUI.Label(new Rect(x + 20, y + 60, w - 40, 30),
+                _resultsMessage,
+                new GUIStyle { fontSize = 16, alignment = TextAnchor.MiddleCenter,
+                    normal = { textColor = Color.white } });
+
+            // 战斗日志
+            GUI.Label(new Rect(x + 20, y + 100, w - 40, 20),
+                "战斗记录:", new GUIStyle { normal = { textColor = Color.gray } });
+
+            _resultsScroll = GUI.BeginScrollView(
+                new Rect(x + 20, y + 120, w - 40, 120),
+                _resultsScroll,
+                new Rect(0, 0, w - 60, _resultsLog.Count * 20));
+
+            for (int i = 0; i < _resultsLog.Count; i++)
+            {
+                GUI.Label(new Rect(5, i * 20, w - 70, 20),
+                    _resultsLog[i],
+                    new GUIStyle { fontSize = 11, normal = { textColor = Color.white } });
+            }
+            GUI.EndScrollView();
+
+            // 按钮
+            float btnY = y + h - 55;
+            float btnW = 120;
+            float gap = 15;
+            float totalBtnW = btnW * 3 + gap * 2;
+            float btnStartX = x + (w - totalBtnW) / 2;
+
+            // 重试
+            if (GUI.Button(new Rect(btnStartX, btnY, btnW, 40), "🔄 重试"))
+            {
+                RetryLevel();
+            }
+
+            // 下一关（仅胜利且有关卡时）
+            if (isVictory)
+            {
+                bool hasNext = _currentLevelIndex + 1 < _levelOrder.Count;
+                GUI.enabled = hasNext;
+                if (GUI.Button(new Rect(btnStartX + btnW + gap, btnY, btnW, 40), "▶ 下一关"))
+                {
+                    string nextId = _levelOrder[_currentLevelIndex + 1];
+                    _unlockedLevels.Add(nextId);
+                    SelectLevel(nextId);
+                }
+                GUI.enabled = true;
+            }
+
+            // 返回关卡选择
+            if (GUI.Button(new Rect(btnStartX + (btnW + gap) * 2, btnY, btnW, 40), "🏯 选关"))
+            {
+                _gamePhase = GamePhase.LevelSelect;
+                // 清理战场
+                CleanupBattle();
+            }
+        }
+
+        private void RetryLevel()
+        {
+            string levelId = _currentLevel?.levelId;
+            if (string.IsNullOrEmpty(levelId)) return;
+            CleanupBattle();
+            SelectLevel(levelId);
+        }
+
+        private void CleanupBattle()
+        {
+            // 销毁所有单位可视化
+            foreach (var kv in _unitVisuals)
+            {
+                if (kv.Value != null)
+                    Destroy(kv.Value.gameObject);
+            }
+            _unitVisuals.Clear();
+            _allUnits.Clear();
+            _turnManager = null;
+            _victoryChecker = null;
+            _selectedUnit = null;
+            _selectedSkillId = null;
+            _isAnimating = false;
+            _inDuel = false;
+            _duelSystem = null;
+        }
+
+        // ========== 自定义胜负检查（VictoryChecker回调）==========
+
+        private void OnCustomVictoryCheck()
+        {
+            _victoryChecker?.Check();
+            if (_victoryChecker != null && _victoryChecker.IsVictory)
+            {
+                _turnManager.SetPhase(TurnManager.TurnPhase.Victory);
+            }
+            else if (_victoryChecker != null && _victoryChecker.IsDefeat)
+            {
+                _turnManager.SetPhase(TurnManager.TurnPhase.Defeat);
+            }
+        }
+
         // ========== 兵种特性：器械AOE溅射 ==========
 
         /// <summary>器械攻击后对目标周围1格造成溅射伤害</summary>
@@ -1155,13 +1423,55 @@ namespace ZhenguanWarriors.View.BattleView
                     break;
                 case TurnManager.TurnPhase.Victory:
                     _battleUI?.UpdateTurnInfo(_turnManager.TurnNumber, "🎉 胜利！");
-                    _battleUI?.ShowTip("恭喜通关！按空格重新开始？");
+                    ShowResults(true);
                     break;
                 case TurnManager.TurnPhase.Defeat:
                     _battleUI?.UpdateTurnInfo(_turnManager.TurnNumber, "💀 失败");
-                    _battleUI?.ShowTip("战败... 按空格重新挑战");
+                    ShowResults(false);
                     break;
             }
+        }
+
+        /// <summary>显示结算界面</summary>
+        private void ShowResults(bool isVictory)
+        {
+            _resultsTitle = isVictory ? "🎉 胜利！" : "💀 战败";
+            _resultsMessage = _victoryChecker?.ResultMessage
+                ?? (isVictory ? "战斗结束" : "战斗失败");
+
+            // 收集战斗记录（存活角色统计）
+            _resultsLog.Clear();
+            var alivePlayers = _allUnits.Where(u => u.Faction == Faction.Player && u.IsAlive).ToList();
+            var deadPlayers = _allUnits.Where(u => u.Faction == Faction.Player && u.IsDead).ToList();
+
+            _resultsLog.Add($"战斗结束于第 {_turnManager.TurnNumber} 回合");
+            _resultsLog.Add($"存活: {alivePlayers.Count} 阵亡: {deadPlayers.Count}");
+
+            foreach (var u in _allUnits.Where(u => u.Faction == Faction.Player))
+            {
+                string status = u.IsAlive ? $"HP:{u.CurrentHp}/{u.MaxHp}" : "💀 阵亡";
+                _resultsLog.Add($"  {u.Name} Lv.{u.Level} {status} 武{u.Strength} 经验{u.Experience}/{u.ExpToNextLevel()}");
+            }
+
+            // 胜利时解锁下一关
+            if (isVictory)
+            {
+                int nextIdx = _currentLevelIndex + 1;
+                if (nextIdx < _levelOrder.Count)
+                {
+                    _unlockedLevels.Add(_levelOrder[nextIdx]);
+                    string nextName = LevelLibrary.Get(_levelOrder[nextIdx])?.name ?? _levelOrder[nextIdx];
+                    _resultsLog.Add($"");
+                    _resultsLog.Add($"📢 解锁下一关: {nextName}");
+                }
+                else
+                {
+                    _resultsLog.Add("");
+                    _resultsLog.Add($"🏆 已通关所有关卡！");
+                }
+            }
+
+            _gamePhase = GamePhase.Results;
         }
 
         // ========== AI行为树驱动 ==========

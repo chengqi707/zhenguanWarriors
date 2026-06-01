@@ -108,7 +108,34 @@ namespace ZhenguanWarriors.Core.Level
         public static LevelData Get(string id)
         {
             if (_levels == null) Build();
+
+            // 尝试从 JSON 加载（Resources/Data/Levels/level_XX.json）
+            var jsonLevel = LevelJsonLoader.LoadFromResources(id);
+            if (jsonLevel != null) return jsonLevel;
+
             return _levels.TryGetValue(id, out var l) ? l : null;
+        }
+
+        /// <summary>导出全部关卡到JSON文件（编辑器下使用）</summary>
+        public static void ExportAllToJson(string outputDir = null)
+        {
+            if (_levels == null) Build();
+
+#if UNITY_EDITOR
+            if (string.IsNullOrEmpty(outputDir))
+                outputDir = UnityEngine.Application.dataPath + "/Data/Levels";
+
+            if (!System.IO.Directory.Exists(outputDir))
+                System.IO.Directory.CreateDirectory(outputDir);
+
+            foreach (var kv3 in _levels)
+            {
+                string path = $"{outputDir}/{kv3.Key}.json";
+                LevelJsonLoader.SaveToFile(kv3.Value, path);
+                UnityEngine.Debug.Log($"导出关卡 {kv3.Key} -> {path}");
+            }
+            UnityEngine.Debug.Log($"全部 {_levels.Count} 个关卡已导出到 {outputDir}");
+#endif
         }
 
         private static void Build()
@@ -257,6 +284,298 @@ namespace ZhenguanWarriors.Core.Level
                 });
             }
             _levels["level_03"] = level3;
+
+            // ========== 第4关：浅水原之战 ==========
+            var level4 = new LevelData
+            {
+                levelId = "level_04",
+                name = "浅水原之战",
+                width = 20,
+                height = 14,
+                weather = WeatherType.Windy,
+                wind = WindDirection.North,
+                availableCharacters = new List<string> { "lishimin", "li_jing", "zhangsun_wuji", "chai_shao", "liu_hongji", "duan_zhixuan", "qin_qiong", "yuchi_jingde", "fang_xuanling", "hou_junji" },
+                requiredCharacters = new List<string> { "lishimin" },
+                victoryType = VictoryConditionType.DefeatBoss,
+                targetBossId = "enemy_boss_04",
+                defeatTypes = new List<DefeatConditionType> { DefeatConditionType.PlayerDead }
+            };
+            // 地形：中部平原开阔，四周浅丘
+            for (int q = 8; q <= 12; q++)
+                for (int r = 5; r <= 8; r++)
+                    level4.terrainOverrides[new HexCoord(q, r)] = TerrainType.Plain;
+            for (int q = 3; q <= 5; q++)
+                for (int r = 2; r <= 4; r++)
+                    level4.terrainOverrides[new HexCoord(q, r)] = TerrainType.Forest;
+            // 敌军
+            level4.enemies.Add(new EnemyConfig
+            {
+                id = "enemy_boss_04", name = "薛举", unitClass = ClassType.Cavalry,
+                level = 7, str = 75, cmd = 65, @int = 40, agi = 60, luk = 45,
+                hp = 100, mp = 20, move = 6, attackRange = 1,
+                position = new HexCoord(16, 7), isBoss = true,
+                skillIds = new List<string> { "rally" }
+            });
+            for (int i = 0; i < 4; i++)
+            {
+                level4.enemies.Add(new EnemyConfig
+                {
+                    id = $"enemy_04_{i}", name = "西秦骑兵", unitClass = ClassType.Cavalry,
+                    level = 5, str = 60, cmd = 50, @int = 25, agi = 50, luk = 30,
+                    hp = 70, mp = 10, move = 5, attackRange = 1,
+                    position = new HexCoord(14 + i % 2, 5 + i / 2)
+                });
+            }
+            level4.enemies.Add(new EnemyConfig
+            {
+                id = "enemy_04_4", name = "西秦谋士", unitClass = ClassType.Strategist,
+                level = 6, str = 25, cmd = 40, @int = 75, agi = 50, luk = 55,
+                hp = 60, mp = 50, move = 5, attackRange = 2,
+                position = new HexCoord(15, 9),
+                skillIds = new List<string> { "fire_attack", "confuse" }
+            });
+            _levels["level_04"] = level4;
+
+            // ========== 第5关：柏壁之战 ==========
+            var level5 = new LevelData
+            {
+                levelId = "level_05",
+                name = "柏壁之战",
+                width = 22,
+                height = 16,
+                weather = WeatherType.Snow,
+                wind = WindDirection.None,
+                availableCharacters = new List<string> { "lishimin", "li_jing", "yuchi_jingde", "qin_qiong", "zhangsun_wuji", "chai_shao", "liu_hongji", "yin_kaishan", "duan_zhixuan", "cheng_yaojin", "hou_junji" },
+                requiredCharacters = new List<string> { "lishimin" },
+                victoryType = VictoryConditionType.DefendTurns,
+                defendTurns = 10,
+                defeatTypes = new List<DefeatConditionType> { DefeatConditionType.AllDead, DefeatConditionType.TurnLimit },
+                maxTurns = 15
+            };
+            // 地形：城墙防守战，中间一座城，城外山地
+            for (int q = 4; q <= 10; q++)
+                for (int r = 6; r <= 10; r++)
+                    level5.terrainOverrides[new HexCoord(q, r)] = TerrainType.City;
+            for (int q = 3; q <= 4; q++)
+                for (int r = 6; r <= 10; r++)
+                    level5.terrainOverrides[new HexCoord(q, r)] = TerrainType.Wall;
+            for (int q = 12; q <= 18; q++)
+                for (int r = 4; r <= 8; r++)
+                    level5.terrainOverrides[new HexCoord(q, r)] = TerrainType.Mountain;
+            // 敌军（大量）
+            for (int i = 0; i < 6; i++)
+            {
+                level5.enemies.Add(new EnemyConfig
+                {
+                    id = $"enemy_05_{i}", name = "刘军步兵", unitClass = ClassType.Infantry,
+                    level = 6, str = 55, cmd = 50, @int = 25, agi = 35, luk = 25,
+                    hp = 65, mp = 0, move = 4, attackRange = 1,
+                    position = new HexCoord(14 + i % 3, 4 + i / 3)
+                });
+            }
+            for (int i = 0; i < 3; i++)
+            {
+                level5.enemies.Add(new EnemyConfig
+                {
+                    id = $"enemy_05_{i + 6}", name = "刘军弓兵", unitClass = ClassType.Archer,
+                    level = 6, str = 50, cmd = 42, @int = 30, agi = 45, luk = 28,
+                    hp = 55, mp = 10, move = 4, attackRange = 2,
+                    position = new HexCoord(16 + i, 10),
+                    skillIds = new List<string> { "volley" }
+                });
+            }
+            _levels["level_05"] = level5;
+
+            // ========== 第6关：洛阳攻坚战 ==========
+            var level6 = new LevelData
+            {
+                levelId = "level_06",
+                name = "洛阳攻坚战",
+                width = 24,
+                height = 18,
+                weather = WeatherType.Sunny,
+                wind = WindDirection.None,
+                availableCharacters = new List<string> { "lishimin", "li_jing", "yuchi_jingde", "qin_qiong", "zhangsun_wuji", "chai_shao", "liu_hongji", "yin_kaishan", "duan_zhixuan", "cheng_yaojin", "hou_junji", "fang_xuanling" },
+                requiredCharacters = new List<string> { "lishimin", "yin_kaishan" },
+                victoryType = VictoryConditionType.DefeatBoss,
+                targetBossId = "enemy_boss_06",
+                defeatTypes = new List<DefeatConditionType> { DefeatConditionType.PlayerDead, DefeatConditionType.TurnLimit },
+                maxTurns = 25
+            };
+            // 洛阳城（大型城市+护城河）
+            for (int q = 16; q <= 22; q++)
+                for (int r = 7; r <= 12; r++)
+                    level6.terrainOverrides[new HexCoord(q, r)] = TerrainType.City;
+            for (int q = 14; q <= 16; q++)
+                for (int r = 8; r <= 11; r++)
+                    level6.terrainOverrides[new HexCoord(q, r)] = TerrainType.Water;
+            // 敌军（大量）
+            level6.enemies.Add(new EnemyConfig
+            {
+                id = "enemy_boss_06", name = "王世充", unitClass = ClassType.HeavyInfantry,
+                level = 10, str = 78, cmd = 82, @int = 60, agi = 50, luk = 55,
+                hp = 140, mp = 30, move = 4, attackRange = 1,
+                position = new HexCoord(20, 10), isBoss = true,
+                skillIds = new List<string> { "rally", "confuse" }
+            });
+            for (int i = 0; i < 5; i++)
+            {
+                level6.enemies.Add(new EnemyConfig
+                {
+                    id = $"enemy_06_{i}", name = "郑军重步", unitClass = ClassType.HeavyInfantry,
+                    level = 7, str = 62, cmd = 65, @int = 25, agi = 30, luk = 25,
+                    hp = 90, mp = 0, move = 3, attackRange = 1,
+                    position = new HexCoord(17 + i, 8)
+                });
+            }
+            for (int i = 0; i < 3; i++)
+            {
+                level6.enemies.Add(new EnemyConfig
+                {
+                    id = $"enemy_06_{i + 5}", name = "郑军弓兵", unitClass = ClassType.Archer,
+                    level = 7, str = 52, cmd = 45, @int = 30, agi = 42, luk = 28,
+                    hp = 58, mp = 10, move = 4, attackRange = 3,
+                    position = new HexCoord(18 + i, 12),
+                    skillIds = new List<string> { "volley" }
+                });
+            }
+            level6.enemies.Add(new EnemyConfig
+            {
+                id = "enemy_06_8", name = "郑军谋士", unitClass = ClassType.Strategist,
+                level = 8, str = 28, cmd = 45, @int = 80, agi = 55, luk = 60,
+                hp = 65, mp = 55, move = 5, attackRange = 2,
+                position = new HexCoord(21, 7),
+                skillIds = new List<string> { "fire_attack", "rock_slide" }
+            });
+            _levels["level_06"] = level6;
+
+            // ========== 第7关：虎牢关之战 ==========
+            var level7 = new LevelData
+            {
+                levelId = "level_07",
+                name = "虎牢关之战",
+                width = 24,
+                height = 16,
+                weather = WeatherType.Sunny,
+                wind = WindDirection.East,
+                availableCharacters = new List<string> { "lishimin", "li_jing", "yuchi_jingde", "qin_qiong", "zhangsun_wuji", "chai_shao", "liu_hongji", "yin_kaishan", "duan_zhixuan", "cheng_yaojin", "hou_junji", "pingyang_princess" },
+                requiredCharacters = new List<string> { "lishimin", "qin_qiong", "yuchi_jingde" },
+                victoryType = VictoryConditionType.DefeatBoss,
+                targetBossId = "enemy_boss_07",
+                defeatTypes = new List<DefeatConditionType> { DefeatConditionType.PlayerDead }
+            };
+            // 虎牢关地形：一夫当关的关隘
+            for (int q = 12; q <= 14; q++)
+                for (int r = 5; r <= 10; r++)
+                    level7.terrainOverrides[new HexCoord(q, r)] = TerrainType.City;
+            for (int q = 10; q <= 11; q++)
+                for (int r = 5; r <= 10; r++)
+                    level7.terrainOverrides[new HexCoord(q, r)] = TerrainType.Wall;
+            for (int q = 5; q <= 9; q++)
+                for (int r = 3; r <= 6; r++)
+                    level7.terrainOverrides[new HexCoord(q, r)] = TerrainType.Mountain;
+            for (int q = 16; q <= 20; q++)
+                for (int r = 8; r <= 12; r++)
+                    level7.terrainOverrides[new HexCoord(q, r)] = TerrainType.Forest;
+            // 敌军（含骑兵突击队）
+            level7.enemies.Add(new EnemyConfig
+            {
+                id = "enemy_boss_07", name = "窦建德", unitClass = ClassType.Cavalry,
+                level = 12, str = 85, cmd = 78, @int = 55, agi = 65, luk = 60,
+                hp = 130, mp = 30, move = 6, attackRange = 1,
+                position = new HexCoord(13, 8), isBoss = true,
+                skillIds = new List<string> { "rally", "fire_attack" }
+            });
+            for (int i = 0; i < 4; i++)
+            {
+                level7.enemies.Add(new EnemyConfig
+                {
+                    id = $"enemy_07_{i}", name = "夏军骑兵", unitClass = ClassType.Cavalry,
+                    level = 8, str = 68, cmd = 55, @int = 30, agi = 55, luk = 35,
+                    hp = 85, mp = 10, move = 6, attackRange = 1,
+                    position = new HexCoord(15 + i, 6 + i / 2)
+                });
+            }
+            for (int i = 0; i < 3; i++)
+            {
+                level7.enemies.Add(new EnemyConfig
+                {
+                    id = $"enemy_07_{i + 4}", name = "夏军步兵", unitClass = ClassType.Infantry,
+                    level = 7, str = 58, cmd = 52, @int = 28, agi = 38, luk = 28,
+                    hp = 70, mp = 0, move = 4, attackRange = 1,
+                    position = new HexCoord(14, 9 + i)
+                });
+            }
+            level7.enemies.Add(new EnemyConfig
+            {
+                id = "enemy_07_7", name = "夏军谋士", unitClass = ClassType.Strategist,
+                level = 8, str = 30, cmd = 48, @int = 78, agi = 52, luk = 58,
+                hp = 62, mp = 50, move = 5, attackRange = 2,
+                position = new HexCoord(16, 11),
+                skillIds = new List<string> { "water_attack", "confuse" }
+            });
+            _levels["level_07"] = level7;
+
+            // ========== 第8关：玄武门前夜 ==========
+            var level8 = new LevelData
+            {
+                levelId = "level_08",
+                name = "玄武门前夜",
+                width = 18,
+                height = 14,
+                weather = WeatherType.Rain,
+                wind = WindDirection.North,
+                availableCharacters = new List<string> { "lishimin", "li_jing", "yuchi_jingde", "qin_qiong", "zhangsun_wuji", "chai_shao", "liu_hongji", "duan_zhixuan", "cheng_yaojin", "fang_xuanling", "du_ruhui", "pingyang_princess", "zhangsun_empress" },
+                requiredCharacters = new List<string> { "lishimin" },
+                victoryType = VictoryConditionType.DefeatAll,
+                defeatTypes = new List<DefeatConditionType> { DefeatConditionType.PlayerDead }
+            };
+            // 皇宫地形
+            for (int q = 8; q <= 14; q++)
+                for (int r = 5; r <= 9; r++)
+                    level8.terrainOverrides[new HexCoord(q, r)] = TerrainType.City;
+            for (int q = 7; q <= 8; q++)
+                for (int r = 6; r <= 8; r++)
+                    level8.terrainOverrides[new HexCoord(q, r)] = TerrainType.Wall;
+            // 敌军（精锐禁军）
+            level8.enemies.Add(new EnemyConfig
+            {
+                id = "enemy_boss_08", name = "玄武禁军统领", unitClass = ClassType.HeavyInfantry,
+                level = 15, str = 82, cmd = 80, @int = 50, agi = 55, luk = 60,
+                hp = 150, mp = 30, move = 4, attackRange = 1,
+                position = new HexCoord(12, 7), isBoss = true,
+                skillIds = new List<string> { "rally" }
+            });
+            for (int i = 0; i < 4; i++)
+            {
+                level8.enemies.Add(new EnemyConfig
+                {
+                    id = $"enemy_08_{i}", name = "禁军重步", unitClass = ClassType.HeavyInfantry,
+                    level = 10, str = 70, cmd = 72, @int = 28, agi = 35, luk = 30,
+                    hp = 110, mp = 0, move = 3, attackRange = 1,
+                    position = new HexCoord(10 + i % 2, 6 + i / 2)
+                });
+            }
+            for (int i = 0; i < 2; i++)
+            {
+                level8.enemies.Add(new EnemyConfig
+                {
+                    id = $"enemy_08_{i + 4}", name = "禁军弓兵", unitClass = ClassType.Archer,
+                    level = 10, str = 58, cmd = 50, @int = 35, agi = 48, luk = 32,
+                    hp = 65, mp = 15, move = 4, attackRange = 3,
+                    position = new HexCoord(13, 8 + i),
+                    skillIds = new List<string> { "volley" }
+                });
+            }
+            level8.enemies.Add(new EnemyConfig
+            {
+                id = "enemy_08_6", name = "禁军谋士", unitClass = ClassType.Strategist,
+                level = 10, str = 30, cmd = 50, @int = 82, agi = 55, luk = 60,
+                hp = 68, mp = 55, move = 5, attackRange = 2,
+                position = new HexCoord(14, 6),
+                skillIds = new List<string> { "fire_attack", "rock_slide", "heal" }
+            });
+            _levels["level_08"] = level8;
         }
     }
 }

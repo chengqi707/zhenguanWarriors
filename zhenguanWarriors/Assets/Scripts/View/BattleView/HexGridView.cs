@@ -1,6 +1,7 @@
 using UnityEngine;
 using ZhenguanWarriors.Core.Battle;
 using ZhenguanWarriors.Core.Character;
+using ZhenguanWarriors.Core.Level;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -224,6 +225,35 @@ namespace ZhenguanWarriors.View.BattleView
                 var mr = go.GetComponent<MeshRenderer>();
                 mr.material.color = GetTerrainColor(_grid.GetTerrain(cell));
             }
+        }
+
+        /// <summary>根据关卡数据重建网格（尺寸+地形）</summary>
+        public void RebuildFromLevelData(LevelData level)
+        {
+            // 清除旧网格
+            foreach (var go in _hexObjects.Values)
+                Destroy(go);
+            _hexObjects.Clear();
+
+            // 创建新网格
+            gridWidth = level.width;
+            gridHeight = level.height;
+            _grid = new HexGrid(gridWidth, gridHeight);
+            _pathFinder = new PathFinder(_grid);
+
+            // 应用地形覆盖
+            foreach (var (pos, terrain) in level.terrainOverrides)
+            {
+                if (_grid.InBounds(pos))
+                    _grid.SetTerrain(pos, terrain);
+            }
+
+            // 底部城墙（不可通行边界）
+            for (int q = 0; q < gridWidth; q++)
+                _grid.SetTerrain(new HexCoord(q, gridHeight - 1), TerrainType.Wall);
+
+            CreateHexMesh();
+            SetupCamera();
         }
 
         private void SetupCamera()

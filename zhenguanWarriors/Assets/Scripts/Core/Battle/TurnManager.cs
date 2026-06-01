@@ -33,6 +33,9 @@ namespace ZhenguanWarriors.Core.Battle
         public Action<BattleUnit> OnUnitTurnEnd;
         public Action<TurnPhase> OnPhaseChanged;
 
+        /// <summary>自定义胜负检查回调（由BattleTestController设置，使用VictoryChecker）</summary>
+        public Action OnCustomVictoryCheck { get; set; }
+
         public TurnManager(List<BattleUnit> allUnits)
         {
             _allUnits = allUnits;
@@ -111,8 +114,18 @@ namespace ZhenguanWarriors.Core.Battle
         /// <summary>检查当前方是否全部行动完毕，切换回合或检查胜负</summary>
         private void CheckPhaseEnd()
         {
-            if (CheckVictory() || CheckDefeat())
-                return;
+            // 优先使用自定义胜负检查（VictoryChecker）
+            if (OnCustomVictoryCheck != null)
+            {
+                OnCustomVictoryCheck();
+                if (CurrentPhase == TurnPhase.Victory || CurrentPhase == TurnPhase.Defeat)
+                    return;
+            }
+            else
+            {
+                if (CheckVictory() || CheckDefeat())
+                    return;
+            }
 
             switch (CurrentPhase)
             {
@@ -155,7 +168,8 @@ namespace ZhenguanWarriors.Core.Battle
 
         // ========== 辅助 ==========
 
-        private void SetPhase(TurnPhase phase)
+        /// <summary>设置当前阶段（公开供VictoryChecker使用）</summary>
+        public void SetPhase(TurnPhase phase)
         {
             CurrentPhase = phase;
             OnPhaseChanged?.Invoke(phase);
