@@ -145,10 +145,11 @@ namespace ZhenguanWarriors.Core.Save
             }
         }
 
-        /// <summary>重置新游戏（清空存档+解锁第一关）</summary>
+        /// <summary>重置新游戏（清空存档+初始化关卡进度）</summary>
         public static void ResetNewGame()
         {
             DeleteAllSaves();
+            GameState.CurrentSave = SaveData.CreateNew();
         }
 
         // ========== 从BattleUnit构建SaveData ==========

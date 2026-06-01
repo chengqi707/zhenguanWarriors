@@ -68,6 +68,11 @@ namespace ZhenguanWarriors.View.BattleView
         private DialogueUI _dialogueUI;
         private bool _waitingForDialogue;   // 等待对话结束后继续流程
 
+        // ========== UI缩放 ==========
+        private float _uiScale = 1f;
+        private float SW => Screen.width;
+        private float SH => Screen.height;
+
         // ========== 结算界面 ==========
         private string _resultsTitle;
         private string _resultsMessage;
@@ -87,6 +92,11 @@ namespace ZhenguanWarriors.View.BattleView
             // 如果没有 BattleUI，创建一个
             if (_battleUI == null)
                 _battleUI = gameObject.AddComponent<BattleUI>();
+
+            // DPI自适应缩放
+            _uiScale = Mathf.Min(SW / 1920f, SH / 1080f);
+            if (_uiScale < 0.5f) _uiScale = 0.5f;
+            if (_uiScale > 2.0f) _uiScale = 2.0f;
 
             // 获取对话系统
             _dialogueUI = GetComponent<DialogueUI>();
@@ -1239,29 +1249,32 @@ namespace ZhenguanWarriors.View.BattleView
 
         private void DrawLevelSelectUI()
         {
+            float s = _uiScale;
+
             GUI.backgroundColor = Theme.BgDark;
-            GUI.Box(new Rect(0, 0, Screen.width, Screen.height), "");
+            GUI.Box(new Rect(0, 0, SW, SH), "");
             GUI.backgroundColor = Color.white;
 
             // 顶部装饰
             GUI.backgroundColor = Theme.Primary;
-            GUI.Box(new Rect(0, 0, Screen.width, 4), "");
+            GUI.Box(new Rect(0, 0, SW, 6 * s), "");
             GUI.backgroundColor = Color.white;
 
             // 标题
-            Theme.DrawTitle(new Rect(Screen.width / 2 - 120, 20, 240, 40),
-                "🏯 征战天下", 24);
+            Theme.DrawTitle(new Rect(0, 30 * s, SW, 60 * s),
+                "🏯 征战天下", (int)(30 * s));
 
-            // 关卡列表
-            float cardW = 300;
-            float cardH = 100;
-            float startX = (Screen.width - cardW) / 2;
-            float startY = 80;
+            // 关卡列表（全屏宽卡片，大幅增加字体）
+            float cardW = SW * 0.85f;
+            float cardH = 130 * s;
+            float startX = (SW - cardW) / 2;
+            float startY = 100 * s;
+            float margin = 14 * s;
 
             _levelSelectScroll = GUI.BeginScrollView(
-                new Rect(startX - 10, startY, cardW + 30, Screen.height - startY - 30),
+                new Rect(startX, startY, cardW, SH - startY - 30 * s),
                 _levelSelectScroll,
-                new Rect(0, 0, cardW, _levelOrder.Count * (cardH + 10)));
+                new Rect(0, 0, cardW, _levelOrder.Count * (cardH + margin)));
 
             for (int i = 0; i < _levelOrder.Count; i++)
             {
@@ -1269,29 +1282,29 @@ namespace ZhenguanWarriors.View.BattleView
                 var level = LevelLibrary.Get(levelId);
                 if (level == null) continue;
 
-                bool unlocked = GameState.UnlockedLevels.Contains(levelId);
-                float itemY = i * (cardH + 10);
+                bool unlocked = GameState.IsLevelUnlocked(levelId);
+                float itemY = i * (cardH + margin);
 
                 // 卡片背景
-                Color bgColor = unlocked ? Theme.BgCard : new Color(0.12f, 0.08f, 0.06f);
-                GUI.backgroundColor = bgColor;
+                GUI.backgroundColor = unlocked ? Theme.BgCard : new Color(0.12f, 0.08f, 0.06f);
                 GUI.Box(new Rect(0, itemY, cardW, cardH), "");
 
-                // 左侧朱红装饰条（解锁的关卡）
+                // 左侧装饰条
                 if (unlocked)
                 {
                     GUI.backgroundColor = Theme.Primary;
-                    GUI.Box(new Rect(0, itemY, 4, cardH), "");
+                    GUI.Box(new Rect(0, itemY, 6 * s, cardH), "");
                     GUI.backgroundColor = Color.white;
                 }
 
-                // 关卡名 + 编号
-                GUI.Label(new Rect(15, itemY + 10, cardW - 30, 25),
-                    $"第{i + 1}关 {level.name}",
-                    Theme.MakeLabel(16, FontStyle.Bold, unlocked ? Theme.Gold : Theme.TextDim));
+                // 关卡名（大字号）
+                string levelTitle = $"第{i + 1}关  {level.name}";
+                GUI.Label(new Rect(20 * s, itemY + 8 * s, cardW - 40 * s, 36 * s),
+                    levelTitle,
+                    Theme.MakeLabel((int)(24 * s), FontStyle.Bold, unlocked ? Theme.Gold : Theme.TextDim));
 
-                // 关卡信息
-                string victoryDesc = level.victoryType switch
+                // 关卡信息行
+                string vicDesc = level.victoryType switch
                 {
                     VictoryConditionType.DefeatAll => "全灭敌军",
                     VictoryConditionType.DefeatBoss => "击破主将",
@@ -1305,26 +1318,27 @@ namespace ZhenguanWarriors.View.BattleView
                     WeatherType.Snow => "❄", WeatherType.Fog => "🌫",
                     WeatherType.Windy => "💨", _ => ""
                 };
-                GUI.Label(new Rect(15, itemY + 40, cardW - 30, 20),
-                    $"{weatherEmoji} {victoryDesc}  敌方{level.enemies.Count}人   {level.width}x{level.height}",
-                    new GUIStyle { fontSize = 12, normal = { textColor = Color.gray } });
+                GUI.Label(new Rect(20 * s, itemY + 46 * s, cardW - 40 * s, 26 * s),
+                    $"{weatherEmoji} {vicDesc}    敌方{level.enemies.Count}人    {level.width}x{level.height}",
+                    Theme.MakeLabel((int)(17 * s), FontStyle.Normal, Theme.TextDim));
 
-                // 可用角色
+                // 出场角色
                 string roster = string.Join(" ", level.availableCharacters.Take(4)
                     .Select(id => CharacterDatabase.Get(id)?.Name ?? id));
                 if (level.availableCharacters.Count > 4) roster += " …";
-                GUI.Label(new Rect(15, itemY + 60, cardW - 30, 20),
+                GUI.Label(new Rect(20 * s, itemY + 76 * s, cardW - 40 * s, 26 * s),
                     $"出场: {roster}",
-                    new GUIStyle { fontSize = 11, normal = { textColor = new Color(0.7f, 0.9f, 0.7f) } });
+                    Theme.MakeLabel((int)(16 * s), FontStyle.Normal, new Color(0.7f, 0.9f, 0.7f)));
 
-                // 锁定遮罩
+                // 锁定
                 if (!unlocked)
                 {
-                    GUI.Label(new Rect(cardW - 60, itemY + 30, 50, 40),
-                        "🔒", new GUIStyle { fontSize = 24, alignment = TextAnchor.MiddleCenter });
+                    GUI.Label(new Rect(cardW - 70 * s, itemY + 30 * s, 60 * s, 60 * s),
+                        "🔒", new GUIStyle { fontSize = (int)(36 * s),
+                            alignment = TextAnchor.MiddleCenter });
                 }
 
-                // 点击进入编组（仅未锁定关卡）
+                // 点击
                 if (unlocked && GUI.Button(new Rect(0, itemY, cardW, cardH), "", GUIStyle.none))
                 {
                     SelectLevel(levelId);
@@ -1454,7 +1468,7 @@ namespace ZhenguanWarriors.View.BattleView
                     Theme.MakeButton(15)))
                 {
                     string nextId = _levelOrder[_currentLevelIndex + 1];
-                    GameState.UnlockedLevels.Add(nextId);
+                    GameState.UnlockLevel(nextId);
                     SelectLevel(nextId);
                 }
                 GUI.enabled = true;
@@ -1663,7 +1677,7 @@ namespace ZhenguanWarriors.View.BattleView
                 int nextIdx = _currentLevelIndex + 1;
                 if (nextIdx < _levelOrder.Count)
                 {
-                    GameState.UnlockedLevels.Add(_levelOrder[nextIdx]);
+                    GameState.UnlockLevel(_levelOrder[nextIdx]);
                     string nextName = LevelLibrary.Get(_levelOrder[nextIdx])?.name ?? _levelOrder[nextIdx];
                     _resultsLog.Add($"");
                     _resultsLog.Add($"📢 解锁下一关: {nextName}");
@@ -1696,7 +1710,7 @@ namespace ZhenguanWarriors.View.BattleView
                 _currentLevelIndex,
                 _currentLevel.name,
                 party,
-                GameState.UnlockedLevels
+                GameState.GetAllUnlocked()
             );
             SaveManager.AutoSave(saveData);
             GameState.CurrentSave = saveData;

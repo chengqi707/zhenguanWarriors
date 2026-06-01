@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using ZhenguanWarriors.Core.Battle;
+using System.Linq;
 
 namespace ZhenguanWarriors.Core.Save
 {
@@ -11,20 +11,28 @@ namespace ZhenguanWarriors.Core.Save
         /// <summary>当前加载的存档（null = 新游戏）</summary>
         public static SaveData CurrentSave { get; set; }
 
-        /// <summary>当前已解锁的关卡ID集合</summary>
-        public static HashSet<string> UnlockedLevels
+        /// <summary>检查某关卡是否已解锁</summary>
+        public static bool IsLevelUnlocked(string levelId)
         {
-            get
-            {
-                if (CurrentSave != null)
-                    return new HashSet<string>(CurrentSave.unlockedLevels);
-                return new HashSet<string> { "level_01" };
-            }
-            set
-            {
-                if (CurrentSave != null)
-                    CurrentSave.unlockedLevels = new List<string>(value);
-            }
+            if (CurrentSave != null)
+                return CurrentSave.unlockedLevels.Contains(levelId);
+            return levelId == "level_01";
+        }
+
+        /// <summary>解锁一个关卡</summary>
+        public static void UnlockLevel(string levelId)
+        {
+            if (CurrentSave == null) return;
+            if (!CurrentSave.unlockedLevels.Contains(levelId))
+                CurrentSave.unlockedLevels.Add(levelId);
+        }
+
+        /// <summary>获取所有已解锁关卡ID（用于遍历检查）</summary>
+        public static HashSet<string> GetAllUnlocked()
+        {
+            if (CurrentSave != null)
+                return new HashSet<string>(CurrentSave.unlockedLevels);
+            return new HashSet<string> { "level_01" };
         }
 
         /// <summary>获取/设置下一关要播放的剧情ID（关前/关后）</summary>
