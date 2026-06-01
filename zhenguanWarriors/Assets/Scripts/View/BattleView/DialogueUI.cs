@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using ZhenguanWarriors.Core.Story;
 using ZhenguanWarriors.Core.Character;
-using ZhenguanWarriors.Core.Save;
+using ZhenguanWarriors.Core.UI;
 
 namespace ZhenguanWarriors.View.BattleView
 {
@@ -64,39 +64,55 @@ namespace ZhenguanWarriors.View.BattleView
 
         private void DrawDialogue()
         {
-            // 半透明遮罩
+            // 半透明遮罩（深褐色）
+            GUI.backgroundColor = Theme.BgDark;
             GUI.Box(new Rect(0, 0, Screen.width, Screen.height), "");
+            GUI.backgroundColor = Color.white;
 
             float w = Screen.width * 0.8f;
-            float h = 220;
+            float h = 240;
             float x = (Screen.width - w) / 2;
             float y = Screen.height - h - 20;
 
-            // 对话背景
-            GUI.Box(new Rect(x, y, w, h), "");
+            // 对话背景（唐风面板）
+            Theme.DrawPanel(new Rect(x, y, w, h));
 
-            // 头像占位（圆形区域）
+            // 顶部朱红装饰线
+            GUI.backgroundColor = Theme.Primary;
+            GUI.Box(new Rect(x, y, w, 3), "");
+            GUI.backgroundColor = Color.white;
+
+            // 头像（生成的角色头像）
             float avatarSize = 80;
-            float avatarX = x + 20;
-            float avatarY = y + 20;
-            GUI.Box(new Rect(avatarX, avatarY, avatarSize, avatarSize),
-                GetSpeakerAvatar(_currentNode.speakerId));
+            float avatarX = x + 25;
+            float avatarY = y + 25;
+            var portrait = PortraitGenerator.GetPortrait(_currentNode.speakerId);
+            if (portrait != null)
+                GUI.DrawTexture(new Rect(avatarX, avatarY, avatarSize, avatarSize), portrait);
+
+            // 头像边框
+            GUI.backgroundColor = Theme.Gold;
+            GUI.Box(new Rect(avatarX - 2, avatarY - 2, avatarSize + 4, avatarSize + 4), "");
+            GUI.backgroundColor = Color.white;
 
             // 说话人名字
-            float textX = avatarX + avatarSize + 20;
-            float textW = w - avatarSize - 50;
-            GUI.Label(new Rect(textX, y + 15, textW, 25),
+            float textX = avatarX + avatarSize + 25;
+            float textW = w - avatarSize - 60;
+            GUI.Label(new Rect(textX, y + 20, textW, 28),
                 _currentNode.speaker,
-                new GUIStyle { fontSize = 18, fontStyle = FontStyle.Bold,
-                    normal = { textColor = NameColor } });
+                Theme.MakeLabel(20, FontStyle.Bold, Theme.Gold));
 
             // 对白文本（支持多行）
-            float textY = y + 45;
-            float textH = 80;
+            float textY = y + 55;
+            float textH = 90;
             GUI.Label(new Rect(textX, textY, textW, textH),
                 _currentNode.text,
-                new GUIStyle { fontSize = 15, wordWrap = true,
-                    normal = { textColor = TextColor } });
+                Theme.MakeLabel(16, FontStyle.Normal, Theme.TextLight));
+            // 多行支持
+            GUI.Label(new Rect(textX, textY, textW, textH),
+                _currentNode.text,
+                new GUIStyle { fontSize = 16, wordWrap = true,
+                    normal = { textColor = Theme.TextLight } });
 
             // 选项 / 点击继续
             float btnY = y + h - 40;

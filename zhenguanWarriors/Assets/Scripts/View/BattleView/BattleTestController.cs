@@ -4,6 +4,7 @@ using ZhenguanWarriors.Core.Combat;
 using ZhenguanWarriors.Core.Character;
 using ZhenguanWarriors.Core.Level;
 using ZhenguanWarriors.Core.AI;
+using ZhenguanWarriors.Core.UI;
 using ZhenguanWarriors.Core.Save;
 using ZhenguanWarriors.Core.Story;
 using System.Collections.Generic;
@@ -1238,14 +1239,18 @@ namespace ZhenguanWarriors.View.BattleView
 
         private void DrawLevelSelectUI()
         {
+            GUI.backgroundColor = Theme.BgDark;
             GUI.Box(new Rect(0, 0, Screen.width, Screen.height), "");
+            GUI.backgroundColor = Color.white;
+
+            // 顶部装饰
+            GUI.backgroundColor = Theme.Primary;
+            GUI.Box(new Rect(0, 0, Screen.width, 4), "");
+            GUI.backgroundColor = Color.white;
 
             // 标题
-            GUI.Label(new Rect(Screen.width / 2 - 100, 20, 240, 40),
-                "🏯 贞观勇士 · 征战天下",
-                new GUIStyle { fontSize = 24, fontStyle = FontStyle.Bold,
-                    normal = { textColor = Color.white },
-                    alignment = TextAnchor.MiddleCenter });
+            Theme.DrawTitle(new Rect(Screen.width / 2 - 120, 20, 240, 40),
+                "🏯 征战天下", 24);
 
             // 关卡列表
             float cardW = 300;
@@ -1268,15 +1273,22 @@ namespace ZhenguanWarriors.View.BattleView
                 float itemY = i * (cardH + 10);
 
                 // 卡片背景
-                Color bgColor = unlocked ? new Color(0.2f, 0.3f, 0.5f) : new Color(0.15f, 0.15f, 0.15f);
+                Color bgColor = unlocked ? Theme.BgCard : new Color(0.12f, 0.08f, 0.06f);
                 GUI.backgroundColor = bgColor;
                 GUI.Box(new Rect(0, itemY, cardW, cardH), "");
+
+                // 左侧朱红装饰条（解锁的关卡）
+                if (unlocked)
+                {
+                    GUI.backgroundColor = Theme.Primary;
+                    GUI.Box(new Rect(0, itemY, 4, cardH), "");
+                    GUI.backgroundColor = Color.white;
+                }
 
                 // 关卡名 + 编号
                 GUI.Label(new Rect(15, itemY + 10, cardW - 30, 25),
                     $"第{i + 1}关 {level.name}",
-                    new GUIStyle { fontSize = 16, fontStyle = FontStyle.Bold,
-                        normal = { textColor = unlocked ? Color.white : Color.gray } });
+                    Theme.MakeLabel(16, FontStyle.Bold, unlocked ? Theme.Gold : Theme.TextDim));
 
                 // 关卡信息
                 string victoryDesc = level.victoryType switch
@@ -1370,32 +1382,36 @@ namespace ZhenguanWarriors.View.BattleView
 
         private void DrawResultsUI()
         {
+            GUI.backgroundColor = Theme.BgDark;
             GUI.Box(new Rect(0, 0, Screen.width, Screen.height), "");
+            GUI.backgroundColor = Color.white;
 
-            float w = 400;
-            float h = 350;
+            float w = 440;
+            float h = 370;
             float x = (Screen.width - w) / 2;
             float y = (Screen.height - h) / 2;
 
+            // 结算面板
+            Theme.DrawPanel(new Rect(x, y, w, h));
+
+            // 顶部装饰
             bool isVictory = _resultsTitle.Contains("胜利");
-            Color titleColor = isVictory ? Color.green : Color.red;
+            Color titleColor = isVictory ? Theme.Gold : Theme.Primary;
+            GUI.backgroundColor = titleColor;
+            GUI.Box(new Rect(x, y, w, 4), "");
+            GUI.backgroundColor = Color.white;
 
             // 标题
-            GUI.Label(new Rect(x, y + 10, w, 40),
-                _resultsTitle,
-                new GUIStyle { fontSize = 28, fontStyle = FontStyle.Bold,
-                    alignment = TextAnchor.MiddleCenter,
-                    normal = { textColor = titleColor } });
+            Theme.DrawTitle(new Rect(x, y + 15, w, 45), _resultsTitle, 30);
 
             // 结果信息
-            GUI.Label(new Rect(x + 20, y + 60, w - 40, 30),
+            GUI.Label(new Rect(x + 20, y + 65, w - 40, 30),
                 _resultsMessage,
-                new GUIStyle { fontSize = 16, alignment = TextAnchor.MiddleCenter,
-                    normal = { textColor = Color.white } });
+                Theme.MakeLabel(16, FontStyle.Normal, Theme.TextLight, TextAnchor.MiddleCenter));
 
             // 战斗日志
             GUI.Label(new Rect(x + 20, y + 100, w - 40, 20),
-                "战斗记录:", new GUIStyle { normal = { textColor = Color.gray } });
+                "战斗记录:", Theme.MakeLabel(12, FontStyle.Normal, Theme.TextDim));
 
             _resultsScroll = GUI.BeginScrollView(
                 new Rect(x + 20, y + 120, w - 40, 120),
@@ -1404,9 +1420,11 @@ namespace ZhenguanWarriors.View.BattleView
 
             for (int i = 0; i < _resultsLog.Count; i++)
             {
+                Color logColor = _resultsLog[i].Contains("解锁") ? Theme.Gold :
+                    _resultsLog[i].Contains("阵亡") ? Theme.HpRed : Theme.Parchment;
                 GUI.Label(new Rect(5, i * 20, w - 70, 20),
                     _resultsLog[i],
-                    new GUIStyle { fontSize = 11, normal = { textColor = Color.white } });
+                    Theme.MakeLabel(11, FontStyle.Normal, logColor));
             }
             GUI.EndScrollView();
 
@@ -1417,18 +1435,26 @@ namespace ZhenguanWarriors.View.BattleView
             float totalBtnW = btnW * 3 + gap * 2;
             float btnStartX = x + (w - totalBtnW) / 2;
 
-            // 重试
-            if (GUI.Button(new Rect(btnStartX, btnY, btnW, 40), "🔄 重试"))
+            // 重试（朱红）
+            GUI.backgroundColor = Theme.PrimaryDark;
+            if (GUI.Button(new Rect(btnStartX, btnY, btnW, 40), "🔄 重试",
+                Theme.MakeButton(15)))
             {
                 RetryLevel();
             }
+            GUI.backgroundColor = Color.white;
 
-            // 下一关（仅胜利且有关卡时）
+            // 下一关（金色，仅胜利且有关卡时）
             if (isVictory)
             {
                 bool hasNext = _currentLevelIndex + 1 < _levelOrder.Count;
                 GUI.enabled = hasNext;
-                if (GUI.Button(new Rect(btnStartX + btnW + gap, btnY, btnW, 40), "▶ 下一关"))
+                GUI.backgroundColor = Theme.Gold;
+                if (GUI.Button(new Rect(btnStartX + btnW + gap, btnY, btnW, 40), "▶ 下一关",
+                    Theme.MakeButton(15)))
+                    {
+                    string nextId = _levelOrder[_currentLevelIndex + 1];
+                    GameState.UnlockedLevels.Add(nextId);
                 {
                     string nextId = _levelOrder[_currentLevelIndex + 1];
                     GameState.UnlockedLevels.Add(nextId);
@@ -1438,12 +1464,14 @@ namespace ZhenguanWarriors.View.BattleView
             }
 
             // 返回关卡选择
-            if (GUI.Button(new Rect(btnStartX + (btnW + gap) * 2, btnY, btnW, 40), "🏯 选关"))
+            GUI.backgroundColor = Theme.BgCard;
+            if (GUI.Button(new Rect(btnStartX + (btnW + gap) * 2, btnY, btnW, 40),
+                "🏯 选关", Theme.MakeButton(15)))
             {
                 _gamePhase = GamePhase.LevelSelect;
-                // 清理战场
                 CleanupBattle();
             }
+            GUI.backgroundColor = Color.white;
         }
 
         private void RetryLevel()

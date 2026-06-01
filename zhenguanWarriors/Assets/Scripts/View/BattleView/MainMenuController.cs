@@ -1,5 +1,6 @@
 using UnityEngine;
 using ZhenguanWarriors.Core.Save;
+using ZhenguanWarriors.Core.UI;
 
 namespace ZhenguanWarriors.View.BattleView
 {
@@ -30,91 +31,83 @@ namespace ZhenguanWarriors.View.BattleView
         private void DrawMainMenu()
         {
             // 背景
+            GUI.backgroundColor = Theme.BgDark;
             GUI.Box(new Rect(0, 0, Screen.width, Screen.height), "");
 
             float cx = Screen.width / 2f;
             float cy = Screen.height / 2f;
 
-            // 标题
-            GUI.Label(new Rect(cx - 160, cy - 180, 320, 60),
-                "🏯 贞观勇士",
-                new GUIStyle
-                {
-                    fontSize = 42,
-                    fontStyle = FontStyle.Bold,
-                    alignment = TextAnchor.MiddleCenter,
-                    normal = { textColor = new Color(0.9f, 0.7f, 0.2f) } // 金色
-                });
+            // 顶部装饰线
+            GUI.backgroundColor = Theme.Primary;
+            GUI.Box(new Rect(0, 0, Screen.width, 4), "");
+
+            // 标题（朱红+金色）
+            Theme.DrawTitle(new Rect(cx - 160, cy - 180, 320, 60), "🏯 贞观勇士", 42);
 
             // 副标题
             GUI.Label(new Rect(cx - 120, cy - 120, 240, 30),
                 "—— 李世民战棋录 ——",
-                new GUIStyle
-                {
-                    fontSize = 16,
-                    alignment = TextAnchor.MiddleCenter,
-                    normal = { textColor = new Color(0.7f, 0.6f, 0.4f) }
-                });
+                Theme.MakeLabel(16, FontStyle.Normal, Theme.Gold, TextAnchor.MiddleCenter));
 
-            float btnW = 220;
-            float btnH = 50;
-            float gap = 15;
+            // 装饰中轴
+            GUI.backgroundColor = Theme.Gold;
+            GUI.Box(new Rect(cx - 1, cy - 85, 2, 40), "");
+
+            float btnW = 240;
+            float btnH = 55;
+            float gap = 18;
             float startY = cy - 30;
 
-            // 新游戏
+            // 新游戏按钮（朱红背景）
+            GUI.backgroundColor = Theme.Primary;
             if (GUI.Button(new Rect(cx - btnW / 2, startY, btnW, btnH),
                 "⚔  新 游 戏",
-                new GUIStyle(GUI.skin.button)
-                {
-                    fontSize = 20,
-                    fontStyle = FontStyle.Bold,
-                    alignment = TextAnchor.MiddleCenter
-                }))
+                Theme.MakeButton(22)))
             {
                 StartNewGame();
             }
+            GUI.backgroundColor = Color.white;
 
             // 继续游戏
             GUI.enabled = _hasSaveData;
+            GUI.backgroundColor = Theme.PrimaryDark;
             if (GUI.Button(new Rect(cx - btnW / 2, startY + btnH + gap, btnW, btnH),
                 "💾  继 续 游 戏",
-                new GUIStyle(GUI.skin.button)
-                {
-                    fontSize = 20,
-                    fontStyle = FontStyle.Bold,
-                    alignment = TextAnchor.MiddleCenter
-                }))
+                Theme.MakeButton(22)))
             {
                 ContinueGame();
             }
+            GUI.backgroundColor = Color.white;
             GUI.enabled = true;
 
             // 设置
+            GUI.backgroundColor = Theme.BgCard;
             if (GUI.Button(new Rect(cx - btnW / 2, startY + (btnH + gap) * 2, btnW, btnH),
                 "⚙  设 置",
-                new GUIStyle(GUI.skin.button)
-                {
-                    fontSize = 20,
-                    alignment = TextAnchor.MiddleCenter
-                }))
+                Theme.MakeButton(20, FontStyle.Normal)))
             {
                 _currentPage = MenuPage.Settings;
             }
+            GUI.backgroundColor = Color.white;
 
             // 底部版本号
             GUI.Label(new Rect(10, Screen.height - 30, 200, 25),
-                "v0.5 (Sprint 5)",
-                new GUIStyle { fontSize = 11, normal = { textColor = Color.gray } });
+                "v0.7 (Sprint 7)",
+                Theme.MakeLabel(11, FontStyle.Normal, Theme.TextDim));
+
+            // 底部装饰线
+            GUI.backgroundColor = Theme.Primary;
+            GUI.Box(new Rect(0, Screen.height - 4, Screen.width, 4), "");
+            GUI.backgroundColor = Color.white;
         }
 
         private void DrawSettings()
         {
+            GUI.backgroundColor = Theme.BgDark;
             GUI.Box(new Rect(0, 0, Screen.width, Screen.height), "");
+            GUI.backgroundColor = Color.white;
 
-            GUI.Label(new Rect(Screen.width / 2f - 80, 30, 160, 40),
-                "⚙ 设置",
-                new GUIStyle { fontSize = 24, fontStyle = FontStyle.Bold,
-                    alignment = TextAnchor.MiddleCenter, normal = { textColor = Color.white } });
+            Theme.DrawTitle(new Rect(Screen.width / 2f - 80, 30, 160, 40), "⚙ 设置", 24);
 
             // 音效开关（占位）
             float x = Screen.width / 2f - 120;
@@ -122,17 +115,20 @@ namespace ZhenguanWarriors.View.BattleView
             float w = 240;
             float h = 35;
 
-            GUI.Label(new Rect(x, y, w, h), "BGM: 暂无音效（待Sprint 7）");
+            GUI.Label(new Rect(x, y, w, h), "🎵 音效将在最终版本添加", Theme.MakeLabel(14));
             y += 50;
 
             // 存档管理
-            GUI.Label(new Rect(x, y, w, h), "存档管理");
+            GUI.Label(new Rect(x, y, w, h), "📦 存档管理", Theme.MakeLabel(16, FontStyle.Bold));
+            y += 5;
 
+            GUI.backgroundColor = Theme.PrimaryDark;
             if (GUI.Button(new Rect(x + w + 10, y, 100, h), "清空存档"))
             {
                 SaveManager.DeleteAllSaves();
                 _hasSaveData = false;
             }
+            GUI.backgroundColor = Color.white;
 
             y += 50;
             // 显示存档列表
@@ -143,17 +139,19 @@ namespace ZhenguanWarriors.View.BattleView
                 {
                     GUI.Label(new Rect(x, y, w, 25),
                         $"槽位{i + 1}: 第{meta.levelIndex + 1}关 {meta.levelName} Lv{meta.avgLevel}",
-                        new GUIStyle { fontSize = 12, normal = { textColor = Color.gray } });
+                        Theme.MakeLabel(12, FontStyle.Normal, Theme.TextDim));
                     y += 28;
                 }
             }
 
             // 返回
+            GUI.backgroundColor = Theme.BgCard;
             if (GUI.Button(new Rect(Screen.width / 2f - 80, Screen.height - 70, 160, 40),
-                "← 返回"))
+                "← 返回", Theme.MakeButton(16)))
             {
                 _currentPage = MenuPage.Main;
             }
+            GUI.backgroundColor = Color.white;
         }
 
         private void StartNewGame()
