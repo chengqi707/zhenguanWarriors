@@ -62,24 +62,36 @@
   <ItemGroup>
     <Compile Include="Assets\Scripts\Core\Battle\WeatherSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Battle\TurnManager.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\BondSystem.cs" />
+    <Compile Include="Assets\Scripts\Core\Save\GameState.cs" />
+    <Compile Include="Assets\Scripts\View\BattleView\MainMenuController.cs" />
+    <Compile Include="Assets\Scripts\Core\Save\SaveData.cs" />
     <Compile Include="Assets\Scripts\Core\Combat\SkillExecutor.cs" />
     <Compile Include="Assets\Scripts\Core\AI\AIBehaviorTree.cs" />
     <Compile Include="Assets\Scripts\View\BattleView\BattleTestController.cs" />
     <Compile Include="Assets\Scripts\View\BattleView\GameBootstrapper.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\PassiveSkillData.cs" />
     <Compile Include="Assets\Scripts\View\BattleView\BattleSceneStarter.cs" />
     <Compile Include="Assets\Scripts\Core\Battle\HexCoord.cs" />
     <Compile Include="Assets\Scripts\View\BattleView\BattleUI.cs" />
+    <Compile Include="Assets\Scripts\Core\Level\VictoryChecker.cs" />
     <Compile Include="Assets\Scripts\Core\Character\ClassType.cs" />
+    <Compile Include="Assets\Scripts\Core\Level\LevelJsonLoader.cs" />
+    <Compile Include="Assets\Scripts\Core\Story\StoryData.cs" />
+    <Compile Include="Assets\Scripts\Core\Character\CharacterDatabase.cs" />
     <Compile Include="Assets\Scripts\Core\Combat\DuelSystem.cs" />
     <Compile Include="Assets\Scripts\Core\Combat\SkillData.cs" />
     <Compile Include="Assets\Scripts\Core\Battle\HexGrid.cs" />
     <Compile Include="Assets\Scripts\Core\Battle\PathFinder.cs" />
     <Compile Include="Assets\Scripts\Core\Combat\CombatCalculator.cs" />
     <Compile Include="Assets\Scripts\View\BattleView\HexGridView.cs" />
+    <Compile Include="Assets\Scripts\Core\Level\LevelData.cs" />
     <Compile Include="Assets\Scripts\Core\Battle\BattleUnit.cs" />
+    <Compile Include="Assets\Scripts\Core\Save\SaveManager.cs" />
     <Compile Include="Assets\Scripts\Core\Battle\TerrainType.cs" />
     <Compile Include="Assets\Scripts\Core\Combat\EquipmentData.cs" />
     <Compile Include="Assets\Scripts\View\BattleView\UnitVisual.cs" />
+    <Compile Include="Assets\Scripts\View\BattleView\DialogueUI.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\SETUP_GUIDE.txt" />
