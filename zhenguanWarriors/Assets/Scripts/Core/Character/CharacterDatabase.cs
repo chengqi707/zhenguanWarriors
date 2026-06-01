@@ -45,7 +45,8 @@ namespace ZhenguanWarriors.Core.Character
                 SkillIds = new List<string>(template.SkillIds),
                 WeaponId = template.WeaponId,
                 ArmorId = template.ArmorId,
-                TrinketId = template.TrinketId
+                TrinketId = template.TrinketId,
+                PassiveIds = PassiveSkillLibrary.GetCharacterPassives(id)
             };
         }
 

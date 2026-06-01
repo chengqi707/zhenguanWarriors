@@ -89,6 +89,9 @@ namespace ZhenguanWarriors.Core.Battle
         public List<string> SkillIds { get; set; } = new();  // 已知计策ID列表
         public bool HasSkills => SkillIds.Count > 0;
 
+        // ========== 被动技能 ==========
+        public List<string> PassiveIds { get; set; } = new();
+
         // ========== 位置状态 ==========
         public HexCoord Position { get; set; }
         public UnitState State { get; set; } = UnitState.Idle;

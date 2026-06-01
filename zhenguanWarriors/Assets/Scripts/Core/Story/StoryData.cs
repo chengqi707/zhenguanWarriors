@@ -192,6 +192,55 @@ namespace ZhenguanWarriors.Core.Story
                 }
             };
 
+            // ===== 第6关·关前：洛阳攻坚战 =====
+            _stories["story_06_pre"] = new StoryData
+            {
+                storyId = "story_06_pre",
+                title = "洛阳攻坚战",
+                triggerType = StoryTriggerType.BeforeLevel,
+                levelId = "level_06",
+                startNode = 1,
+                nodes = new Dictionary<int, StoryNode>
+                {
+                    { 1, new StoryNode { id = 1, speaker = "李世民", speakerId = "lishimin", text = "洛阳乃中原腹心，王世充据城固守，此战非同小可。", nextNode = 2 } },
+                    { 2, new StoryNode { id = 2, speaker = "殷开山", speakerId = "yin_kaishan", text = "末将愿率器械营破城！洛阳城墙虽厚，也挡不住我军的投石车！", nextNode = 3 } },
+                    { 3, new StoryNode { id = 3, speaker = "李世民", speakerId = "lishimin", text = "好！殷将军攻城，李靖将军率骑兵截击援军，此战必胜！", nextNode = -1 } }
+                }
+            };
+
+            // ===== 第7关·关前：虎牢关之战 =====
+            _stories["story_07_pre"] = new StoryData
+            {
+                storyId = "story_07_pre",
+                title = "虎牢关之战",
+                triggerType = StoryTriggerType.BeforeLevel,
+                levelId = "level_07",
+                startNode = 1,
+                nodes = new Dictionary<int, StoryNode>
+                {
+                    { 1, new StoryNode { id = 1, speaker = "李世民", speakerId = "lishimin", text = "虎牢关乃洛阳东部门户，窦建德率十万大军来援王世充。", nextNode = 2 } },
+                    { 2, new StoryNode { id = 2, speaker = "秦琼", speakerId = "qin_qiong", text = "末将愿与敬德兄同守关隘！管他十万百万，叫他有来无回！", nextNode = 3 } },
+                    { 3, new StoryNode { id = 3, speaker = "尉迟敬德", speakerId = "yuchi_jingde", text = "俺也一样！", nextNode = 4 } },
+                    { 4, new StoryNode { id = 4, speaker = "李世民", speakerId = "lishimin", text = "哈哈！有二位虎将在，窦建德不足为惧！此战擒贼擒王，击破窦建德则敌军自溃！", nextNode = -1 } }
+                }
+            };
+
+            // ===== 第7关·关后：双雄归心 =====
+            _stories["story_07_post"] = new StoryData
+            {
+                storyId = "story_07_post",
+                title = "双雄归心",
+                triggerType = StoryTriggerType.AfterLevel,
+                levelId = "level_07",
+                startNode = 1,
+                nodes = new Dictionary<int, StoryNode>
+                {
+                    { 1, new StoryNode { id = 1, speaker = "李世民", speakerId = "lishimin", text = "窦建德已破，王世充孤立无援，中原大局已定！", nextNode = 2 } },
+                    { 2, new StoryNode { id = 2, speaker = "秦琼", speakerId = "qin_qiong", text = "恭喜主公！接下来便是——玄武门了。", nextNode = 3 } },
+                    { 3, new StoryNode { id = 3, speaker = "李世民", speakerId = "lishimin", text = "……是啊。玄武门。该来的终究要来。", nextNode = -1 } }
+                }
+            };
+
             // ===== 第8关·关后：贞观之治 =====
             _stories["story_08_post"] = new StoryData
             {

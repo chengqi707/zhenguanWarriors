@@ -204,7 +204,8 @@ namespace ZhenguanWarriors.View.BattleView
                 IntGrowth = saved.intGrowth,
                 AgiGrowth = saved.agiGrowth,
                 LukGrowth = saved.lukGrowth,
-                SkillIds = saved.skillIds != null ? new List<string>(saved.skillIds) : new List<string>()
+                SkillIds = saved.skillIds != null ? new List<string>(saved.skillIds) : new List<string>(),
+                PassiveIds = PassiveSkillLibrary.GetCharacterPassives(saved.id)
             };
 
             // 恢复装备
@@ -335,10 +336,52 @@ namespace ZhenguanWarriors.View.BattleView
                 }
                 else
                 {
+                    // 被动技能显示
+                    float py = equipY + 115;
+                    if (unit.PassiveIds.Count > 0)
+                    {
+                        var passiveNames = unit.PassiveIds
+                            .Select(id => PassiveSkillLibrary.Get(id))
+                            .Where(p => p != null)
+                            .Select(p => $"{p.name}")
+                            .ToList();
+                        string passives = string.Join(", ", passiveNames);
+                        GUI.Label(new Rect(rightX, py, rightInnerW, 20),
+                            $"被动: {passives}",
+                            new GUIStyle { fontSize = 10, normal = { textColor = Color.cyan } });
+                        py += 18;
+                    }
+
                     // 显示最终属性
-                    GUI.Label(new Rect(rightX, equipY + 115, rightInnerW, 20),
+                    GUI.Label(new Rect(rightX, py, rightInnerW, 20),
                         $"最终属性 → 攻击范围: {unit.AttackRange}  移动力: {unit.MoveRange}",
                         new GUIStyle { fontSize = 11, normal = { textColor = Color.green } });
+                }
+            }
+
+            // ---- 羁绊状态显示 ----
+            if (_playerParty.Count > 0)
+            {
+                var bonds = BondSystem.CheckBonds(_playerParty);
+                if (bonds.Count > 0)
+                {
+                    float bondY = panelY + panelH - 80;
+                    GUI.Label(new Rect(leftW + 30, bondY, Screen.width - leftW - 50, 20),
+                        "✦ 已激活羁绊:",
+                        new GUIStyle { fontSize = 12, fontStyle = FontStyle.Bold,
+                            normal = { textColor = new Color(1f, 0.8f, 0.2f) } });
+                    for (int bi = 0; bi < bonds.Count; bi++)
+                    {
+                        var b = bonds[bi];
+                        var names = b.characterIds
+                            .Select(id => _playerParty.FirstOrDefault(u => u.Id == id)?.Name ?? id)
+                            .ToList();
+                        string roster = string.Join("+", names);
+                        GUI.Label(new Rect(leftW + 35, bondY + 22 + bi * 18,
+                            Screen.width - leftW - 60, 18),
+                            $"  {b.name}: {roster}",
+                            new GUIStyle { fontSize = 10, normal = { textColor = Color.yellow } });
+                    }
                 }
             }
 
@@ -736,7 +779,18 @@ namespace ZhenguanWarriors.View.BattleView
             if (!string.IsNullOrEmpty(unit.ArmorId)) equipInfo += $" 防:{EquipmentLibrary.Get(unit.ArmorId)?.name}";
             if (!string.IsNullOrEmpty(unit.TrinketId)) equipInfo += $" 饰:{EquipmentLibrary.Get(unit.TrinketId)?.name}";
 
-            _battleUI?.ShowTip($"选中 Lv{unit.Level} {unit.Name} [HP:{unit.CurrentHp}/{unit.MaxHp} MP:{unit.CurrentMp}] 武{unit.Strength}统{unit.Command}智{unit.Intelligence}敏{unit.Agility}运{unit.Luck}{equipInfo}{skillInfo}");
+            // 被动技能信息
+            string passiveInfo = "";
+            if (unit.PassiveIds.Count > 0)
+            {
+                var pnames = unit.PassiveIds
+                    .Select(id => PassiveSkillLibrary.Get(id))
+                    .Where(p => p != null)
+                    .Select(p => p.name);
+                passiveInfo = " | 被动: " + string.Join(" ", pnames);
+            }
+
+            _battleUI?.ShowTip($"选中 Lv{unit.Level} {unit.Name} [HP:{unit.CurrentHp}/{unit.MaxHp} MP:{unit.CurrentMp}] 武{unit.Strength}统{unit.Command}智{unit.Intelligence}敏{unit.Agility}运{unit.Luck}{equipInfo}{skillInfo}{passiveInfo}");
         }
         private void DeselectUnit()
         {
