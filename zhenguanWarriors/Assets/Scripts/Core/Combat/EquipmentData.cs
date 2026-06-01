@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ZhenguanWarriors.Core.Battle;
 using ZhenguanWarriors.Core.Character;
 
 namespace ZhenguanWarriors.Core.Combat
