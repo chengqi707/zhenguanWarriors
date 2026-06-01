@@ -96,8 +96,8 @@ namespace ZhenguanWarriors.View.BattleView
             nameLabel.anchor = TextAnchor.MiddleCenter;
             nameLabel.alignment = TextAlignment.Center;
             nameLabel.transform.localPosition = new Vector3(0, -unitRadius - 0.15f, -0.03f);
-            var labelMr = labelGo.AddComponent<MeshRenderer>();
-            labelMr.material = nameLabel.font.material;
+            // TextMesh 自带 MeshRenderer，无需手动设置 material
+            // Unity 会自动处理字体渲染
 
             // --- 兵种标签 ---
             var classGo = new GameObject("ClassLabel");
@@ -109,8 +109,6 @@ namespace ZhenguanWarriors.View.BattleView
             classLabel.anchor = TextAnchor.MiddleCenter;
             classLabel.alignment = TextAlignment.Center;
             classLabel.transform.localPosition = new Vector3(0, -unitRadius - 0.35f, -0.03f);
-            var classMr = classGo.AddComponent<MeshRenderer>();
-            classMr.material = classLabel.font.material;
         }
 
         // ========== 生成纹理方法 ==========

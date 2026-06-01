@@ -57,10 +57,7 @@ namespace ZhenguanWarriors.View.BattleView
             text.anchor = anchor;
             text.alignment = TextAlignment.Center;
 
-            // TextMesh 需要 MeshRenderer
-            var mr = go.AddComponent<MeshRenderer>();
-            mr.material = text.font.material;
-
+            // TextMesh 自带 MeshRenderer，无需手动添加
             // 让文字始终面向摄像机（用 Billboard 方式？不——固定位置更稳定）
             // 在 orthographic 摄像机下，World Space TextMesh 总是可见
 

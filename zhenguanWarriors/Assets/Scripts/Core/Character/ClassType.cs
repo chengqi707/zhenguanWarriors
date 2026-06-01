@@ -135,6 +135,17 @@ namespace ZhenguanWarriors.Core.Character
             _ => ClassTrait.None
         };
 
+        /// <summary>
+        /// 获取兵种特性带来的攻击范围加成
+        /// LongShot = Archer射程+1, Charge = Cavalry突击时+1
+        /// </summary>
+        public static int GetClassRangeBonus(ClassType t, bool hasMoved = false) => GetClassTrait(t) switch
+        {
+            ClassTrait.LongShot => 1,                     // 弓兵常驻+1射程
+            ClassTrait.Charge => hasMoved ? 1 : 0,        // 骑兵移动后+1突击距离
+            _ => 0
+        };
+
         /// <summary>兵种特性中文描述</summary>
         public static string GetTraitDescription(ClassType t) => t switch
         {

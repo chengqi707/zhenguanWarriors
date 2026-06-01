@@ -272,9 +272,15 @@ namespace ZhenguanWarriors.Core.Combat
                 return "不能治疗敌人";
 
             int healAmount = skill.power + caster.Intelligence / 2;
+            // ★ 谋士医疗强化：治疗量+30%
+            if (caster.UnitClass == ClassType.Strategist)
+            {
+                healAmount = (int)(healAmount * 1.3f);
+            }
             targetUnit.Heal(healAmount);
 
-            return $"{caster.Name} 对 {targetUnit.Name} 释放【医疗】，恢复 {healAmount} HP";
+            string bonusText = caster.UnitClass == ClassType.Strategist ? "（谋士精通医道+30%）" : "";
+            return $"{caster.Name} 对 {targetUnit.Name} 释放【医疗】，恢复 {healAmount} HP{bonusText}";
         }
 
         // ========== 混乱 ==========

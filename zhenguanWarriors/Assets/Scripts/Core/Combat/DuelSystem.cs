@@ -68,11 +68,15 @@ namespace ZhenguanWarriors.Core.Combat
 
             string log = $"===== 单挑第 {Round} 回合 =====\n";
 
-            // 计算双方伤害
+            // 计算双方伤害（属性不能传ref，用局部变量中转）
+            int playerGauge = PlayerSpecialGauge;
+            int enemyGauge = EnemySpecialGauge;
             int playerDamage = CalcDuelDamage(Player, Enemy, playerAction, enemyAction,
-                PlayerDefendedLast, ref PlayerSpecialGauge);
+                PlayerDefendedLast, ref playerGauge);
             int enemyDamage = CalcDuelDamage(Enemy, Player, enemyAction, playerAction,
-                EnemyDefendedLast, ref EnemySpecialGauge);
+                EnemyDefendedLast, ref enemyGauge);
+            PlayerSpecialGauge = playerGauge;
+            EnemySpecialGauge = enemyGauge;
 
             // 防御减伤
             if (enemyAction == DuelAction.Defend)

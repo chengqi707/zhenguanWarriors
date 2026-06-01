@@ -75,6 +75,10 @@ namespace ZhenguanWarriors.Core.Combat
             return Math.Max(1, (int)(damage * variance));
         }
 
+        /// <summary>计算溅射伤害（器械AOE用，主伤害的50%）</summary>
+        public static int CalcSplashDamage(int mainDamage) =>
+            Math.Max(1, mainDamage / 2);
+
         /// <summary>计算经验值</summary>
         public static int CalcExp(int levelDiff, bool isKill, bool isBoss)
         {

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ZhenguanWarriors.Core.Character;
+using ZhenguanWarriors.Core.Combat;
 
 namespace ZhenguanWarriors.Core.Battle
 {
@@ -38,22 +40,50 @@ namespace ZhenguanWarriors.Core.Battle
         public string Name { get; }
         public Faction Faction { get; }
         public ClassType UnitClass { get; set; }  // 兵种
+        public Gender Gender { get; set; }        // 性别
         public int Level { get; set; }
+        public int Experience { get; set; }       // 当前经验值
 
-        // ========== 战斗五维 ==========
-        public int Strength { get; set; }       // 武力——物理攻击
-        public int Command { get; set; }        // 统御——物理防御
-        public int Intelligence { get; set; }   // 智力——计策伤害/抗性
-        public int Agility { get; set; }        // 敏捷——命中/回避
-        public int Luck { get; set; }           // 运气——暴击/抗暴
+        // ========== 成长率（每级增长）==========
+        public int StrGrowth { get; set; }
+        public int CmdGrowth { get; set; }
+        public int IntGrowth { get; set; }
+        public int AgiGrowth { get; set; }
+        public int LukGrowth { get; set; }
+
+        // ========== 基础五维（不加装备）==========
+        public int BaseStrength { get; set; }
+        public int BaseCommand { get; set; }
+        public int BaseIntelligence { get; set; }
+        public int BaseAgility { get; set; }
+        public int BaseLuck { get; set; }
+
+        // ========== 战斗五维（含装备加成）==========
+        public int Strength => BaseStrength + GetEquipmentStrBonus();
+        public int Command => BaseCommand + GetEquipmentCmdBonus();
+        public int Intelligence => BaseIntelligence + GetEquipmentIntBonus();
+        public int Agility => BaseAgility + GetEquipmentAgiBonus();
+        public int Luck => BaseLuck + GetEquipmentLukBonus();
 
         // ========== 战斗值 ==========
         public int MaxHp { get; set; }
         public int CurrentHp { get; set; }
         public int MaxMp { get; set; }
         public int CurrentMp { get; set; }
-        public int MoveRange { get; set; }      // 移动力
-        public int AttackRange { get; set; }    // 攻击范围
+
+        // 基础移动力/攻击范围（不含装备）
+        public int BaseMoveRange { get; set; }
+        public int BaseAttackRange { get; set; }
+
+        // 实际移动力/攻击范围（含装备 + 兵种特性）
+        public int MoveRange => BaseMoveRange + GetEquipmentMoveBonus();
+        public int AttackRange => BaseAttackRange + GetEquipmentAttackRangeBonus()
+            + ClassData.GetClassRangeBonus(UnitClass, HasMovedThisTurn);
+
+        // ========== 装备 ==========
+        public string WeaponId { get; set; }      // 武器
+        public string ArmorId { get; set; }       // 防具
+        public string TrinketId { get; set; }     // 饰品
 
         // ========== 计策 ==========
         public List<string> SkillIds { get; set; } = new();  // 已知计策ID列表
@@ -71,24 +101,27 @@ namespace ZhenguanWarriors.Core.Battle
         // ========== 构造函数 ==========
         public BattleUnit(string id, string name, Faction faction, ClassType unitClass,
             int str, int cmd, int @int, int agi, int luk,
-            int hp, int mp, int move, int attackRange)
+            int hp, int mp, int move, int attackRange,
+            Gender gender = Gender.Male)
         {
             Id = id;
             Name = name;
             Faction = faction;
             UnitClass = unitClass;
-            Strength = str;
-            Command = cmd;
-            Intelligence = @int;
-            Agility = agi;
-            Luck = luk;
+            Gender = gender;
+            BaseStrength = str;
+            BaseCommand = cmd;
+            BaseIntelligence = @int;
+            BaseAgility = agi;
+            BaseLuck = luk;
             MaxHp = hp;
             CurrentHp = hp;
             MaxMp = mp;
             CurrentMp = mp;
-            MoveRange = move > 0 ? move : ClassData.GetBaseMove(unitClass);
-            AttackRange = attackRange > 0 ? attackRange : ClassData.GetBaseAttackRange(unitClass);
+            BaseMoveRange = move > 0 ? move : ClassData.GetBaseMove(unitClass);
+            BaseAttackRange = attackRange > 0 ? attackRange : ClassData.GetBaseAttackRange(unitClass);
             Level = 1;
+            Experience = 0;
         }
 
         // ========== 基础方法 ==========
@@ -142,7 +175,149 @@ namespace ZhenguanWarriors.Core.Battle
             }
         }
 
+        // ========== 装备属性计算 ==========
+
+        private EquipmentData GetWeapon() => string.IsNullOrEmpty(WeaponId) ? null : EquipmentLibrary.Get(WeaponId);
+        private EquipmentData GetArmor() => string.IsNullOrEmpty(ArmorId) ? null : EquipmentLibrary.Get(ArmorId);
+        private EquipmentData GetTrinket() => string.IsNullOrEmpty(TrinketId) ? null : EquipmentLibrary.Get(TrinketId);
+
+        private int GetEquipmentStrBonus() => SumEquip(e => e.strBonus) + (BaseStrength * SumEquipPercent(e => e.strPercent) / 100);
+        private int GetEquipmentCmdBonus() => SumEquip(e => e.cmdBonus) + (BaseCommand * SumEquipPercent(e => e.cmdPercent) / 100);
+        private int GetEquipmentIntBonus() => SumEquip(e => e.intBonus) + (BaseIntelligence * SumEquipPercent(e => e.intPercent) / 100);
+        private int GetEquipmentAgiBonus() => SumEquip(e => e.agiBonus);
+        private int GetEquipmentLukBonus() => SumEquip(e => e.lukBonus);
+
+        private int GetEquipmentMoveBonus() => SumEquip(e => e.moveBonus);
+        private int GetEquipmentAttackRangeBonus() => SumEquip(e => e.attackRangeBonus);
+
+        private int GetEquipmentHpBonus() => SumEquip(e => e.hpBonus);
+        private int GetEquipmentMpBonus() => SumEquip(e => e.mpBonus);
+
+        private int SumEquip(Func<EquipmentData, int> selector)
+        {
+            int sum = 0;
+            var w = GetWeapon(); if (w != null) sum += selector(w);
+            var a = GetArmor(); if (a != null) sum += selector(a);
+            var t = GetTrinket(); if (t != null) sum += selector(t);
+            return sum;
+        }
+
+        private int SumEquipPercent(Func<EquipmentData, int> selector)
+        {
+            int sum = 0;
+            var w = GetWeapon(); if (w != null) sum += selector(w);
+            var a = GetArmor(); if (a != null) sum += selector(a);
+            var t = GetTrinket(); if (t != null) sum += selector(t);
+            return sum;
+        }
+
+        /// <summary>装备某件装备</summary>
+        public bool Equip(string equipmentId)
+        {
+            var equip = EquipmentLibrary.Get(equipmentId);
+            if (equip == null) return false;
+            if (!equip.CanEquip(this)) return false;
+
+            switch (equip.type)
+            {
+                case EquipmentType.Weapon: WeaponId = equipmentId; break;
+                case EquipmentType.Armor: ArmorId = equipmentId; break;
+                case EquipmentType.Trinket: TrinketId = equipmentId; break;
+            }
+
+            // 重新计算HP/MP上限（装备可能增加HP/MP）
+            int oldMaxHp = MaxHp;
+            int oldMaxMp = MaxMp;
+            RecalculateStats();
+            // 保持当前HP/MP比例
+            CurrentHp = Math.Min(MaxHp, CurrentHp + (MaxHp - oldMaxHp));
+            CurrentMp = Math.Min(MaxMp, CurrentMp + (MaxMp - oldMaxMp));
+            return true;
+        }
+
+        /// <summary>卸下装备</summary>
+        public void Unequip(EquipmentType type)
+        {
+            switch (type)
+            {
+                case EquipmentType.Weapon: WeaponId = null; break;
+                case EquipmentType.Armor: ArmorId = null; break;
+                case EquipmentType.Trinket: TrinketId = null; break;
+            }
+            RecalculateStats();
+        }
+
+        /// <summary>重新计算基础战斗数值</summary>
+        public void RecalculateStats()
+        {
+            MaxHp = (int)(BaseCommand * 1.2f) + 50 + GetEquipmentHpBonus();
+            MaxMp = (int)(BaseIntelligence * 0.8f) + 20 + GetEquipmentMpBonus();
+            CurrentHp = Math.Min(CurrentHp, MaxHp);
+            CurrentMp = Math.Min(CurrentMp, MaxMp);
+        }
+
+        // ========== 经验与升级 ==========
+
+        /// <summary>经验曲线：升到下一级所需经验</summary>
+        public int ExpToNextLevel() => 100 + (Level - 1) * 20;
+
+        /// <summary>获得经验</summary>
+        public bool GainExperience(int amount)
+        {
+            if (Level >= 30) return false; // 满级
+            Experience += amount;
+            bool leveled = false;
+            while (Experience >= ExpToNextLevel() && Level < 30)
+            {
+                Experience -= ExpToNextLevel();
+                LevelUp();
+                leveled = true;
+            }
+            return leveled;
+        }
+
+        /// <summary>升级</summary>
+        private void LevelUp()
+        {
+            Level++;
+            BaseStrength += StrGrowth;
+            BaseCommand += CmdGrowth;
+            BaseIntelligence += IntGrowth;
+            BaseAgility += AgiGrowth;
+            BaseLuck += LukGrowth;
+            RecalculateStats();
+            CurrentHp = MaxHp;
+            CurrentMp = MaxMp;
+        }
+
+        /// <summary>获取等级可习得的新计策</summary>
+        public List<string> GetLearnableSkills()
+        {
+            var result = new List<string>();
+            // 按角色ID和等级定义可习得的计策
+            var learnTable = GetSkillLearnTable();
+            foreach (var entry in learnTable)
+            {
+                if (entry.level == Level && !SkillIds.Contains(entry.skillId))
+                    result.Add(entry.skillId);
+            }
+            return result;
+        }
+
+        private List<(int level, string skillId)> GetSkillLearnTable()
+        {
+            return Id switch
+            {
+                "li_jing" => new List<(int, string)> { (8, "water_attack") },
+                "lishimin" => new List<(int, string)> { (15, "revive") },
+                "zhangsun_wuji" => new List<(int, string)> { (5, "confuse"), (10, "water_attack") },
+                "fang_xuanling" => new List<(int, string)> { (6, "insight") },
+                "qin_qiong" => new List<(int, string)> { (10, "rally") },
+                _ => new List<(int, string)>()
+            };
+        }
+
         public override string ToString() =>
-            $"{Name}[{Faction}] HP:{CurrentHp}/{MaxHp} MP:{CurrentMp}/{MaxMp} @{Position}";
+            $"{Name}[{Faction}] Lv{Level} HP:{CurrentHp}/{MaxHp} MP:{CurrentMp}/{MaxMp} @{Position}";
     }
 }

@@ -78,6 +78,7 @@
     <Compile Include="Assets\Scripts\View\BattleView\HexGridView.cs" />
     <Compile Include="Assets\Scripts\Core\Battle\BattleUnit.cs" />
     <Compile Include="Assets\Scripts\Core\Battle\TerrainType.cs" />
+    <Compile Include="Assets\Scripts\Core\Combat\EquipmentData.cs" />
     <Compile Include="Assets\Scripts\View\BattleView\UnitVisual.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -6,7 +6,7 @@ namespace ZhenguanWarriors.Core.Battle
     /// <summary>
     /// 六边形 Cube 坐标 (q, r, s)，q + r + s = 0
     /// </summary>
-    public readonly struct HexCoord : IEquatable<HexCoord>
+    public readonly struct HexCoord : IEquatable<HexCoord>, IComparable<HexCoord>, IComparable
     {
         public readonly int q;
         public readonly int r;
@@ -67,5 +67,18 @@ namespace ZhenguanWarriors.Core.Battle
         public bool Equals(HexCoord other) => this == other;
         public override int GetHashCode() => (q << 16) ^ r;
         public override string ToString() => $"({q},{r},{s})";
+
+        public int CompareTo(HexCoord other)
+        {
+            int cmp = q.CompareTo(other.q);
+            if (cmp != 0) return cmp;
+            return r.CompareTo(other.r);
+        }
+
+        public int CompareTo(object obj)
+        {
+            if (obj is HexCoord other) return CompareTo(other);
+            throw new ArgumentException("Object is not a HexCoord");
+        }
     }
 }
