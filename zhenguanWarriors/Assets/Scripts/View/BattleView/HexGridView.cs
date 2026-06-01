@@ -30,7 +30,6 @@ namespace ZhenguanWarriors.View.BattleView
         private HexGrid _grid;
         private PathFinder _pathFinder;
         private Dictionary<HexCoord, GameObject> _hexObjects = new();
-        private HexCoord? _hoveredCell = null;
 
         // 材质缓存
         private Material _hexMaterial;
