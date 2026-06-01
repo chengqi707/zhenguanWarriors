@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using ZhenguanWarriors.Core.Battle;
+using ZhenguanWarriors.Core.Character;
 
 namespace ZhenguanWarriors.Core.Level
 {
