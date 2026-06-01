@@ -463,8 +463,9 @@ namespace ZhenguanWarriors.View.BattleView
         /// <summary>绘制可选择的装备列表</summary>
         private void DrawEquipSelectionList(float x, float y, float w, BattleUnit unit)
         {
-            GUI.Box(new Rect(x, y, w, 200), $"选择{(_editingSlot == EquipmentType.Weapon ? "武器" :
-                _editingSlot == EquipmentType.Armor ? "防具" : "饰品")}");
+            string slotLabel = _editingSlot == EquipmentType.Weapon ? "武器" :
+                _editingSlot == EquipmentType.Armor ? "防具" : "饰品";
+            GUI.Box(new Rect(x, y, w, 200), $"选择{slotLabel}");
 
             // 获取该槽位所有可用装备
             var allEquips = EquipmentLibrary.GetAll().Values
