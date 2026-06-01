@@ -249,9 +249,7 @@ namespace ZhenguanWarriors.Core.Combat
             // 鼓舞效果：本回合+10攻击
             foreach (var ally in allies)
             {
-                ally.Strength += 10;
-                // 用简单标记：存到 HasActed 的反面——这里用 TempBuff 概念
-                // 简版：直接加攻击力，回合管理器会重置
+                ally.TempStrBuff += 10;
             }
 
             string names = allies.Count > 0

@@ -58,8 +58,10 @@ namespace ZhenguanWarriors.Core.Battle
         public int BaseAgility { get; set; }
         public int BaseLuck { get; set; }
 
-        // ========== 战斗五维（含装备加成）==========
-        public int Strength => BaseStrength + GetEquipmentStrBonus();
+        // ========== 战斗五维（含装备加成 + 临时Buff）==========
+        public int TempStrBuff { get; set; }    // 临时武力Buff（鼓舞等）
+
+        public int Strength => BaseStrength + GetEquipmentStrBonus() + TempStrBuff;
         public int Command => BaseCommand + GetEquipmentCmdBonus();
         public int Intelligence => BaseIntelligence + GetEquipmentIntBonus();
         public int Agility => BaseAgility + GetEquipmentAgiBonus();
@@ -164,6 +166,7 @@ namespace ZhenguanWarriors.Core.Battle
         {
             HasActed = false;
             HasMovedThisTurn = false;
+            TempStrBuff = 0;
             if (State == UnitState.Done)
                 State = UnitState.Ready;
         }
