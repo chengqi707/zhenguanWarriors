@@ -1694,16 +1694,8 @@ namespace ZhenguanWarriors.View.BattleView
             _hexView.RebuildFromLevelData(_currentLevel);
             InitHeroPool();
 
-            // 检查关前剧情
-            string storyId = $"story_{levelId}_pre";
-            if (StoryLibrary.Get(storyId) != null)
-            {
-                PlayLevelStory(storyId);
-            }
-            else
-            {
-                GameManager.Instance.TransitionTo(GamePage.HeroSelect);
-            }
+            // 直接进入选人界面（跳过剧情，剧情系统待单独修复）
+            GameManager.Instance.TransitionTo(GamePage.HeroSelect);
         }
 
         private void PlayLevelStory(string storyId)
