@@ -1472,6 +1472,10 @@ namespace ZhenguanWarriors.View.BattleView
         /// <summary>OnGUI 计策选择面板 + 单挑按钮 + 战前编组</summary>
         void OnGUI()
         {
+            // ===== DEBUG: 确认 OnGUI 被调用 =====
+            GUI.backgroundColor = Color.red;
+            GUI.Box(new Rect(0, 0, 200, 30), $"OnGUI OK phase={_gamePhase} gm={(GameManager.Instance != null ? "ok" : "null")}");
+
             // 过渡保护 — 页面切换时禁止绘制
             if (GameManager.Instance != null && GameManager.Instance.IsTransitioning) return;
 
