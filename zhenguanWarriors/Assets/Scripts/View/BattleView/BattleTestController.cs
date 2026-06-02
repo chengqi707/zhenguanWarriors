@@ -1792,8 +1792,9 @@ namespace ZhenguanWarriors.View.BattleView
         /// <summary>选择关卡，进入战前编组</summary>
         public void SelectLevel(string levelId)
         {
+            Debug.Log($"[选关] 点击关卡: {levelId}");
             _currentLevel = LevelLibrary.Get(levelId);
-            if (_currentLevel == null) return;
+            if (_currentLevel == null) { Debug.LogError("[选关] 关卡数据为空"); return; }
             _currentLevelIndex = _levelOrder.IndexOf(levelId);
 
             _hexView.RebuildFromLevelData(_currentLevel);
