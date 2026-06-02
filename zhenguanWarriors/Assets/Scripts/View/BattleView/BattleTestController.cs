@@ -83,34 +83,32 @@ namespace ZhenguanWarriors.View.BattleView
         {
             _hexView = GetComponent<HexGridView>();
             _battleUI = GetComponent<BattleUI>();
-            if (_hexView == null)
-            {
-                Debug.LogError("需要 HexGridView 组件");
-                return;
-            }
-
-            // 如果没有 BattleUI，创建一个
-            if (_battleUI == null)
-                _battleUI = gameObject.AddComponent<BattleUI>();
+            _dialogueUI = GetComponent<DialogueUI>();
 
             // DPI自适应缩放
             _uiScale = Mathf.Min(SW / 1920f, SH / 1080f);
             if (_uiScale < 0.5f) _uiScale = 0.5f;
             if (_uiScale > 2.0f) _uiScale = 2.0f;
+        }
 
-            // 获取对话系统
-            _dialogueUI = GetComponent<DialogueUI>();
-            if (_dialogueUI == null)
-                _dialogueUI = gameObject.AddComponent<DialogueUI>();
-
-            // 同步 GameState 与关卡解锁
-            if (GameState.CurrentSave != null)
+        /// <summary>GameManager 调用，设置当前页面</summary>
+        public void SetPage(GamePage page)
+        {
+            switch (page)
             {
-                // 从存档恢复关卡进度
+                case GamePage.LevelSelect:
+                    _gamePhase = GamePhase.LevelSelect;
+                    break;
+                case GamePage.PreBattle:
+                    _gamePhase = GamePhase.PreBattle;
+                    break;
+                case GamePage.Battle:
+                    _gamePhase = GamePhase.Battle;
+                    break;
+                case GamePage.Results:
+                    _gamePhase = GamePhase.Results;
+                    break;
             }
-
-            // 先显示关卡选择
-            _gamePhase = GamePhase.LevelSelect;
         }
 
         void Update()
@@ -540,7 +538,7 @@ namespace ZhenguanWarriors.View.BattleView
         /// <summary>从战前编组过渡到战斗</summary>
         private void StartBattle()
         {
-            _gamePhase = GamePhase.Battle;
+            _gamePhase = GamePhase.Battle; // 内部状态同步
             _showEquipList = false;
 
             // 将玩家队伍设置为战斗单位
@@ -1156,8 +1154,12 @@ namespace ZhenguanWarriors.View.BattleView
         /// <summary>OnGUI 计策选择面板 + 单挑按钮 + 战前编组</summary>
         void OnGUI()
         {
-            // 剧情对话期间不显示任何战斗UI
-            if (_waitingForDialogue) return;
+            // 过渡保护 — 页面切换时禁止绘制
+            if (GameManager.Instance != null && GameManager.Instance.IsTransitioning) return;
+
+            // 对话期间不显示战斗UI（DialogueUI独立绘制）
+            if (_waitingForDialogue || (GameManager.Instance != null &&
+                GameManager.Instance.CurrentPage == GamePage.Story)) return;
 
             // 关卡选择
             if (_gamePhase == GamePhase.LevelSelect)
@@ -1493,7 +1495,6 @@ namespace ZhenguanWarriors.View.BattleView
 
             // 检查关前剧情
             string storyId = $"story_{levelId}_pre";
-            // 优先使用 GameState 中待播放的剧情，其次根据关卡ID查找
             string pendingStory = GameState.PendingStoryId;
             if (!string.IsNullOrEmpty(pendingStory) && pendingStory == storyId)
             {
@@ -1506,7 +1507,7 @@ namespace ZhenguanWarriors.View.BattleView
             }
             else
             {
-                _gamePhase = GamePhase.PreBattle;
+                GameManager.Instance.TransitionTo(GamePage.PreBattle);
             }
         }
 
@@ -1515,10 +1516,12 @@ namespace ZhenguanWarriors.View.BattleView
         {
             if (_dialogueUI == null) return;
             _waitingForDialogue = true;
+            GameManager.Instance.EnterStory();
             _dialogueUI.PlayStory(storyId, () =>
             {
                 _waitingForDialogue = false;
-                _gamePhase = GamePhase.PreBattle;
+                GameManager.Instance.ExitStory();
+                GameManager.Instance.TransitionTo(GamePage.PreBattle);
             });
         }
 
@@ -1611,6 +1614,8 @@ namespace ZhenguanWarriors.View.BattleView
             {
                 _gamePhase = GamePhase.LevelSelect;
                 CleanupBattle();
+                if (GameManager.Instance != null)
+                    GameManager.Instance.TransitionTo(GamePage.LevelSelect);
             }
             GUI.backgroundColor = Color.white;
         }
@@ -1808,9 +1813,11 @@ namespace ZhenguanWarriors.View.BattleView
                 if (StoryLibrary.Get(postStoryId) != null && _dialogueUI != null)
                 {
                     _waitingForDialogue = true;
+                    GameManager.Instance.EnterStory();
                     _dialogueUI.PlayStory(postStoryId, () =>
                     {
                         _waitingForDialogue = false;
+                        GameManager.Instance.ExitStory();
                         ShowResultsScreen(isVictory);
                     });
                     return;
@@ -1861,6 +1868,8 @@ namespace ZhenguanWarriors.View.BattleView
             }
 
             _gamePhase = GamePhase.Results;
+            if (GameManager.Instance != null)
+                GameManager.Instance.TransitionTo(GamePage.Results);
         }
 
         /// <summary>自动存档</summary>

@@ -1,78 +1,68 @@
 using UnityEngine;
 using ZhenguanWarriors.Core.Battle;
-using ZhenguanWarriors.Core.Character;
 using ZhenguanWarriors.Core.Level;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace ZhenguanWarriors.View.BattleView
 {
-    /// <summary>
-    /// 六边形网格可视化——在场景中绘制网格
-    /// </summary>
     public class HexGridView : MonoBehaviour
     {
         [Header("网格参数")]
         public int gridWidth = 12;
         public int gridHeight = 10;
-        public float hexSize = 0.5f;  // Unity 世界单位
+        public float hexSize = 0.5f;
 
         [Header("颜色")]
-        public Color plainColor = new Color(0.6f, 0.8f, 0.4f);       // 浅绿
-        public Color forestColor = new Color(0.2f, 0.6f, 0.2f);      // 深绿
-        public Color mountainColor = new Color(0.5f, 0.4f, 0.3f);    // 棕
-        public Color waterColor = new Color(0.3f, 0.5f, 0.9f);       // 蓝
-        public Color cityColor = new Color(0.7f, 0.6f, 0.3f);        // 黄褐
-        public Color wallColor = new Color(0.3f, 0.3f, 0.3f);        // 灰
-        public Color hoverColor = new Color(1f, 1f, 0.6f);           // 高亮黄
-        public Color moveRangeColor = new Color(0.3f, 0.7f, 1f, 0.4f); // 移动范围
+        public Color plainColor = new Color(0.6f, 0.8f, 0.4f);
+        public Color forestColor = new Color(0.2f, 0.6f, 0.2f);
+        public Color mountainColor = new Color(0.5f, 0.4f, 0.3f);
+        public Color waterColor = new Color(0.3f, 0.5f, 0.9f);
+        public Color cityColor = new Color(0.7f, 0.6f, 0.3f);
+        public Color wallColor = new Color(0.3f, 0.3f, 0.3f);
+        public Color hoverColor = new Color(1f, 1f, 0.6f);
+        public Color moveRangeColor = new Color(0.3f, 0.7f, 1f, 0.4f);
 
         private HexGrid _grid;
         private PathFinder _pathFinder;
         private Dictionary<HexCoord, GameObject> _hexObjects = new();
 
-        // 材质缓存
-        private Material _hexMaterial;
-        private Material _highlightMaterial;
-
-        // ========== 公共属性 ==========
         public HexGrid Grid => _grid;
         public PathFinder PathFinder => _pathFinder;
+        public bool IsReady => _grid != null;
 
-        void Start()
+        void OnEnable()
         {
+            // 仅当网格未创建时需要初始化
+            // 关卡选择时会调用 RebuildFromLevelData
+        }
+
+        /// <summary>根据关卡数据重建网格</summary>
+        public void RebuildFromLevelData(LevelData level)
+        {
+            foreach (var go in _hexObjects.Values)
+                Destroy(go);
+            _hexObjects.Clear();
+
+            gridWidth = level.width;
+            gridHeight = level.height;
             _grid = new HexGrid(gridWidth, gridHeight);
             _pathFinder = new PathFinder(_grid);
-            SetupDemoTerrain();
+
+            foreach (var (pos, terrain) in level.terrainOverrides)
+            {
+                if (_grid.InBounds(pos))
+                    _grid.SetTerrain(pos, terrain);
+            }
+
+            for (int q = 0; q < gridWidth; q++)
+                _grid.SetTerrain(new HexCoord(q, gridHeight - 1), TerrainType.Wall);
+
             CreateHexMesh();
             SetupCamera();
         }
 
-        /// <summary>设置一些演示地形</summary>
-        private void SetupDemoTerrain()
-        {
-            // 中间一块森林
-            for (int q = 4; q <= 6; q++)
-            for (int r = 3; r <= 5; r++)
-                _grid.SetTerrain(new HexCoord(q, r), TerrainType.Forest);
-
-            // 左上角山地
-            for (int q = 1; q <= 2; q++)
-            for (int r = 1; r <= 2; r++)
-                _grid.SetTerrain(new HexCoord(q, r), TerrainType.Mountain);
-
-            // 右下角水域
-            _grid.SetTerrain(new HexCoord(8, 7), TerrainType.Water);
-            _grid.SetTerrain(new HexCoord(9, 7), TerrainType.Water);
-            _grid.SetTerrain(new HexCoord(8, 8), TerrainType.Water);
-
-            // 底部城墙（不可通行）
-            for (int q = 0; q < gridWidth; q++)
-                _grid.SetTerrain(new HexCoord(q, gridHeight - 1), TerrainType.Wall);
-        }
-
-        /// <summary>为每个格子生成六边形 Mesh</summary>
-        private void CreateHexMesh()
+        void CreateHexMesh()
         {
             var hexMesh = BuildHexMesh(hexSize);
 
@@ -85,17 +75,12 @@ namespace ZhenguanWarriors.View.BattleView
                 go.transform.SetParent(transform);
                 go.transform.position = pos;
 
-                // MeshFilter + MeshRenderer
                 var mf = go.AddComponent<MeshFilter>();
                 mf.mesh = hexMesh;
 
                 var mr = go.AddComponent<MeshRenderer>();
-                mr.material = new Material(Shader.Find("Sprites/Default"))
-                {
-                    color = color
-                };
+                mr.material = new Material(Shader.Find("Sprites/Default")) { color = color };
 
-                // 添加碰撞体用于点击
                 var collider = go.AddComponent<PolygonCollider2D>();
                 collider.points = GetHexVertices2D(hexSize);
 
@@ -103,8 +88,7 @@ namespace ZhenguanWarriors.View.BattleView
             }
         }
 
-        /// <summary>构建六边形 Mesh（Pointy-top：尖顶朝上）</summary>
-        private Mesh BuildHexMesh(float size)
+        Mesh BuildHexMesh(float size)
         {
             var mesh = new Mesh();
             var verts = new Vector3[7];
@@ -112,11 +96,10 @@ namespace ZhenguanWarriors.View.BattleView
 
             for (int i = 0; i < 6; i++)
             {
-                float angle = Mathf.Deg2Rad * (90 - 60 * i); // pointy-top
-                verts[i] = new Vector3(size * Mathf.Cos(angle),
-                                        size * Mathf.Sin(angle), 0);
+                float angle = Mathf.Deg2Rad * (90 - 60 * i);
+                verts[i] = new Vector3(size * Mathf.Cos(angle), size * Mathf.Sin(angle), 0);
             }
-            verts[6] = Vector3.zero; // 中心
+            verts[6] = Vector3.zero;
 
             for (int i = 0; i < 6; i++)
             {
@@ -131,7 +114,6 @@ namespace ZhenguanWarriors.View.BattleView
             return mesh;
         }
 
-        /// <summary>HexCoord → 世界坐标（Pointy-top）</summary>
         public Vector3 HexToWorld(HexCoord c)
         {
             float x = hexSize * (Mathf.Sqrt(3) * c.q + Mathf.Sqrt(3) * 0.5f * c.r);
@@ -139,7 +121,6 @@ namespace ZhenguanWarriors.View.BattleView
             return new Vector3(x, y, 0);
         }
 
-        /// <summary>世界坐标 → HexCoord（Pointy-top 逆推）</summary>
         public HexCoord? WorldToHex(Vector3 pos)
         {
             float r = (2f / 3f * pos.y) / hexSize;
@@ -147,40 +128,33 @@ namespace ZhenguanWarriors.View.BattleView
             return HexRound(q, r);
         }
 
-        private HexCoord? HexRound(float q, float r)
+        HexCoord? HexRound(float q, float r)
         {
             float s = -q - r;
             int rq = Mathf.RoundToInt(q);
             int rr = Mathf.RoundToInt(r);
             int rs = Mathf.RoundToInt(s);
 
-            float dq = Mathf.Abs(rq - q);
-            float dr = Mathf.Abs(rr - r);
-            float ds = Mathf.Abs(rs - s);
-
-            if (dq > dr && dq > ds)
-                rq = -rr - rs;
-            else if (dr > ds)
-                rr = -rq - rs;
+            float dq = Mathf.Abs(rq - q), dr = Mathf.Abs(rr - r), ds = Mathf.Abs(rs - s);
+            if (dq > dr && dq > ds) rq = -rr - rs;
+            else if (dr > ds) rr = -rq - rs;
 
             var coord = new HexCoord(rq, rr);
             return _grid.InBounds(coord) ? coord : null;
         }
 
-        /// <summary>获取六边形顶点（用于碰撞体，Pointy-top）</summary>
-        private Vector2[] GetHexVertices2D(float size)
+        Vector2[] GetHexVertices2D(float size)
         {
             var pts = new Vector2[6];
             for (int i = 0; i < 6; i++)
             {
                 float angle = Mathf.Deg2Rad * (90 - 60 * i);
-                pts[i] = new Vector2(size * Mathf.Cos(angle),
-                                     size * Mathf.Sin(angle));
+                pts[i] = new Vector2(size * Mathf.Cos(angle), size * Mathf.Sin(angle));
             }
             return pts;
         }
 
-        private Color GetTerrainColor(TerrainType t) => t switch
+        Color GetTerrainColor(TerrainType t) => t switch
         {
             TerrainType.Plain => plainColor,
             TerrainType.Forest => forestColor,
@@ -191,7 +165,6 @@ namespace ZhenguanWarriors.View.BattleView
             _ => Color.magenta
         };
 
-        /// <summary>高亮移动范围（考虑兵种地形适性）</summary>
         public void ShowMoveRange(HexCoord start, int movePoints, ClassType unitClass)
         {
             ClearHighlights();
@@ -199,63 +172,23 @@ namespace ZhenguanWarriors.View.BattleView
             foreach (var (pos, _) in range)
             {
                 if (_hexObjects.TryGetValue(pos, out var go))
-                {
-                    var mr = go.GetComponent<MeshRenderer>();
-                    mr.material.color = moveRangeColor;
-                }
+                    go.GetComponent<MeshRenderer>().material.color = moveRangeColor;
             }
         }
 
-        /// <summary>清除高亮</summary>
         public void ClearHighlights()
         {
             foreach (var (pos, go) in _hexObjects)
-            {
-                var mr = go.GetComponent<MeshRenderer>();
-                mr.material.color = GetTerrainColor(_grid.GetTerrain(pos));
-            }
+                go.GetComponent<MeshRenderer>().material.color = GetTerrainColor(_grid.GetTerrain(pos));
         }
 
-        /// <summary>更新指定格子的地形颜色（地形改变后调用）</summary>
         public void RefreshCellColor(HexCoord cell)
         {
             if (_hexObjects.TryGetValue(cell, out var go))
-            {
-                var mr = go.GetComponent<MeshRenderer>();
-                mr.material.color = GetTerrainColor(_grid.GetTerrain(cell));
-            }
+                go.GetComponent<MeshRenderer>().material.color = GetTerrainColor(_grid.GetTerrain(cell));
         }
 
-        /// <summary>根据关卡数据重建网格（尺寸+地形）</summary>
-        public void RebuildFromLevelData(LevelData level)
-        {
-            // 清除旧网格
-            foreach (var go in _hexObjects.Values)
-                Destroy(go);
-            _hexObjects.Clear();
-
-            // 创建新网格
-            gridWidth = level.width;
-            gridHeight = level.height;
-            _grid = new HexGrid(gridWidth, gridHeight);
-            _pathFinder = new PathFinder(_grid);
-
-            // 应用地形覆盖
-            foreach (var (pos, terrain) in level.terrainOverrides)
-            {
-                if (_grid.InBounds(pos))
-                    _grid.SetTerrain(pos, terrain);
-            }
-
-            // 底部城墙（不可通行边界）
-            for (int q = 0; q < gridWidth; q++)
-                _grid.SetTerrain(new HexCoord(q, gridHeight - 1), TerrainType.Wall);
-
-            CreateHexMesh();
-            SetupCamera();
-        }
-
-        private void SetupCamera()
+        void SetupCamera()
         {
             var cam = Camera.main;
             cam.orthographic = true;

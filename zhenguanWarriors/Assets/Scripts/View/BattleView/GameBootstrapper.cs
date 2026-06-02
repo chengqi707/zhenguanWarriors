@@ -3,7 +3,8 @@ using UnityEngine;
 namespace ZhenguanWarriors.View.BattleView
 {
     /// <summary>
-    /// 游戏启动器——场景加载完毕后自动显示启动画面
+    /// 游戏启动器——创建唯一 GameRoot
+    /// GameManager 接管所有页面生命周期
     /// </summary>
     public static class GameBootstrapper
     {
@@ -11,8 +12,8 @@ namespace ZhenguanWarriors.View.BattleView
         private static void AutoBoot()
         {
             GameObject go = new GameObject("GameRoot");
-            go.AddComponent<SplashScreen>();
-            Debug.Log("[贞观勇士] 启动：启动画面");
+            go.AddComponent<GameManager>();
+            Debug.Log("[贞观勇士] GameRoot 创建完成");
         }
     }
 }
