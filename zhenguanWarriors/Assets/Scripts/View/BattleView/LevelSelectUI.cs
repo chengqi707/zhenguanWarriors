@@ -21,6 +21,13 @@ namespace ZhenguanWarriors.View.BattleView
         void Start()
         {
             _battleCtrl = GetComponent<BattleTestController>();
+            // uGUI 需要 EventSystem 处理触控事件
+            if (FindObjectOfType<UnityEngine.EventSystems.EventSystem>() == null)
+            {
+                var esObj = new GameObject("EventSystem");
+                esObj.AddComponent<UnityEngine.EventSystems.EventSystem>();
+                esObj.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+            }
             CreateCanvas();
         }
 

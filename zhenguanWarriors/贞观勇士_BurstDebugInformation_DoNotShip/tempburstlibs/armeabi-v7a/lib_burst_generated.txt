@@ -12,7 +12,6 @@ Library: C:\chengqi\Android\AndroidProject\zhenguanWarriors\zhenguanWarriors\Tem
 --float-mode=Fast
 --generate-link-xml=Temp\burst.link.xml
 --temp-folder=C:\chengqi\Android\AndroidProject\zhenguanWarriors\zhenguanWarriors\Temp\Burst
---debug=Full
 --force-disable-frame-info-registration
 --key-folder=C:/Program Files/Tuanjie/Hub/Editor/2022.3.62t8/Editor/Data/PlaybackEngines/AndroidPlayer
 --decode-folder=C:\chengqi\Android\AndroidProject\zhenguanWarriors\zhenguanWarriors\Library\Burst
@@ -32,7 +31,6 @@ Library: C:\chengqi\Android\AndroidProject\zhenguanWarriors\zhenguanWarriors\Tem
 --target-framework=NetFramework
 --generate-link-xml=Temp\burst.link.xml
 --temp-folder=C:\chengqi\Android\AndroidProject\zhenguanWarriors\zhenguanWarriors\Temp\Burst
---debug=Full
 --force-disable-frame-info-registration
 --key-folder=C:/Program Files/Tuanjie/Hub/Editor/2022.3.62t8/Editor/Data/PlaybackEngines/AndroidPlayer
 --decode-folder=C:\chengqi\Android\AndroidProject\zhenguanWarriors\zhenguanWarriors\Library\Burst
