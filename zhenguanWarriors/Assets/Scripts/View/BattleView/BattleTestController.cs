@@ -88,10 +88,13 @@ namespace ZhenguanWarriors.View.BattleView
             _battleUI = GetComponent<BattleUI>();
             _dialogueUI = GetComponent<DialogueUI>();
 
-            // DPI自适应缩放
-            _uiScale = Mathf.Min(SW / 1920f, SH / 1080f);
-            if (_uiScale < 0.5f) _uiScale = 0.5f;
-            if (_uiScale > 2.0f) _uiScale = 2.0f;
+            // DPI自适应缩放（竖屏基准：1080x1920）
+            float wScale = SW / 1080f;
+            float hScale = SH / 1920f;
+            _uiScale = Mathf.Min(wScale, hScale);
+            if (_uiScale < 0.6f) _uiScale = 0.6f;
+            if (_uiScale > 2.5f) _uiScale = 2.5f;
+            Debug.Log($"[缩放] SW={SW} SH={SH} wS={wScale:F2} hS={hScale:F2} scale={_uiScale:F2}");
         }
 
         /// <summary>GameManager 调用，设置当前页面</summary>
@@ -1472,10 +1475,6 @@ namespace ZhenguanWarriors.View.BattleView
         /// <summary>OnGUI 计策选择面板 + 单挑按钮 + 战前编组</summary>
         void OnGUI()
         {
-            // ===== DEBUG: 确认 OnGUI 被调用 =====
-            GUI.backgroundColor = Color.red;
-            GUI.Box(new Rect(0, 0, 200, 30), $"OnGUI OK phase={_gamePhase} gm={(GameManager.Instance != null ? "ok" : "null")}");
-
             // 过渡保护 — 页面切换时禁止绘制
             if (GameManager.Instance != null && GameManager.Instance.IsTransitioning) return;
 
