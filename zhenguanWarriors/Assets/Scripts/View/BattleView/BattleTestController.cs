@@ -257,20 +257,20 @@ namespace ZhenguanWarriors.View.BattleView
 
         private void DrawPreBattleUI()
         {
+            float s = _uiScale;
+
             // 全屏半透明背景
-            GUI.Box(new Rect(0, 0, Screen.width, Screen.height), "");
+            GUI.Box(new Rect(0, 0, SW, SH), "");
 
             // 标题
-            GUI.Label(new Rect(Screen.width / 2 - 80, 10, 200, 30),
-                "⚔ 贞观勇士 · 战前编组", new GUIStyle { fontSize = 20, normal = { textColor = Color.white } });
+            Theme.DrawTitle(new Rect(0, 15 * s, SW, 40 * s), "⚔ 战前编组", (int)(24 * s));
 
             // ---- 左面板：角色列表 ----
-            float leftW = 260;
-            float rightW = Screen.width - leftW - 30;
-            float panelY = 50;
-            float panelH = Screen.height - 120;
+            float leftW = SW * 0.30f;
+            float panelY = 60 * s;
+            float panelH = SH - 140 * s;
 
-            GUI.Box(new Rect(10, panelY, leftW, panelH), "出阵武将");
+            Theme.DrawPanel(new Rect(10 * s, panelY, leftW, panelH), "出阵武将");
 
             _partyScrollPos = GUI.BeginScrollView(
                 new Rect(15, panelY + 25, leftW - 10, panelH - 35),
@@ -285,22 +285,23 @@ namespace ZhenguanWarriors.View.BattleView
 
                 // 背景
                 GUI.backgroundColor = isSelected ? new Color(0.3f, 0.5f, 0.8f) : new Color(0.2f, 0.2f, 0.2f);
-                GUI.Box(new Rect(0, itemY, leftW - 30, 65), "");
+                GUI.Box(new Rect(0, itemY, leftW - 20 * s, 70 * s), "");
 
                 // 名字 + 等级 + 兵种
                 string clsName = ClassData.GetName(unit.UnitClass);
                 string traitDesc = ClassData.GetTraitDescription(unit.UnitClass);
-                GUI.Label(new Rect(5, itemY + 2, 200, 20),
-                    $"{unit.Name} Lv.{unit.Level} {clsName}");
-                GUI.Label(new Rect(5, itemY + 22, 200, 15),
+                GUI.Label(new Rect(8 * s, itemY + 4 * s, leftW - 30 * s, 22 * s),
+                    $"{unit.Name} Lv.{unit.Level} {clsName}",
+                    Theme.MakeLabel((int)(14 * s), FontStyle.Bold));
+                GUI.Label(new Rect(8 * s, itemY + 28 * s, leftW - 30 * s, 18 * s),
                     $"武{unit.BaseStrength} 统{unit.BaseCommand} 智{unit.BaseIntelligence}",
-                    new GUIStyle { fontSize = 10, normal = { textColor = Color.gray } });
-                GUI.Label(new Rect(5, itemY + 37, 220, 25),
+                    Theme.MakeLabel((int)(11 * s), FontStyle.Normal, Theme.TextDim));
+                GUI.Label(new Rect(8 * s, itemY + 46 * s, leftW - 30 * s, 20 * s),
                     $"敏{unit.BaseAgility} 运{unit.BaseLuck}  HP{unit.MaxHp} MP{unit.MaxMp}",
-                    new GUIStyle { fontSize = 10, normal = { textColor = Color.gray } });
+                    Theme.MakeLabel((int)(11 * s), FontStyle.Normal, Theme.TextDim));
 
                 // 点击选择
-                if (GUI.Button(new Rect(0, itemY, leftW - 30, 65), "", GUIStyle.none))
+                if (GUI.Button(new Rect(0, itemY, leftW - 20 * s, 70 * s), "", GUIStyle.none))
                 {
                     _selectedPartyIndex = i;
                     _showEquipList = false;
@@ -309,18 +310,18 @@ namespace ZhenguanWarriors.View.BattleView
             GUI.EndScrollView();
 
             // ---- 右面板：当前选中角色的装备 ----
-            GUI.Box(new Rect(leftW + 20, panelY, Screen.width - leftW - 30, panelH), "装备调整");
+            Theme.DrawPanel(new Rect(leftW + 20 * s, panelY, SW - leftW - 30 * s, panelH), "装备调整");
 
             if (_selectedPartyIndex >= 0 && _selectedPartyIndex < _playerParty.Count)
             {
                 var unit = _playerParty[_selectedPartyIndex];
-                float rightX = leftW + 30;
-                float rightInnerW = Screen.width - leftW - 50;
-                float infoY = panelY + 30;
+                float rightX = leftW + 30 * s;
+                float rightInnerW = SW - leftW - 50 * s;
+                float infoY = panelY + 30 * s;
 
                 // 角色信息
                 string traitInfo = ClassData.GetTraitDescription(unit.UnitClass);
-                GUI.Label(new Rect(rightX, infoY, rightInnerW, 25),
+                GUI.Label(new Rect(rightX, infoY, rightInnerW, 28 * s),
                     $"选择: {unit.Name}  |  等级 {unit.Level}  |  兵种: {ClassData.GetName(unit.UnitClass)}");
                 GUI.Label(new Rect(rightX, infoY + 22, rightInnerW, 20),
                     $"五维: 武{unit.Strength}(+{unit.Strength - unit.BaseStrength}) " +
@@ -397,9 +398,10 @@ namespace ZhenguanWarriors.View.BattleView
             }
 
             // ---- 底部按钮 ----
-            float btnY = Screen.height - 55;
-            if (GUI.Button(new Rect(Screen.width / 2 - 120, btnY, 240, 40),
-                "⚔ 开始战斗（敌方将迎战）"))
+            float btnY = SH - 65 * s;
+            GUI.backgroundColor = Theme.Primary;
+            if (GUI.Button(new Rect(SW / 2 - 140 * s, btnY, 280 * s, 55 * s),
+                "⚔ 开始战斗", Theme.MakeButton((int)(20 * s))))
             {
                 StartBattle();
             }
@@ -1073,11 +1075,12 @@ namespace ZhenguanWarriors.View.BattleView
                 || _selectedUnit.State != UnitState.Ready)
                 return;
 
-            float btnW = 90;
-            float btnH = 40;
-            float pad = 5;
-            float startX = 10;
-            float startY = Screen.height - 60;
+            float s = _uiScale;
+            float btnW = 100 * s;
+            float btnH = 55 * s;
+            float pad = 8 * s;
+            float startX = 10 * s;
+            float startY = SH - 70 * s;
 
             // 收集所有按钮：攻击 + 计策 + 单挑
             int btnCount = 1 + _selectedUnit.SkillIds.Count;
@@ -1093,10 +1096,20 @@ namespace ZhenguanWarriors.View.BattleView
 
             Color normalColor = GUI.backgroundColor;
 
+            // 战斗按钮样式（大字号）
+            GUIStyle battleBtnStyle = new GUIStyle(GUI.skin.button)
+            {
+                fontSize = (int)(14 * s),
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                normal = { textColor = Theme.TextLight },
+                hover = { textColor = Theme.GoldLight }
+            };
+
             // "普通攻击" 按钮
             if (string.IsNullOrEmpty(_selectedSkillId) && !canDuel)
                 GUI.backgroundColor = Color.green;
-            if (GUI.Button(new Rect(startX, startY, btnW, btnH), "⚔ 攻击"))
+            if (GUI.Button(new Rect(startX, startY, btnW, btnH), "⚔ 攻击", battleBtnStyle))
             {
                 _selectedSkillId = null;
                 _battleUI?.ShowTip($"普通攻击模式");
@@ -1119,7 +1132,7 @@ namespace ZhenguanWarriors.View.BattleView
                     GUI.backgroundColor = Color.white;
 
                 string label = $"{skill.name}\n({skill.mpCost}MP)";
-                if (GUI.Button(new Rect(x, startY, btnW, btnH), label))
+                if (GUI.Button(new Rect(x, startY, btnW, btnH), label, battleBtnStyle))
                 {
                     _selectedSkillId = (_selectedSkillId == skillId) ? null : skillId;
                     string mode = _selectedSkillId != null
