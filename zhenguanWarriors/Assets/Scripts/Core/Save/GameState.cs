@@ -11,7 +11,7 @@ namespace ZhenguanWarriors.Core.Save
         /// <summary>难度级别</summary>
         public enum Difficulty { Easy, Normal, Hard, Hell }
         public static Difficulty CurrentDifficulty { get; set; } = Difficulty.Normal;
-    {
+
         /// <summary>当前加载的存档（null = 新游戏）</summary>
         public static SaveData CurrentSave { get; set; }
 
