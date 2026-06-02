@@ -238,11 +238,31 @@ namespace ZhenguanWarriors.View.BattleView
 
         private void DrawHeroSelectUI()
         {
-            float s = _uiScale;
-
-            // 背景
-            GUI.backgroundColor = Theme.BgDark;
+            // ████████████████████████████████████████████████████████
+            // █ DEBUG: 用最大号红色文字确认HeroSelect阶段已激活      █
+            // ████████████████████████████████████████████████████████
+            Color huge = new Color(1f, 0f, 0f);
+            GUI.backgroundColor = Color.black;
             GUI.Box(new Rect(0, 0, SW, SH), "");
+
+            GUIStyle big = new GUIStyle { fontSize = 60, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter, normal = { textColor = huge } };
+            GUI.Label(new Rect(0, SH / 2 - 100, SW, 120),
+                "■■ HERO SELECT ■■", big);
+
+            GUIStyle small = new GUIStyle { fontSize = 30,
+                alignment = TextAnchor.MiddleCenter, normal = { textColor = Color.white } };
+            GUI.Label(new Rect(0, SH / 2 + 40, SW, 60),
+                $"heroPool={_heroPool.Count}  selected={_heroSelected.Count(v => v)}", small);
+
+            // 有一个"下一步"按钮
+            if (GUI.Button(new Rect(SW / 2 - 100, SH - 100, 200, 60),
+                "确认阵容 →", new GUIStyle(GUI.skin.button) { fontSize = 24 }))
+            {
+                // 临时: 直接进战斗
+                ConfirmHeroSelection();
+            }
+        }
             GUI.backgroundColor = Color.white;
 
             GUI.backgroundColor = Theme.Primary;

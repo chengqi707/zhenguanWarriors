@@ -60,7 +60,6 @@
     <Analyzer Include="C:\Program Files\Tuanjie\Hub\Editor\2022.3.62t8\Editor\Data\Tools\Unity.SourceGenerators\Unity.Properties.SourceGenerator.dll" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\Scripts\View\BattleView\LevelSelectUI.cs" />
     <Compile Include="Assets\Scripts\Core\Audio\AudioManager.cs" />
     <Compile Include="Assets\Scripts\Core\Battle\WeatherSystem.cs" />
     <Compile Include="Assets\Scripts\Core\UI\Theme.cs" />
