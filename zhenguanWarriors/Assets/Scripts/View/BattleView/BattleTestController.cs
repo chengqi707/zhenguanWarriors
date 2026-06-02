@@ -1712,26 +1712,42 @@ namespace ZhenguanWarriors.View.BattleView
             GUI.Box(new Rect(0, 0, SW, SH), "");
             GUI.backgroundColor = Color.white;
 
+            // —— 调试信息 ——
+            int levelCount = 0;
+            for (int di = 0; di < _levelOrder.Count; di++)
+            {
+                var lvl = LevelLibrary.Get(_levelOrder[di]);
+                if (lvl != null) levelCount++;
+            }
+            string debug = $"关卡总数: {_levelOrder.Count}  加载成功: {levelCount}  缩放: {s:F2}  " +
+                $"Screen: {SW}x{SH}  Save: {(GameState.CurrentSave != null ? "ok" : "null")}";
+            Debug.Log($"[关卡调试] {debug}");
+            GUI.Label(new Rect(10, 0, SW - 20, 28),
+                debug, Theme.MakeLabel(11, FontStyle.Normal, Color.magenta));
+
             // 顶部装饰
             GUI.backgroundColor = Theme.Primary;
-            GUI.Box(new Rect(0, 0, SW, 6 * s), "");
+            GUI.Box(new Rect(0, 28, SW, 4), "");
             GUI.backgroundColor = Color.white;
 
             // 标题
-            Theme.DrawTitle(new Rect(0, 30 * s, SW, 60 * s),
-                "🏯 征战天下", (int)(30 * s));
+            Theme.DrawTitle(new Rect(0, 36, SW, 40),
+                "🏯 征战天下", 26);
 
-            // 关卡列表（全屏宽卡片，大幅增加字体）
+            // 关卡列表
             float cardW = SW * 0.85f;
             float cardH = 130 * s;
             float startX = (SW - cardW) / 2;
-            float startY = 100 * s;
+            float startY = 86;
             float margin = 14 * s;
 
+            float viewH = SH - startY - 20;
+            float contentH = _levelOrder.Count * (cardH + margin);
+
             _levelSelectScroll = GUI.BeginScrollView(
-                new Rect(startX, startY, cardW, SH - startY - 30 * s),
+                new Rect(startX, startY, cardW, viewH),
                 _levelSelectScroll,
-                new Rect(0, 0, cardW, _levelOrder.Count * (cardH + margin)));
+                new Rect(0, 0, cardW, contentH));
 
             for (int i = 0; i < _levelOrder.Count; i++)
             {
