@@ -73,7 +73,6 @@
     <Compile Include="Assets\Scripts\View\BattleView\BattleTestController.cs" />
     <Compile Include="Assets\Scripts\View\BattleView\GameBootstrapper.cs" />
     <Compile Include="Assets\Scripts\Core\Combat\PassiveSkillData.cs" />
-    <Compile Include="Assets\Scripts\View\BattleView\BattleSceneStarter.cs" />
     <Compile Include="Assets\Scripts\Core\Battle\HexCoord.cs" />
     <Compile Include="Assets\Scripts\View\BattleView\BattleUI.cs" />
     <Compile Include="Assets\Scripts\Core\Level\VictoryChecker.cs" />
@@ -91,6 +90,7 @@
     <Compile Include="Assets\Scripts\Core\Level\LevelData.cs" />
     <Compile Include="Assets\Scripts\Core\Battle\BattleUnit.cs" />
     <Compile Include="Assets\Scripts\Core\Save\SaveManager.cs" />
+    <Compile Include="Assets\Scripts\View\BattleView\GameManager.cs" />
     <Compile Include="Assets\Scripts\Core\Battle\TerrainType.cs" />
     <Compile Include="Assets\Scripts\Core\Combat\EquipmentData.cs" />
     <Compile Include="Assets\Scripts\View\BattleView\UnitVisual.cs" />

@@ -1,5 +1,6 @@
 using UnityEngine;
 using ZhenguanWarriors.Core.Battle;
+using ZhenguanWarriors.Core.Character;
 using ZhenguanWarriors.Core.Level;
 using System.Collections.Generic;
 using System.Linq;
