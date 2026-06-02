@@ -87,7 +87,7 @@ namespace ZhenguanWarriors.Core.Combat
             {
                 ["fire_attack"] = new SkillData(
                     "fire_attack", "火攻", SkillType.FireAttack, SkillTargetType.Enemy,
-                    mpCost: 20, range: 3, power: 45, isAOE: true, aoeRadius: 1,
+                    mpCost: 18, range: 3, power: 50, isAOE: true, aoeRadius: 1,
                     desc: "对目标及其周围1格造成火系伤害"),
 
                 ["rock_slide"] = new SkillData(
@@ -107,7 +107,7 @@ namespace ZhenguanWarriors.Core.Combat
 
                 ["heal"] = new SkillData(
                     "heal", "医疗", SkillType.Heal, SkillTargetType.Ally,
-                    mpCost: 12, range: 3, power: 50,
+                    mpCost: 12, range: 3, power: 40,
                     desc: "恢复目标HP"),
 
                 ["volley"] = new SkillData(

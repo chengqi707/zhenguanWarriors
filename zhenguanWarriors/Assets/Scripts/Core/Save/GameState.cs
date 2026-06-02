@@ -4,9 +4,13 @@ using System.Linq;
 namespace ZhenguanWarriors.Core.Save
 {
     /// <summary>
-    /// 全局游戏状态——持有当前存档、关卡进度等跨场景数据
+    /// 全局游戏状态——持有当前存档、关卡进度、难度等跨场景数据
     /// </summary>
     public static class GameState
+    {
+        /// <summary>难度级别</summary>
+        public enum Difficulty { Easy, Normal, Hard, Hell }
+        public static Difficulty CurrentDifficulty { get; set; } = Difficulty.Normal;
     {
         /// <summary>当前加载的存档（null = 新游戏）</summary>
         public static SaveData CurrentSave { get; set; }

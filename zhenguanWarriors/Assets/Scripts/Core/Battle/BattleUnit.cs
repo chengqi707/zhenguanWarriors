@@ -296,6 +296,38 @@ namespace ZhenguanWarriors.Core.Battle
             CurrentMp = MaxMp;
         }
 
+        // ========== 被动技能计算 ==========
+
+        /// <summary>
+        /// 计算指定类型被动技能的累计数值
+        /// effectType: team_attack_pct / magic_damage_pct / crit_rate_pct 等
+        /// </summary>
+        public float GetPassiveModifier(string effectType)
+        {
+            float total = 0f;
+            foreach (var pid in PassiveIds)
+            {
+                var skill = PassiveSkillLibrary.Get(pid);
+                if (skill != null && skill.effectType == effectType)
+                    total += skill.effectValue;
+            }
+            return total;
+        }
+
+        /// <summary>
+        /// 检查是否有指定类型的被动技能（触发型：如extra_turn_chance）
+        /// </summary>
+        public bool HasPassiveType(string effectType)
+        {
+            foreach (var pid in PassiveIds)
+            {
+                var skill = PassiveSkillLibrary.Get(pid);
+                if (skill != null && skill.effectType == effectType)
+                    return true;
+            }
+            return false;
+        }
+
         /// <summary>获取等级可习得的新计策</summary>
         public List<string> GetLearnableSkills()
         {

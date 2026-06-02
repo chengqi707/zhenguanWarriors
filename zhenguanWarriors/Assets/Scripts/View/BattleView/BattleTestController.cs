@@ -564,7 +564,13 @@ namespace ZhenguanWarriors.View.BattleView
             WindDirection windDir = _currentLevel?.wind ?? WindDirection.None;
             _weather = new WeatherSystem(weatherType, windDir);
             _skillExecutor = new SkillExecutor(_allUnits, _hexView.Grid, _weather);
-            _aiTree = new AIBehaviorTree(_allUnits, _hexView.Grid, _weather, _skillExecutor, "normal");
+            string diffStr = GameState.CurrentDifficulty switch
+            {
+                GameState.Difficulty.Easy => "easy",
+                GameState.Difficulty.Hard => "hard",
+                _ => "normal"
+            };
+            _aiTree = new AIBehaviorTree(_allUnits, _hexView.Grid, _weather, _skillExecutor, diffStr);
 
             // 创建可视化
             foreach (var unit in _allUnits)
@@ -581,8 +587,119 @@ namespace ZhenguanWarriors.View.BattleView
             _turnManager.OnUnitTurnEnd += OnUnitTurnEnd;
             _turnManager.OnPhaseChanged += OnPhaseChanged;
 
+            // 应用羁绊加成
+            ApplyBondBonuses();
+
+            // 难度缩放敌方属性
+            ScaleEnemiesByDifficulty();
+
+            // 重置回春使用记录（新关卡）
+            SkillExecutor.ResetReviveTracker();
+
             _battleUI.ShowTip("选中己方单位 → 点击移动/攻击 | 底部选择计策");
             _turnManager.StartBattle();
+        }
+
+        /// <summary>应用羁绊加成到出战队伍</summary>
+        private void ApplyBondBonuses()
+        {
+            var bonds = BondSystem.CheckBonds(_playerParty);
+            var playerIds = new HashSet<string>(_playerParty.Select(u => u.Id));
+
+            foreach (var bond in bonds)
+            {
+                switch (bond.effectType)
+                {
+                    case "all_stats_pct":
+                        // 全属性+% 给羁绊角色
+                        foreach (var uid in bond.characterIds)
+                        {
+                            var unit = _playerParty.FirstOrDefault(u => u.Id == uid);
+                            if (unit != null)
+                            {
+                                int bonus = (int)(unit.BaseStrength * bond.effectValue);
+                                unit.BaseStrength += bonus;
+                                unit.BaseCommand += (int)(unit.BaseCommand * bond.effectValue);
+                                unit.BaseIntelligence += (int)(unit.BaseIntelligence * bond.effectValue);
+                                unit.BaseAgility += (int)(unit.BaseAgility * bond.effectValue);
+                                unit.BaseLuck += (int)(unit.BaseLuck * bond.effectValue);
+                            }
+                        }
+                        break;
+
+                    case "team_attack_pct":
+                        // 全队攻击+%
+                        foreach (var unit in _playerParty)
+                        {
+                            unit.BaseStrength += (int)(unit.BaseStrength * bond.effectValue);
+                        }
+                        break;
+
+                    case "magic_damage_pct":
+                        // 全队计策伤害+%
+                        // 简单实现：给羁绊角色加智力
+                        foreach (var uid in bond.characterIds)
+                        {
+                            var unit = _playerParty.FirstOrDefault(u => u.Id == uid);
+                            if (unit != null)
+                                unit.BaseIntelligence += (int)(unit.BaseIntelligence * bond.effectValue);
+                        }
+                        break;
+
+                    case "cavalry_move":
+                        // 骑兵移动力+1
+                        foreach (var unit in _playerParty.Where(u => u.UnitClass == ClassType.Cavalry))
+                        {
+                            unit.BaseMoveRange += (int)bond.effectValue;
+                        }
+                        break;
+                }
+            }
+
+            if (bonds.Count > 0)
+                Debug.Log($"[羁绊] 已应用 {bonds.Count} 组羁绊加成");
+        }
+
+        /// <summary>根据难度缩放敌方属性</summary>
+        private void ScaleEnemiesByDifficulty()
+        {
+            float mult = GameState.CurrentDifficulty switch
+            {
+                GameState.Difficulty.Easy => 0.80f,
+                GameState.Difficulty.Normal => 1.00f,
+                GameState.Difficulty.Hard => 1.20f,
+                GameState.Difficulty.Hell => 1.45f,
+                _ => 1.00f
+            };
+            // 极简模式：玩家方获得20%属性加成
+            if (GameState.CurrentDifficulty == GameState.Difficulty.Easy)
+            {
+                foreach (var player in _allUnits.Where(u => u.Faction == Faction.Player))
+                {
+                    player.BaseStrength = (int)(player.BaseStrength * 1.20f);
+                    player.BaseCommand = (int)(player.BaseCommand * 1.20f);
+                    player.BaseAgility = (int)(player.BaseAgility * 1.10f);
+                    player.MaxHp += 20;
+                    player.CurrentHp = player.MaxHp;
+                }
+            }
+
+            if (Mathf.Approximately(mult, 1f)) return;
+
+            int addHp = GameState.CurrentDifficulty == GameState.Difficulty.Hell ? 20 : 0;
+
+            foreach (var enemy in _allUnits.Where(u => u.Faction == Faction.Enemy))
+            {
+                enemy.BaseStrength = (int)(enemy.BaseStrength * mult);
+                enemy.BaseCommand = (int)(enemy.BaseCommand * mult);
+                enemy.BaseIntelligence = (int)(enemy.BaseIntelligence * mult);
+                enemy.BaseAgility = (int)(enemy.BaseAgility * mult);
+                enemy.BaseLuck = (int)(enemy.BaseLuck * mult);
+                enemy.MaxHp = (int)(enemy.MaxHp * mult) + addHp;
+                enemy.MaxMp = (int)(enemy.MaxMp * mult);
+                enemy.CurrentHp = enemy.MaxHp;
+                enemy.CurrentMp = enemy.MaxMp;
+            }
         }
 
         /// <summary>从关卡数据创建敌方单位</summary>
@@ -906,7 +1023,7 @@ namespace ZhenguanWarriors.View.BattleView
                 }
 
                 // 经验分配
-                int exp = CombatCalculator.CalcExp(attacker.Level - defender.Level, true, false);
+                int exp = CombatCalculator.CalcExp(attacker.Level - defender.Level, true, false, attacker);
                 bool leveled = attacker.GainExperience(exp);
                 string expLog = $"{attacker.Name} 获得 {exp} 点经验";
                 if (leveled)
@@ -1572,7 +1689,7 @@ namespace ZhenguanWarriors.View.BattleView
                 {
                     StartCoroutine(DeathAnimation(deadVis, splashTarget));
                     // 溅射击杀也给经验
-                    int exp = CombatCalculator.CalcExp(attacker.Level - splashTarget.Level, true, false);
+                    int exp = CombatCalculator.CalcExp(attacker.Level - splashTarget.Level, true, false, attacker);
                     attacker.GainExperience(exp);
                 }
             }
@@ -1601,20 +1718,53 @@ namespace ZhenguanWarriors.View.BattleView
 
         private void OnUnitTurnStart(BattleUnit unit)
         {
-            if (unit.Faction == Faction.Enemy)
+            if (unit.Faction == Faction.Player)
             {
+                // ★ 被动：仁德（每回合恢复全队5%HP）
+                if (unit.HasPassiveType("team_heal_pct"))
+                {
+                    float pct = unit.GetPassiveModifier("team_heal_pct");
+                    foreach (var ally in _allUnits.Where(u => u.Faction == Faction.Player && u.IsAlive))
+                    {
+                        int heal = Math.Max(1, (int)(ally.MaxHp * pct));
+                        ally.Heal(heal);
+                    }
+                    _battleUI?.ShowTip($"{unit.Name} 的【仁德】恢复全队HP");
+                }
+                // ★ 被动：再生（每回合恢复15%HP）
+                if (unit.HasPassiveType("self_heal_pct"))
+                {
+                    int heal = Math.Max(1, (int)(unit.MaxHp * unit.GetPassiveModifier("self_heal_pct")));
+                    unit.Heal(heal);
+                }
+                _battleUI?.ShowTip($"请操作 {unit.Name}");
+            }
+            else if (unit.Faction == Faction.Enemy)
+            {
+                // 敌方也触发再生
+                if (unit.HasPassiveType("self_heal_pct"))
+                {
+                    int heal = Math.Max(1, (int)(unit.MaxHp * unit.GetPassiveModifier("self_heal_pct")));
+                    unit.Heal(heal);
+                }
                 _battleUI?.ShowTip($"敌方 {unit.Name} 行动...");
                 EnemyAI(unit);
-            }
-            else if (unit.Faction == Faction.Player)
-            {
-                _battleUI?.ShowTip($"请操作 {unit.Name}");
             }
         }
 
         private void OnUnitTurnEnd(BattleUnit unit)
         {
-            // 不需要额外处理
+            // ★ 被动：决断（20%概率再次行动）
+            if (unit.Faction == Faction.Player && unit.HasPassiveType("extra_turn_chance"))
+            {
+                float chance = unit.GetPassiveModifier("extra_turn_chance");
+                if (UnityEngine.Random.Range(0f, 1f) < chance)
+                {
+                    unit.State = UnitState.Ready;
+                    unit.HasActed = false;
+                    _battleUI?.ShowTip($"{unit.Name} 的【决断】触发！可以再次行动！");
+                }
+            }
         }
 
         private void OnPhaseChanged(TurnManager.TurnPhase phase)
@@ -1623,6 +1773,9 @@ namespace ZhenguanWarriors.View.BattleView
             {
                 case TurnManager.TurnPhase.PlayerTurn:
                     _battleUI?.UpdateTurnInfo(_turnManager.TurnNumber, "玩家回合");
+                    // 回合开始时自动存档
+                    if (_turnManager.TurnNumber == 1 || _turnManager.TurnNumber % 3 == 0)
+                        AutoSaveGame();
                     break;
                 case TurnManager.TurnPhase.EnemyTurn:
                     _battleUI?.UpdateTurnInfo(_turnManager.TurnNumber, "敌方回合");
@@ -1800,7 +1953,7 @@ namespace ZhenguanWarriors.View.BattleView
                     StartCoroutine(DeathAnimation(deadVis, defender));
 
                 // AI 经验分配
-                int exp = CombatCalculator.CalcExp(attacker.Level - defender.Level, true, false);
+                int exp = CombatCalculator.CalcExp(attacker.Level - defender.Level, true, false, attacker);
                 bool leveled = attacker.GainExperience(exp);
                 string expLog = $"{attacker.Name} 获得 {exp} 点经验";
                 if (leveled)

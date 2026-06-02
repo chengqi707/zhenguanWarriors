@@ -129,6 +129,26 @@ namespace ZhenguanWarriors.View.BattleView
             float w = 320 * s;
             float h = 40 * s;
 
+            // 难度选择
+            GUI.Label(new Rect(x, y, w, h), "🎯 游戏难度", Theme.MakeLabel((int)(22 * s), FontStyle.Bold));
+            y += 45 * s;
+            string[] diffNames = { "极简", "简单", "普通", "困难" };
+            var currentDiff = GameState.CurrentDifficulty;
+            for (int di = 0; di < 4; di++)
+            {
+                var diff = (GameState.Difficulty)di;
+                bool isSelected = currentDiff == diff;
+                GUI.backgroundColor = isSelected ? Theme.Primary : Theme.BgCard;
+                float btnW2 = 140 * s;
+                if (GUI.Button(new Rect(SW / 2f - btnW2 * 2 + di * (btnW2 + 10 * s), y, btnW2, 45 * s),
+                    diffNames[di], Theme.MakeButton(isSelected ? (int)(18 * s) : (int)(16 * s))))
+                {
+                    GameState.CurrentDifficulty = diff;
+                }
+            }
+            GUI.backgroundColor = Color.white;
+            y += 70 * s;
+
             // 音效开关（占位）
             GUI.Label(new Rect(x, y, w, h), "🎵 音效将在最终版本添加", Theme.MakeLabel((int)(18 * s)));
             y += 60 * s;

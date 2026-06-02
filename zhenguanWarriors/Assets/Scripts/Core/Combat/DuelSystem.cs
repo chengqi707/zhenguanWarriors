@@ -162,6 +162,12 @@ namespace ZhenguanWarriors.Core.Combat
             int baseDmg = Math.Max(5, attacker.Strength - defender.Strength / 2);
             baseDmg += UnityEngine.Random.Range(-5, 6);
 
+            // ★ 被动：单挑达人（伤害+20%）
+            if (attacker.HasPassiveType("duel_win_pct"))
+            {
+                baseDmg = (int)(baseDmg * 1.2f);
+            }
+
             switch (action)
             {
                 case DuelAction.Attack:

@@ -15,6 +15,15 @@ namespace ZhenguanWarriors.Core.Combat
         private readonly HexGrid _grid;
         private readonly WeatherSystem _weather;
 
+        /// <summary>本关已使用过回春的角色ID集合（每关限1次）</summary>
+        private static HashSet<string> _reviveUsedThisLevel = new();
+
+        /// <summary>重置回春使用记录（新关卡调用）</summary>
+        public static void ResetReviveTracker()
+        {
+            _reviveUsedThisLevel.Clear();
+        }
+
         public SkillExecutor(List<BattleUnit> allUnits, HexGrid grid, WeatherSystem weather = null)
         {
             _allUnits = allUnits;
@@ -40,6 +49,7 @@ namespace ZhenguanWarriors.Core.Combat
                 SkillType.Volley => ExecuteFireAttack(caster, targetCell, skill), // 类似火攻
                 SkillType.Confuse => ExecuteConfuse(caster, targetCell),
                 SkillType.Insight => ExecuteInsight(caster, targetCell),
+                SkillType.Revive => ExecuteRevive(caster, targetCell),
                 _ => $"{skill.name} 暂未实现"
             };
         }
@@ -129,7 +139,7 @@ namespace ZhenguanWarriors.Core.Combat
             foreach (var t in targets)
             {
                 int damage = CombatCalculator.CalcMagicDamage(
-                    caster.Intelligence, t.Intelligence, adjustedPower);
+                    caster, t, adjustedPower);
                 t.TakeDamage(damage);
                 totalDamage += damage;
             }
@@ -167,7 +177,7 @@ namespace ZhenguanWarriors.Core.Combat
             foreach (var t in targets)
             {
                 int damage = CombatCalculator.CalcMagicDamage(
-                    caster.Intelligence, t.Intelligence, adjustedPower);
+                    caster, t, adjustedPower);
                 t.TakeDamage(damage);
                 totalDamage += damage;
             }
@@ -228,7 +238,7 @@ namespace ZhenguanWarriors.Core.Combat
             foreach (var t in targets)
             {
                 int damage = CombatCalculator.CalcMagicDamage(
-                    caster.Intelligence, t.Intelligence, adjustedPower);
+                    caster, t, adjustedPower);
                 t.TakeDamage(damage);
                 totalDamage += damage;
             }
@@ -305,6 +315,32 @@ namespace ZhenguanWarriors.Core.Combat
             // 恢复少量MP（驱散/净化的简版效果）
             targetUnit.RestoreMp(10);
             return $"{caster.Name} 对 {targetUnit.Name} 释放【洞察】，恢复10MP";
+        }
+
+        // ========== 回春（复活）==========
+
+        private string ExecuteRevive(BattleUnit caster, HexCoord target)
+        {
+            // 每关每角色限1次
+            if (_reviveUsedThisLevel.Contains(caster.Id))
+                return $"{caster.Name} 本关已使用过【回春】，无法再次释放！";
+
+            // 查找目标格上的阵亡友军
+            var deadAlly = _allUnits.FirstOrDefault(u =>
+                u.Position == target && u.IsDead && u.Faction == caster.Faction);
+
+            if (deadAlly == null)
+                return "目标格没有可复活的阵亡友军";
+
+            // 复活：恢复30%HP
+            int reviveHp = Math.Max(1, (int)(deadAlly.MaxHp * 0.3f));
+            deadAlly.Heal(reviveHp);
+            deadAlly.State = UnitState.Idle;
+
+            // 标记已使用
+            _reviveUsedThisLevel.Add(caster.Id);
+
+            return $"{caster.Name} 释放【回春】！{deadAlly.Name} 复活，恢复 {reviveHp} HP！";
         }
     }
 }
