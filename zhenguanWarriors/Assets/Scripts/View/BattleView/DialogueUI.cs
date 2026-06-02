@@ -62,6 +62,14 @@ namespace ZhenguanWarriors.View.BattleView
         /// <summary>是否正在播放对话</summary>
         public bool IsActive => _isActive;
 
+        /// <summary>快进/跳过当前对话（返回键触发）</summary>
+        public void FastForward()
+        {
+            if (!_isActive) return;
+            // 直接跳到对话结束
+            FinishDialogue();
+        }
+
         private void DrawDialogue()
         {
             // 半透明遮罩（深褐色）

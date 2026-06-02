@@ -3,31 +3,35 @@ using System.Collections.Generic;
 
 namespace ZhenguanWarriors.Core.Save
 {
-    /// <summary>
-    /// 存档数据模型——记录完整游戏进度
-    /// </summary>
     [Serializable]
     public class SaveData
     {
         // ========== 元数据 ==========
-        public string saveTime;          // 存档时间（字符串，便于JSON序列化）
-        public int version;              // 存档版本（兼容升级）
-        public string levelId;           // 当前所在关卡ID
-        public int levelIndex;           // 关卡序号（0-based）
-        public string levelName;         // 关卡名（显示用）
+        public string saveTime;
+        public int version;
+        public string levelId;
+        public int levelIndex;
+        public string levelName;
 
         // ========== 关卡进度 ==========
-        public List<string> unlockedLevels;   // 已解锁的关卡ID列表
-        public string currentLevelId;         // 当前选中的关卡
+        public List<string> unlockedLevels;
+        public string currentLevelId;
 
         // ========== 角色状态 ==========
-        public List<CharacterSaveData> characters;   // 所有角色的状态
+        public List<CharacterSaveData> characters;
 
         // ========== 游戏设置 ==========
         public bool bgmOn = true;
         public bool sfxOn = true;
 
-        // ========== 计算属性 ==========
+        // ========== 战场状态（战斗中存档时保存） ==========
+        public bool isInBattle;
+        public int turnNumber;
+        public string weather;
+        public string wind;
+        public List<BattlefieldUnitSave> battlefieldUnits;
+        public List<TerrainChangeSave> terrainChanges;
+
         public int avgLevel
         {
             get
@@ -39,7 +43,6 @@ namespace ZhenguanWarriors.Core.Save
             }
         }
 
-        /// <summary>创建新游戏默认存档</summary>
         public static SaveData CreateNew()
         {
             return new SaveData
@@ -52,25 +55,39 @@ namespace ZhenguanWarriors.Core.Save
                 levelIndex = 0,
                 levelName = "晋阳举义",
                 characters = new List<CharacterSaveData>(),
-                bgmOn = true,
-                sfxOn = true
+                bgmOn = true, sfxOn = true
             };
         }
     }
 
-    /// <summary>角色存档数据</summary>
     [Serializable]
     public class CharacterSaveData
     {
-        public string id;
-        public string name;
-        public int level;
-        public int experience;
+        public string id, name;
+        public int level, experience;
         public int baseStr, baseCmd, baseInt, baseAgi, baseLuk;
         public int strGrowth, cmdGrowth, intGrowth, agiGrowth, lukGrowth;
         public List<string> skillIds;
-        public string weaponId;
-        public string armorId;
-        public string trinketId;
+        public string weaponId, armorId, trinketId;
+    }
+
+    /// <summary>战场单位状态（用于战斗中存档精确恢复）</summary>
+    [Serializable]
+    public class BattlefieldUnitSave
+    {
+        public string id;
+        public int posQ, posR;
+        public int currentHp, currentMp;
+        public bool hasActed, hasMovedThisTurn;
+        public string unitState;
+        public int tempStrBuff;
+    }
+
+    /// <summary>地形变化记录（用于战斗中存档恢复）</summary>
+    [Serializable]
+    public class TerrainChangeSave
+    {
+        public int q, r;
+        public string terrainType;
     }
 }

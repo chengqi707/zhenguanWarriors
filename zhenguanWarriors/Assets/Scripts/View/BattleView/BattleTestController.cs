@@ -56,6 +56,8 @@ namespace ZhenguanWarriors.View.BattleView
 
         // ========== 关卡系统 ==========
         private LevelData _currentLevel;
+        public LevelData CurrentLevel => _currentLevel;
+        public int CurrentTurn => _turnManager?.TurnNumber ?? 0;
         private VictoryChecker _victoryChecker;
         private List<string> _levelOrder = new() {
             "level_01", "level_02", "level_03", "level_04",
@@ -113,6 +115,9 @@ namespace ZhenguanWarriors.View.BattleView
 
         void Update()
         {
+            // 暂停中不处理战斗输入
+            if (GameManager.Instance != null && GameManager.Instance.IsPaused) return;
+
             // 等待对话时阻止所有输入
             if (_waitingForDialogue) return;
 
@@ -1645,6 +1650,15 @@ namespace ZhenguanWarriors.View.BattleView
             _isAnimating = false;
             _inDuel = false;
             _duelSystem = null;
+        }
+
+        /// <summary>强制失败（暂停菜单→撤退时调用）</summary>
+        public void ForceDefeat(string reason)
+        {
+            if (_turnManager == null) return;
+            _victoryChecker ??= new VictoryChecker(_currentLevel, _allUnits, _turnManager);
+            // 标记失败
+            _turnManager.SetPhase(TurnManager.TurnPhase.Defeat);
         }
 
         // ========== 自定义胜负检查（VictoryChecker回调）==========
