@@ -59,6 +59,7 @@ namespace ZhenguanWarriors.View.BattleView
         private LevelData _currentLevel;
         public LevelData CurrentLevel => _currentLevel;
         public int CurrentTurn => _turnManager?.TurnNumber ?? 0;
+        public List<string> GetLevelOrder() => _levelOrder;
         private VictoryChecker _victoryChecker;
         private List<string> _levelOrder = new() {
             "level_01", "level_02", "level_03", "level_04",
@@ -1475,13 +1476,6 @@ namespace ZhenguanWarriors.View.BattleView
         /// <summary>OnGUI 计策选择面板 + 单挑按钮 + 战前编组</summary>
         void OnGUI()
         {
-            // ★ 终极测试：画一个绿色方块，排除所有UI逻辑问题 ★
-            GUI.Box(new Rect(100, 100, 300, 60), "TEST: 如果看到这行字, OnGUI正常");
-            // 再画一个红色方块在下方
-            GUI.backgroundColor = Color.red;
-            GUI.Box(new Rect(100, 200, SW - 200, 120), $"SW={SW} SH={SH} _uiScale={_uiScale:F2} phase={_gamePhase}");
-            GUI.backgroundColor = Color.white;
-
             // 过渡保护 — 页面切换时禁止绘制
             if (GameManager.Instance != null && GameManager.Instance.IsTransitioning) return;
 
@@ -1796,7 +1790,7 @@ namespace ZhenguanWarriors.View.BattleView
         }
 
         /// <summary>选择关卡，进入战前编组</summary>
-        private void SelectLevel(string levelId)
+        public void SelectLevel(string levelId)
         {
             _currentLevel = LevelLibrary.Get(levelId);
             if (_currentLevel == null) return;
