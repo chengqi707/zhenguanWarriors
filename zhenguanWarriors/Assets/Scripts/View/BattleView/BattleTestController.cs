@@ -1726,7 +1726,7 @@ namespace ZhenguanWarriors.View.BattleView
                     float pct = unit.GetPassiveModifier("team_heal_pct");
                     foreach (var ally in _allUnits.Where(u => u.Faction == Faction.Player && u.IsAlive))
                     {
-                        int heal = Math.Max(1, (int)(ally.MaxHp * pct));
+                        int heal = Mathf.Max(1, (int)(ally.MaxHp * pct));
                         ally.Heal(heal);
                     }
                     _battleUI?.ShowTip($"{unit.Name} 的【仁德】恢复全队HP");
@@ -1734,7 +1734,7 @@ namespace ZhenguanWarriors.View.BattleView
                 // ★ 被动：再生（每回合恢复15%HP）
                 if (unit.HasPassiveType("self_heal_pct"))
                 {
-                    int heal = Math.Max(1, (int)(unit.MaxHp * unit.GetPassiveModifier("self_heal_pct")));
+                    int heal = Mathf.Max(1, (int)(unit.MaxHp * unit.GetPassiveModifier("self_heal_pct")));
                     unit.Heal(heal);
                 }
                 _battleUI?.ShowTip($"请操作 {unit.Name}");
@@ -1744,7 +1744,7 @@ namespace ZhenguanWarriors.View.BattleView
                 // 敌方也触发再生
                 if (unit.HasPassiveType("self_heal_pct"))
                 {
-                    int heal = Math.Max(1, (int)(unit.MaxHp * unit.GetPassiveModifier("self_heal_pct")));
+                    int heal = Mathf.Max(1, (int)(unit.MaxHp * unit.GetPassiveModifier("self_heal_pct")));
                     unit.Heal(heal);
                 }
                 _battleUI?.ShowTip($"敌方 {unit.Name} 行动...");
