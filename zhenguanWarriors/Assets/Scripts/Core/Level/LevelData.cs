@@ -109,11 +109,23 @@ namespace ZhenguanWarriors.Core.Level
         {
             if (_levels == null) Build();
 
-            // 尝试从 JSON 加载（Resources/Data/Levels/level_XX.json）
-            var jsonLevel = LevelJsonLoader.LoadFromResources(id);
-            if (jsonLevel != null) return jsonLevel;
+            // 尝试从 JSON 加载，失败则回退硬编码
+            try
+            {
+                var jsonLevel = LevelJsonLoader.LoadFromResources(id);
+                if (jsonLevel != null) return jsonLevel;
+            }
+            catch (System.Exception e)
+            {
+                UnityEngine.Debug.LogWarning($"[关卡] JSON加载失败，使用硬编码: {id} — {e.Message}");
+            }
 
-            return _levels.TryGetValue(id, out var l) ? l : null;
+            if (_levels.TryGetValue(id, out var l)) return l;
+
+            // 兜底：硬编码库也没有，再次 Build
+            UnityEngine.Debug.LogWarning($"[关卡] {id} 不在缓存中，重新 Build");
+            Build();
+            return _levels.TryGetValue(id, out var l2) ? l2 : null;
         }
 
         /// <summary>导出全部关卡到JSON文件（编辑器下使用）</summary>

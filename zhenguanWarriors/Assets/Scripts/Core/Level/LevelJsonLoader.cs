@@ -268,10 +268,16 @@ namespace ZhenguanWarriors.Core.Level
         /// <summary>从Resources路径加载关卡JSON（Assets/Data/Levels/level_XX.json）</summary>
         public static LevelData LoadFromResources(string levelId)
         {
-            // 尝试从 Resources 加载
-            var textAsset = UnityEngine.Resources.Load<UnityEngine.TextAsset>($"Data/Levels/{levelId}");
-            if (textAsset != null)
-                return DeserializeLevel(textAsset.text);
+            try
+            {
+                var textAsset = UnityEngine.Resources.Load<UnityEngine.TextAsset>($"Data/Levels/{levelId}");
+                if (textAsset != null)
+                    return DeserializeLevel(textAsset.text);
+            }
+            catch (System.Exception e)
+            {
+                UnityEngine.Debug.LogWarning($"[LevelJsonLoader] 加载 {levelId} 失败: {e.Message}");
+            }
             return null;
         }
 
