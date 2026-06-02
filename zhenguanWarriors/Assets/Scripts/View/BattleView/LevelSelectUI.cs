@@ -108,8 +108,9 @@ namespace ZhenguanWarriors.View.BattleView
                     decorImg.color = Theme.Primary;
                 }
 
-                // 点击
+                // 点击 Button（必须设置 targetGraphic 否则不响应）
                 var btn = cardObj.AddComponent<Button>();
+                btn.targetGraphic = img;
                 btn.transition = Selectable.Transition.None;
                 btn.onClick.AddListener(() => {
                     if (_battleCtrl != null && unlocked)
