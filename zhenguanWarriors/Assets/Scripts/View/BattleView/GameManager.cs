@@ -6,7 +6,7 @@ namespace ZhenguanWarriors.View.BattleView
     public enum GamePage
     {
         Splash, MainMenu, Settings, LevelSelect,
-        Story, PreBattle, Battle, Results
+        Story, HeroSelect, EquipSetup, Battle, Results
     }
 
     public class GameManager : MonoBehaviour
@@ -97,7 +97,8 @@ namespace ZhenguanWarriors.View.BattleView
                         null, "返回主菜单", "继续选关");
                     break;
 
-                case GamePage.PreBattle:
+                case GamePage.HeroSelect:
+                case GamePage.EquipSetup:
                     TransitionTo(GamePage.LevelSelect);
                     break;
 
@@ -128,7 +129,8 @@ namespace ZhenguanWarriors.View.BattleView
                     _mainMenu.SetPage(page);
                     break;
                 case GamePage.LevelSelect:
-                case GamePage.PreBattle:
+                case GamePage.HeroSelect:
+                case GamePage.EquipSetup:
                 case GamePage.Battle:
                 case GamePage.Results:
                     _hexView.enabled = true;
@@ -160,9 +162,9 @@ namespace ZhenguanWarriors.View.BattleView
         {
             switch (_previousPage)
             {
-                case GamePage.PreBattle:
+                case GamePage.HeroSelect:
+                case GamePage.EquipSetup:
                 case GamePage.LevelSelect:
-                case GamePage.Results:
                     _hexView.enabled = true;
                     _battleCtrl.enabled = true;
                     break;

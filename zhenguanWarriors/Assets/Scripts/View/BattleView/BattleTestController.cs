@@ -20,8 +20,9 @@ namespace ZhenguanWarriors.View.BattleView
     public class BattleTestController : MonoBehaviour
     {
         // ========== 游戏阶段 ==========
-        private enum GamePhase { LevelSelect, PreBattle, Battle, Results }
+        private enum GamePhase { LevelSelect, HeroSelect, EquipSetup, Battle, Results }
         private GamePhase _gamePhase = GamePhase.LevelSelect;
+        private bool _heroConfirmClicked;  // 选人阶段已确认
 
         private HexGridView _hexView;
         private BattleUI _battleUI;
@@ -98,12 +99,14 @@ namespace ZhenguanWarriors.View.BattleView
         {
             switch (page)
             {
+                case GamePage.HeroSelect:
+                    _gamePhase = GamePhase.HeroSelect;
+                    _heroConfirmClicked = false;
+                    break;
+                case GamePage.EquipSetup:
+                    _gamePhase = GamePhase.EquipSetup;
+                    break;
                 case GamePage.LevelSelect:
-                    _gamePhase = GamePhase.LevelSelect;
-                    break;
-                case GamePage.PreBattle:
-                    _gamePhase = GamePhase.PreBattle;
-                    break;
                 case GamePage.Battle:
                     _gamePhase = GamePhase.Battle;
                     break;
@@ -147,46 +150,17 @@ namespace ZhenguanWarriors.View.BattleView
         /// <summary>初始化玩家队伍（从角色数据库 + 关卡可用角色加载，优先从存档恢复）</summary>
         private void InitPlayerParty()
         {
-            _playerParty.Clear();
-            if (_currentLevel == null)
+            // 已由 ConfirmHeroSelection() 填充
+            // 这里只做存档恢复检查
+            if (_playerParty.Count == 0 && GameState.CurrentSave?.characters != null)
             {
-                Debug.LogError("未选择关卡");
-                return;
-            }
-
-            var db = CharacterDatabase.GetAll();
-
-            // 先加必出角色，再加可选角色（补满8人）
-            var allCharIds = new List<string>();
-            allCharIds.AddRange(_currentLevel.requiredCharacters);
-            foreach (var cid in _currentLevel.availableCharacters)
-            {
-                if (!allCharIds.Contains(cid))
-                    allCharIds.Add(cid);
-            }
-
-            foreach (var charId in allCharIds)
-            {
-                if (_playerParty.Count >= 8) break;
-                if (!db.ContainsKey(charId)) continue;
-
-                BattleUnit unit;
-
-                // 优先从存档恢复角色状态
-                var savedChar = FindSavedCharacter(charId);
-                if (savedChar != null)
+                foreach (var saved in GameState.CurrentSave.characters)
                 {
-                    unit = RestoreCharacterFromSave(savedChar);
+                    var unit = RestoreCharacterFromSave(saved);
+                    if (unit != null && _heroPool.Any(h => h.Id == unit.Id))
+                        _playerParty.Add(unit);
                 }
-                else
-                {
-                    unit = CharacterDatabase.CreateInstance(charId);
-                }
-
-                if (unit != null) _playerParty.Add(unit);
             }
-
-            // 默认装备（仅当没有从存档恢复装备时）
             AutoEquipDefault();
             _selectedPartyIndex = 0;
         }
@@ -256,55 +230,235 @@ namespace ZhenguanWarriors.View.BattleView
             }
         }
 
-        // ========== 战前编组 UI ==========
+        // ========== 选人界面 (HeroSelect) ==========
 
-        private void DrawPreBattleUI()
+        private void DrawHeroSelectUI()
         {
             float s = _uiScale;
 
-            // 全屏半透明背景
+            // 背景
+            GUI.backgroundColor = Theme.BgDark;
             GUI.Box(new Rect(0, 0, SW, SH), "");
+            GUI.backgroundColor = Color.white;
 
-            // 标题
-            Theme.DrawTitle(new Rect(0, 15 * s, SW, 40 * s), "⚔ 战前编组", (int)(24 * s));
+            GUI.backgroundColor = Theme.Primary;
+            GUI.Box(new Rect(0, 0, SW, 6 * s), "");
 
-            // ---- 左面板：角色列表 ----
-            float leftW = SW * 0.30f;
-            float panelY = 60 * s;
-            float panelH = SH - 140 * s;
+            int selected = _heroSelected.Count(v => v);
+            Theme.DrawTitle(new Rect(0, 15 * s, SW, 45 * s),
+                $"👥 选择出战武将     {selected}/8", (int)(24 * s));
 
-            Theme.DrawPanel(new Rect(10 * s, panelY, leftW, panelH), "出阵武将");
+            // 角色卡片列表
+            float startY = 75 * s;
+            float cardH = 82 * s;
+            float listH = SH - startY - 110 * s;
 
             _partyScrollPos = GUI.BeginScrollView(
-                new Rect(15, panelY + 25, leftW - 10, panelH - 35),
+                new Rect(10 * s, startY, SW - 20 * s, listH),
                 _partyScrollPos,
-                new Rect(0, 0, leftW - 30, _playerParty.Count * 70));
+                new Rect(0, 0, SW - 40 * s, _heroPool.Count * (cardH + 6 * s)));
+
+            for (int i = 0; i < _heroPool.Count; i++)
+            {
+                var unit = _heroPool[i];
+                bool isRequired = _currentLevel.requiredCharacters.Contains(unit.Id);
+                bool isChecked = _heroSelected[i];
+                bool atMax = selected >= 8 && !isChecked;
+                bool canToggle = !isRequired && !atMax;
+                float itemY = i * (cardH + 6 * s);
+
+                // 卡片背景
+                Color bg = isChecked ? new Color(0.2f, 0.3f, 0.4f) : new Color(0.12f, 0.10f, 0.08f);
+                if (isRequired) bg = new Color(0.25f, 0.2f, 0.15f);
+                GUI.backgroundColor = bg;
+                GUI.Box(new Rect(0, itemY, SW - 40 * s, cardH), "");
+
+                // 兵种色条
+                GUI.backgroundColor = GetClassColor(unit.UnitClass);
+                GUI.Box(new Rect(0, itemY, 6 * s, cardH), "");
+                GUI.backgroundColor = Color.white;
+
+                // 角色名
+                GUI.Label(new Rect(20 * s, itemY + 6 * s, 250 * s, 28 * s),
+                    unit.Name, Theme.MakeLabel((int)(22 * s), FontStyle.Bold,
+                        isChecked ? Theme.TextLight : Theme.TextDim));
+
+                // 等级 + 兵种
+                GUI.Label(new Rect(20 * s, itemY + 34 * s, 250 * s, 22 * s),
+                    $"Lv.{unit.Level} {ClassData.GetName(unit.UnitClass)}",
+                    Theme.MakeLabel((int)(16 * s), FontStyle.Normal, Theme.TextDim));
+
+                // 五维
+                GUI.Label(new Rect(20 * s, itemY + 56 * s, 350 * s, 22 * s),
+                    $"武{unit.BaseStrength} 统{unit.BaseCommand} 智{unit.BaseIntelligence} " +
+                    $"敏{unit.BaseAgility} 运{unit.BaseLuck}",
+                    Theme.MakeLabel((int)(14 * s), FontStyle.Normal, Theme.TextDim));
+
+                // 勾选框
+                float cbSize = 36 * s;
+                float cbX = SW - 60 * s;
+                float cbY = itemY + (cardH - cbSize) / 2;
+
+                if (isRequired)
+                {
+                    GUI.Label(new Rect(cbX, cbY, cbSize, cbSize),
+                        "✅", new GUIStyle { fontSize = (int)(24 * s), alignment = TextAnchor.MiddleCenter });
+                }
+                else if (!canToggle)
+                {
+                    GUI.Label(new Rect(cbX, cbY, cbSize, cbSize),
+                        atMax ? "✖" : "☐",
+                        new GUIStyle { fontSize = (int)(24 * s), alignment = TextAnchor.MiddleCenter,
+                            normal = { textColor = Theme.TextDim } });
+                }
+                else
+                {
+                    string mark = isChecked ? "✅" : "☐";
+                    if (GUI.Button(new Rect(cbX - 10 * s, cbY - 10 * s, cbSize + 20 * s, cbSize + 20 * s),
+                        mark, new GUIStyle { fontSize = (int)(30 * s), alignment = TextAnchor.MiddleCenter }))
+                    {
+                        _heroSelected[i] = !isChecked;
+                    }
+
+                    // 点击整行也可切换
+                    if (GUI.Button(new Rect(0, itemY, SW - 40 * s, cardH), "", GUIStyle.none))
+                    {
+                        _heroSelected[i] = !isChecked;
+                    }
+                }
+            }
+            GUI.EndScrollView();
+
+            // ---- 羁绊实时预览 ----
+            var previewParty = _heroPool.Where((_, i) => _heroSelected[i]).ToList();
+            var previewBonds = BondSystem.CheckBonds(previewParty);
+            float bondY2 = SH - 95 * s;
+            if (previewBonds.Count > 0)
+            {
+                GUI.Label(new Rect(20 * s, bondY2, SW - 40 * s, 22 * s),
+                    "✦ 羁绊状态:",
+                    Theme.MakeLabel((int)(16 * s), FontStyle.Bold, Theme.Gold));
+                for (int bi = 0; bi < previewBonds.Count; bi++)
+                {
+                    var b = previewBonds[bi];
+                    var names = b.characterIds.Select(id =>
+                        previewParty.FirstOrDefault(u => u.Id == id)?.Name ?? id).ToList();
+                    string roster = string.Join("+", names);
+                    GUI.Label(new Rect(25 * s, bondY2 + 24 + bi * 20, SW - 50 * s, 20),
+                        $"✅ {b.name} ({roster}): {b.description}",
+                        Theme.MakeLabel((int)(14 * s), FontStyle.Normal, Color.yellow));
+                }
+            }
+            else
+            {
+                GUI.Label(new Rect(20 * s, bondY2, SW - 40 * s, 22 * s),
+                    "当前阵容未触发任何羁绊",
+                    Theme.MakeLabel((int)(14 * s), FontStyle.Normal, Theme.TextDim));
+            }
+
+            // ---- 按钮 ----
+            float btnY2 = SH - 60 * s;
+            GUI.backgroundColor = Theme.BgCard;
+            if (GUI.Button(new Rect(20 * s, btnY2, 160 * s, 50 * s),
+                "← 返回选关", Theme.MakeButton((int)(16 * s))))
+            {
+                GameManager.Instance.TransitionTo(GamePage.LevelSelect);
+            }
+
+            bool canConfirm = selected >= 1;
+            GUI.enabled = canConfirm;
+            GUI.backgroundColor = Theme.Primary;
+            if (GUI.Button(new Rect(SW - 180 * s, btnY2, 160 * s, 50 * s),
+                "确认阵容 →", Theme.MakeButton((int)(16 * s))))
+            {
+                ConfirmHeroSelection();
+            }
+            GUI.backgroundColor = Color.white;
+            GUI.enabled = true;
+        }
+
+        /// <summary>确认选人，进入装备调整</summary>
+        private void ConfirmHeroSelection()
+        {
+            _playerParty.Clear();
+            for (int i = 0; i < _heroPool.Count; i++)
+            {
+                if (_heroSelected[i])
+                    _playerParty.Add(_heroPool[i]);
+            }
+            _selectedPartyIndex = 0;
+            _showEquipList = false;
+            GameManager.Instance.TransitionTo(GamePage.EquipSetup);
+        }
+
+        private Color GetClassColor(ClassType cls) => cls switch
+        {
+            ClassType.Cavalry => Theme.ClassCavalry,
+            ClassType.Archer => Theme.ClassArcher,
+            ClassType.Siege => Theme.ClassSiege,
+            ClassType.Strategist => Theme.ClassStrategist,
+            ClassType.HeavyInfantry => Theme.ClassHeavyInf,
+            _ => Theme.ClassInfantry
+        };
+
+        // ========== 装备调整界面 (EquipSetup) ==========
+
+        private void DrawEquipSetupUI()
+        {
+            float s = _uiScale;
+
+            // 背景
+            GUI.backgroundColor = Theme.BgDark;
+            GUI.Box(new Rect(0, 0, SW, SH), "");
+
+            GUI.backgroundColor = Theme.Primary;
+            GUI.Box(new Rect(0, 0, SW, 6 * s), "");
+
+            var unit = _selectedPartyIndex >= 0 && _selectedPartyIndex < _playerParty.Count
+                ? _playerParty[_selectedPartyIndex] : null;
+
+            // 标题
+            Theme.DrawTitle(new Rect(0, 15 * s, SW, 40 * s),
+                $"⚔ 装备调整   {(unit != null ? unit.Name : "")}", (int)(24 * s));
+
+            float panelY = 65 * s;
+            float panelH = SH - 135 * s;
+
+            // ---- 左面板：已选角色列表 ----
+            float leftW = SW * 0.28f;
+            Theme.DrawPanel(new Rect(10 * s, panelY, leftW, panelH), "出战武将");
+
+            _partyScrollPos = GUI.BeginScrollView(
+                new Rect(15 * s, panelY + 28 * s, leftW - 10 * s, panelH - 38 * s),
+                _partyScrollPos,
+                new Rect(0, 0, leftW - 20 * s, _playerParty.Count * 72 * s));
 
             for (int i = 0; i < _playerParty.Count; i++)
             {
-                var unit = _playerParty[i];
-                float itemY = i * 70;
-                bool isSelected = i == _selectedPartyIndex;
+                var u = _playerParty[i];
+                bool sel = i == _selectedPartyIndex;
+                float iy = i * 72 * s;
 
-                // 背景
-                GUI.backgroundColor = isSelected ? new Color(0.3f, 0.5f, 0.8f) : new Color(0.2f, 0.2f, 0.2f);
-                GUI.Box(new Rect(0, itemY, leftW - 20 * s, 70 * s), "");
+                GUI.backgroundColor = sel ? new Color(0.3f, 0.4f, 0.6f) : new Color(0.15f, 0.12f, 0.10f);
+                GUI.Box(new Rect(0, iy, leftW - 20 * s, 68 * s), "");
 
-                // 名字 + 等级 + 兵种
-                string clsName = ClassData.GetName(unit.UnitClass);
-                string traitDesc = ClassData.GetTraitDescription(unit.UnitClass);
-                GUI.Label(new Rect(8 * s, itemY + 4 * s, leftW - 30 * s, 22 * s),
-                    $"{unit.Name} Lv.{unit.Level} {clsName}",
-                    Theme.MakeLabel((int)(14 * s), FontStyle.Bold));
-                GUI.Label(new Rect(8 * s, itemY + 28 * s, leftW - 30 * s, 18 * s),
-                    $"武{unit.BaseStrength} 统{unit.BaseCommand} 智{unit.BaseIntelligence}",
-                    Theme.MakeLabel((int)(11 * s), FontStyle.Normal, Theme.TextDim));
-                GUI.Label(new Rect(8 * s, itemY + 46 * s, leftW - 30 * s, 20 * s),
-                    $"敏{unit.BaseAgility} 运{unit.BaseLuck}  HP{unit.MaxHp} MP{unit.MaxMp}",
-                    Theme.MakeLabel((int)(11 * s), FontStyle.Normal, Theme.TextDim));
+                if (sel)
+                {
+                    GUI.backgroundColor = Theme.Primary;
+                    GUI.Box(new Rect(0, iy, 4 * s, 68 * s), "");
+                }
 
-                // 点击选择
-                if (GUI.Button(new Rect(0, itemY, leftW - 20 * s, 70 * s), "", GUIStyle.none))
+                GUI.Label(new Rect(12 * s, iy + 6 * s, leftW - 40 * s, 24 * s),
+                    u.Name, Theme.MakeLabel((int)(18 * s), FontStyle.Bold,
+                        sel ? Theme.Gold : Theme.TextLight));
+                GUI.Label(new Rect(12 * s, iy + 32 * s, leftW - 40 * s, 18 * s),
+                    $"{ClassData.GetName(u.UnitClass)} Lv.{u.Level}",
+                    Theme.MakeLabel((int)(14 * s), FontStyle.Normal, Theme.TextDim));
+                GUI.Label(new Rect(12 * s, iy + 50 * s, leftW - 40 * s, 16 * s),
+                    $"HP {u.CurrentHp}/{u.MaxHp}  MP {u.CurrentMp}/{u.MaxMp}",
+                    Theme.MakeLabel((int)(12 * s), FontStyle.Normal, Theme.TextDim));
+
+                if (GUI.Button(new Rect(0, iy, leftW - 20 * s, 68 * s), "", GUIStyle.none))
                 {
                     _selectedPartyIndex = i;
                     _showEquipList = false;
@@ -312,102 +466,261 @@ namespace ZhenguanWarriors.View.BattleView
             }
             GUI.EndScrollView();
 
-            // ---- 右面板：当前选中角色的装备 ----
-            Theme.DrawPanel(new Rect(leftW + 20 * s, panelY, SW - leftW - 30 * s, panelH), "装备调整");
-
-            if (_selectedPartyIndex >= 0 && _selectedPartyIndex < _playerParty.Count)
+            // ---- 右面板：装备详情 ----
+            if (unit != null)
             {
-                var unit = _playerParty[_selectedPartyIndex];
-                float rightX = leftW + 30 * s;
-                float rightInnerW = SW - leftW - 50 * s;
-                float infoY = panelY + 30 * s;
+                float rightX = leftW + 25 * s;
+                float rightW = SW - leftW - 40 * s;
+                float ry = panelY + 10 * s;
 
-                // 角色信息
+                // 角色概要
                 string traitInfo = ClassData.GetTraitDescription(unit.UnitClass);
-                GUI.Label(new Rect(rightX, infoY, rightInnerW, 28 * s),
-                    $"选择: {unit.Name}  |  等级 {unit.Level}  |  兵种: {ClassData.GetName(unit.UnitClass)}");
-                GUI.Label(new Rect(rightX, infoY + 22, rightInnerW, 20),
-                    $"五维: 武{unit.Strength}(+{unit.Strength - unit.BaseStrength}) " +
-                    $"统{unit.Command}(+{unit.Command - unit.BaseCommand}) " +
-                    $"智{unit.Intelligence} 敏{unit.Agility} 运{unit.Luck}",
-                    new GUIStyle { fontSize = 11, normal = { textColor = Color.yellow } });
-                if (!string.IsNullOrEmpty(traitInfo))
-                {
-                    GUI.Label(new Rect(rightX, infoY + 42, rightInnerW, 18),
-                        $"特性: {traitInfo}",
-                        new GUIStyle { fontSize = 10, normal = { textColor = Color.cyan } });
-                }
+                GUI.Label(new Rect(rightX, ry, rightW, 30 * s),
+                    unit.Name, Theme.MakeLabel((int)(24 * s), FontStyle.Bold, Theme.Gold));
+                GUI.Label(new Rect(rightX + 160 * s, ry + 4 * s, rightW - 160 * s, 24 * s),
+                    $"Lv.{unit.Level}  {ClassData.GetName(unit.UnitClass)}",
+                    Theme.MakeLabel((int)(18 * s), FontStyle.Normal, Theme.TextDim));
+                ry += 30 * s;
 
-                // 当前装备显示 + 编辑按钮
-                float equipY = infoY + 65;
-                DrawEquipSlot(rightX, equipY, rightInnerW, unit, EquipmentType.Weapon);
-                DrawEquipSlot(rightX, equipY + 35, rightInnerW, unit, EquipmentType.Armor);
-                DrawEquipSlot(rightX, equipY + 70, rightInnerW, unit, EquipmentType.Trinket);
+                // 五维对比三列
+                DrawStatComparison(rightX, ref ry, rightW, unit, s);
+                ry += 8 * s;
 
-                // 装备选择列表（点击某槽后展开）
+                // 装备卡 ×3
+                DrawEquipCard(rightX, ref ry, rightW, unit, EquipmentType.Weapon, s);
+                DrawEquipCard(rightX, ref ry, rightW, unit, EquipmentType.Armor, s);
+                DrawEquipCard(rightX, ref ry, rightW, unit, EquipmentType.Trinket, s);
+                ry += 6 * s;
+
+                // 装备选择列表（点击某卡后展开）
                 if (_showEquipList)
                 {
-                    DrawEquipSelectionList(rightX, equipY + 115, rightInnerW, unit);
+                    DrawEquipSelectionList(rightX, ry, rightW, unit, s);
                 }
                 else
                 {
-                    // 被动技能显示
-                    float py = equipY + 115;
+                    // 被动
                     if (unit.PassiveIds.Count > 0)
                     {
-                        var passiveNames = unit.PassiveIds
-                            .Select(id => PassiveSkillLibrary.Get(id))
-                            .Where(p => p != null)
-                            .Select(p => $"{p.name}")
-                            .ToList();
-                        string passives = string.Join(", ", passiveNames);
-                        GUI.Label(new Rect(rightX, py, rightInnerW, 20),
-                            $"被动: {passives}",
-                            new GUIStyle { fontSize = 10, normal = { textColor = Color.cyan } });
-                        py += 18;
+                        var pnames = unit.PassiveIds.Select(id => PassiveSkillLibrary.Get(id))
+                            .Where(p => p != null).Select(p => $"{p.name}({p.description})").ToList();
+                        GUI.Label(new Rect(rightX, ry, rightW, 22 * s),
+                            $"⚡ {string.Join("  ", pnames)}",
+                            Theme.MakeLabel((int)(15 * s), FontStyle.Normal, Theme.BuffCyan));
+                        ry += 24 * s;
                     }
 
-                    // 显示最终属性
-                    GUI.Label(new Rect(rightX, py, rightInnerW, 20),
-                        $"最终属性 → 攻击范围: {unit.AttackRange}  移动力: {unit.MoveRange}",
-                        new GUIStyle { fontSize = 11, normal = { textColor = Color.green } });
-                }
-            }
-
-            // ---- 羁绊状态显示 ----
-            if (_playerParty.Count > 0)
-            {
-                var bonds = BondSystem.CheckBonds(_playerParty);
-                if (bonds.Count > 0)
-                {
-                    float bondY = panelY + panelH - 80;
-                    GUI.Label(new Rect(leftW + 30, bondY, Screen.width - leftW - 50, 20),
-                        "✦ 已激活羁绊:",
-                        new GUIStyle { fontSize = 12, fontStyle = FontStyle.Bold,
-                            normal = { textColor = new Color(1f, 0.8f, 0.2f) } });
-                    for (int bi = 0; bi < bonds.Count; bi++)
+                    // 羁绊
+                    var bonds = BondSystem.CheckBonds(_playerParty);
+                    foreach (var bd in bonds)
                     {
-                        var b = bonds[bi];
-                        var names = b.characterIds
-                            .Select(id => _playerParty.FirstOrDefault(u => u.Id == id)?.Name ?? id)
-                            .ToList();
-                        string roster = string.Join("+", names);
-                        GUI.Label(new Rect(leftW + 35, bondY + 22 + bi * 18,
-                            Screen.width - leftW - 60, 18),
-                            $"  {b.name}: {roster}",
-                            new GUIStyle { fontSize = 10, normal = { textColor = Color.yellow } });
+                        var bnames = bd.characterIds.Select(id =>
+                            _playerParty.FirstOrDefault(u => u.Id == id)?.Name ?? id).ToList();
+                        GUI.Label(new Rect(rightX, ry, rightW, 22 * s),
+                            $"✦ {bd.name}: {string.Join("+", bnames)}",
+                            Theme.MakeLabel((int)(15 * s), FontStyle.Normal, Theme.Gold));
+                        ry += 22 * s;
                     }
+
+                    // 最终属性
+                    GUI.Label(new Rect(rightX, ry, rightW, 22 * s),
+                        $"攻击范围: {unit.AttackRange}  移动力: {unit.MoveRange}",
+                        Theme.MakeLabel((int)(15 * s), FontStyle.Normal, Theme.HpGreen));
                 }
             }
 
             // ---- 底部按钮 ----
-            float btnY = SH - 65 * s;
+            float bY = SH - 60 * s;
             GUI.backgroundColor = Theme.Primary;
-            if (GUI.Button(new Rect(SW / 2 - 140 * s, btnY, 280 * s, 55 * s),
-                "⚔ 开始战斗", Theme.MakeButton((int)(20 * s))))
+            if (GUI.Button(new Rect(SW / 2 - 150 * s, bY, 300 * s, 55 * s),
+                "⚔  开 始 战 斗", Theme.MakeButton((int)(22 * s))))
             {
                 StartBattle();
             }
+            GUI.backgroundColor = Color.white;
+        }
+
+        /// <summary>五维对比三列</summary>
+        private void DrawStatComparison(float x, ref float y, float w, BattleUnit unit, float s)
+        {
+            Theme.DrawPanel(new Rect(x, y, w, 110 * s), "五维");
+
+            float colW = w / 3;
+            float headerY = y + 22 * s;
+            float valY = headerY + 20 * s;
+
+            GUI.Label(new Rect(x + 5 * s, headerY, colW, 20 * s), "基础", Theme.MakeLabel((int)(13 * s), FontStyle.Bold, Theme.TextDim, TextAnchor.MiddleCenter));
+            GUI.Label(new Rect(x + colW + 5 * s, headerY, colW, 20 * s), "装备加成", Theme.MakeLabel((int)(13 * s), FontStyle.Bold, Theme.TextDim, TextAnchor.MiddleCenter));
+            GUI.Label(new Rect(x + colW * 2 + 5 * s, headerY, colW, 20 * s), "总计", Theme.MakeLabel((int)(13 * s), FontStyle.Bold, Theme.TextDim, TextAnchor.MiddleCenter));
+
+            string[] statNames = { "武", "统", "智", "敏", "运" };
+            int[] baseVals = { unit.BaseStrength, unit.BaseCommand, unit.BaseIntelligence, unit.BaseAgility, unit.BaseLuck };
+            int[] totalVals = { unit.Strength, unit.Command, unit.Intelligence, unit.Agility, unit.Luck };
+
+            for (int i = 0; i < 5; i++)
+            {
+                float rowY = valY + i * 17 * s;
+                int bonus = totalVals[i] - baseVals[i];
+                GUI.Label(new Rect(x + 5 * s, rowY, colW, 16 * s),
+                    $"{statNames[i]}  {baseVals[i]}", Theme.MakeLabel((int)(14 * s), FontStyle.Normal, Theme.TextLight, TextAnchor.MiddleCenter));
+                GUI.Label(new Rect(x + colW + 5 * s, rowY, colW, 16 * s),
+                    bonus > 0 ? $"+{bonus}" : "—", Theme.MakeLabel((int)(14 * s), FontStyle.Normal,
+                        bonus > 0 ? Theme.HpGreen : Theme.TextDim, TextAnchor.MiddleCenter));
+                GUI.Label(new Rect(x + colW * 2 + 5 * s, rowY, colW, 16 * s),
+                    $"{totalVals[i]}", Theme.MakeLabel((int)(15 * s), FontStyle.Bold, Theme.TextLight, TextAnchor.MiddleCenter));
+            }
+
+            y += 115 * s;
+        }
+
+        /// <summary>装备卡</summary>
+        private void DrawEquipCard(float x, ref float y, float w, BattleUnit unit, EquipmentType slot, float s)
+        {
+            string slotName = slot == EquipmentType.Weapon ? "武器" :
+                slot == EquipmentType.Armor ? "防具" : "饰品";
+            string equipId = slot == EquipmentType.Weapon ? unit.WeaponId :
+                slot == EquipmentType.Armor ? unit.ArmorId : unit.TrinketId;
+            var equip = string.IsNullOrEmpty(equipId) ? null : EquipmentLibrary.Get(equipId);
+            bool isEmpty = equip == null;
+
+            float cardH = 72 * s;
+            bool isEditing = _showEquipList && _editingSlot == slot;
+
+            // 卡片背景
+            Color border = isEditing ? Theme.Gold : (isEmpty ? new Color(0.3f, 0.3f, 0.3f) : Theme.BgCard);
+            GUI.backgroundColor = border;
+            Theme.DrawPanel(new Rect(x, y, w, cardH),
+                isEmpty ? $"  {slotName}: 点击装备" : $"  {slotName}: {equip.name}");
+            GUI.backgroundColor = Color.white;
+
+            if (!isEmpty && equip != null)
+            {
+                // 稀有度色条
+                Color rarityColor = equip.rarity switch
+                {
+                    EquipmentRarity.Common => Color.white,
+                    EquipmentRarity.Uncommon => Color.green,
+                    EquipmentRarity.Rare => Color.blue,
+                    EquipmentRarity.Epic => new Color(0.7f, 0.2f, 1f),
+                    _ => Color.white
+                };
+                GUI.backgroundColor = rarityColor;
+                GUI.Box(new Rect(x + 4 * s, y + 4 * s, 4 * s, cardH - 8 * s), "");
+                GUI.backgroundColor = Color.white;
+
+                // 属性
+                string statText = FormatEquipStats(equip);
+                GUI.Label(new Rect(x + 16 * s, y + 28 * s, w - 80 * s, 22 * s),
+                    statText, Theme.MakeLabel((int)(14 * s), FontStyle.Normal, Theme.TextLight));
+
+                // 特效
+                if (!string.IsNullOrEmpty(equip.effectDesc))
+                {
+                    GUI.Label(new Rect(x + 16 * s, y + 48 * s, w - 80 * s, 18 * s),
+                        equip.effectDesc, Theme.MakeLabel((int)(13 * s), FontStyle.Normal, Theme.TextDim));
+                }
+
+                // 卸下
+                if (GUI.Button(new Rect(x + w - 60 * s, y + 8 * s, 50 * s, 24 * s),
+                    "卸下", Theme.MakeButton((int)(12 * s))))
+                {
+                    unit.Unequip(slot);
+                    _showEquipList = false;
+                }
+            }
+
+            // 点击 → 打开装备选择
+            if (GUI.Button(new Rect(x, y, w - 60 * s, cardH), "", GUIStyle.none))
+            {
+                _editingSlot = slot;
+                _showEquipList = true;
+                _equipScrollPos = Vector2.zero;
+            }
+
+            y += cardH + 6 * s;
+        }
+
+        /// <summary>装备选择列表（重写：大行高+稀有度色）</summary>
+        private void DrawEquipSelectionList(float x, float y, float w, BattleUnit unit, float s)
+        {
+            string slotLabel = _editingSlot == EquipmentType.Weapon ? "武器" :
+                _editingSlot == EquipmentType.Armor ? "防具" : "饰品";
+            Theme.DrawPanel(new Rect(x, y, w, Mathf.Min(280 * s, SH - y - 20 * s)),
+                $"选择{slotLabel}");
+
+            var allEquips = EquipmentLibrary.GetAll().Values
+                .Where(e => e.type == _editingSlot && e.CanEquip(unit))
+                .OrderBy(e => e.rarity).ThenBy(e => e.name).ToList();
+
+            if (allEquips.Count == 0)
+            {
+                GUI.Label(new Rect(x + 20 * s, y + 40 * s, w - 40 * s, 30 * s),
+                    "没有可用装备", Theme.MakeLabel((int)(16 * s), FontStyle.Normal, Theme.TextDim));
+                if (GUI.Button(new Rect(x + w - 80 * s, y + 5 * s, 70 * s, 24 * s),
+                    "关闭", Theme.MakeButton((int)(13 * s))))
+                    _showEquipList = false;
+                return;
+            }
+
+            float listH = Mathf.Min(240 * s, SH - y - 40 * s);
+            bool isCur = IsEquipped(unit, allEquips[0].id);
+
+            _equipScrollPos = GUI.BeginScrollView(
+                new Rect(x + 5 * s, y + 28 * s, w - 15 * s, listH),
+                _equipScrollPos,
+                new Rect(0, 0, w - 25 * s, allEquips.Count * 52 * s));
+
+            for (int i = 0; i < allEquips.Count; i++)
+            {
+                var e = allEquips[i];
+                float iy = i * 52 * s;
+                bool equipped = IsEquipped(unit, e.id);
+                Color rareColor = e.rarity switch
+                {
+                    EquipmentRarity.Common => Color.white,
+                    EquipmentRarity.Uncommon => Color.green,
+                    EquipmentRarity.Rare => Color.blue,
+                    EquipmentRarity.Epic => new Color(0.7f, 0.2f, 1f),
+                    _ => Color.white
+                };
+
+                GUI.backgroundColor = equipped ? new Color(0.3f, 0.4f, 0.2f) : new Color(0.15f, 0.12f, 0.10f);
+                GUI.Box(new Rect(0, iy, w - 25 * s, 48 * s), "");
+
+                // 稀有度色条
+                GUI.backgroundColor = rareColor;
+                GUI.Box(new Rect(0, iy, 4 * s, 48 * s), "");
+                GUI.backgroundColor = Color.white;
+
+                // 装备名
+                GUI.Label(new Rect(14 * s, iy + 4 * s, w - 60 * s, 24 * s),
+                    e.name, Theme.MakeLabel((int)(17 * s), FontStyle.Bold, rareColor));
+
+                // 属性
+                string stats = FormatEquipStats(e);
+                GUI.Label(new Rect(14 * s, iy + 28 * s, w - 60 * s, 18 * s),
+                    stats, Theme.MakeLabel((int)(13 * s), FontStyle.Normal, Theme.TextLight));
+
+                // ★ 标记
+                if (equipped)
+                {
+                    GUI.Label(new Rect(w - 60 * s, iy + 10 * s, 40 * s, 28 * s),
+                        "★", new GUIStyle { fontSize = (int)(20 * s),
+                            normal = { textColor = Theme.Gold },
+                            alignment = TextAnchor.MiddleCenter });
+                }
+
+                if (GUI.Button(new Rect(0, iy, w - 25 * s, 48 * s), "", GUIStyle.none))
+                {
+                    unit.Equip(e.id);
+                    _showEquipList = false;
+                }
+            }
+            GUI.EndScrollView();
+
+            if (GUI.Button(new Rect(x + w - 80 * s, y + 5 * s, 70 * s, 24 * s),
+                "关闭", Theme.MakeButton((int)(13 * s))))
+                _showEquipList = false;
         }
 
         /// <summary>绘制单个装备槽</summary>
@@ -1173,10 +1486,17 @@ namespace ZhenguanWarriors.View.BattleView
                 return;
             }
 
-            // 战前编组UI
-            if (_gamePhase == GamePhase.PreBattle)
+            // 选人界面
+            if (_gamePhase == GamePhase.HeroSelect)
             {
-                DrawPreBattleUI();
+                DrawHeroSelectUI();
+                return;
+            }
+
+            // 装备调整界面
+            if (_gamePhase == GamePhase.EquipSetup)
+            {
+                DrawEquipSetupUI();
                 return;
             }
 
@@ -1489,14 +1809,12 @@ namespace ZhenguanWarriors.View.BattleView
         {
             _currentLevel = LevelLibrary.Get(levelId);
             if (_currentLevel == null) return;
-
             _currentLevelIndex = _levelOrder.IndexOf(levelId);
 
-            // 根据关卡数据重建网格
             _hexView.RebuildFromLevelData(_currentLevel);
 
-            // 初始化玩家队伍
-            InitPlayerParty();
+            // 初始化角色池（不填满队伍，只准备可选池）
+            InitHeroPool();
 
             // 检查关前剧情
             string storyId = $"story_{levelId}_pre";
@@ -1512,11 +1830,10 @@ namespace ZhenguanWarriors.View.BattleView
             }
             else
             {
-                GameManager.Instance.TransitionTo(GamePage.PreBattle);
+                GameManager.Instance.TransitionTo(GamePage.HeroSelect);
             }
         }
 
-        /// <summary>播放关卡剧情，结束后进入战前编组</summary>
         private void PlayLevelStory(string storyId)
         {
             if (_dialogueUI == null) return;
@@ -1526,9 +1843,67 @@ namespace ZhenguanWarriors.View.BattleView
             {
                 _waitingForDialogue = false;
                 GameManager.Instance.ExitStory();
-                GameManager.Instance.TransitionTo(GamePage.PreBattle);
+                GameManager.Instance.TransitionTo(GamePage.HeroSelect);
             });
         }
+
+        /// <summary>初始化英雄池（可选角色+必出角色，不自动填满）</summary>
+        private List<BattleUnit> _heroPool = new();    // 所有可用角色（含必出）
+        private List<bool> _heroSelected;              // 勾选状态
+        private bool _initialSelectionDone;
+
+        private void InitHeroPool()
+        {
+            _heroPool.Clear();
+            _heroSelected = new List<bool>();
+            _initialSelectionDone = false;
+
+            var db = CharacterDatabase.GetAll();
+
+            // 先加必出角色
+            foreach (var charId in _currentLevel.requiredCharacters)
+            {
+                if (db.ContainsKey(charId))
+                {
+                    var unit = CharacterDatabase.CreateInstance(charId);
+                    if (unit != null)
+                    {
+                        unit.Equip(GetDefaultWeapon(unit.UnitClass));
+                        unit.Equip(unit.UnitClass == ClassType.Strategist || unit.UnitClass == ClassType.Archer ? "a003" : "a001");
+                        _heroPool.Add(unit);
+                        _heroSelected.Add(true); // 必出默认选中
+                    }
+                }
+            }
+
+            // 再加可选角色
+            foreach (var charId in _currentLevel.availableCharacters)
+            {
+                if (_heroPool.Any(u => u.Id == charId)) continue;
+                if (db.ContainsKey(charId))
+                {
+                    var unit = CharacterDatabase.CreateInstance(charId);
+                    if (unit != null)
+                    {
+                        unit.Equip(GetDefaultWeapon(unit.UnitClass));
+                        unit.Equip(unit.UnitClass == ClassType.Strategist || unit.UnitClass == ClassType.Archer ? "a003" : "a001");
+                        _heroPool.Add(unit);
+                        // 默认勾选直到满8人
+                        _heroSelected.Add(_heroPool.Count(u => _heroSelected[_heroPool.IndexOf(u)] is true) < 8);
+                    }
+                }
+            }
+        }
+
+        private string GetDefaultWeapon(ClassType cls) => cls switch
+        {
+            ClassType.Cavalry => "w003",
+            ClassType.Archer => "w004",
+            ClassType.Siege => "w005",
+            ClassType.Strategist => "w006",
+            ClassType.HeavyInfantry => "w002",
+            _ => "w001"
+        };
 
         // ========== 结算界面 ==========
 
