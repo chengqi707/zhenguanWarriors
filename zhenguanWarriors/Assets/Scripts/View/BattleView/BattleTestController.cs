@@ -1489,15 +1489,6 @@ namespace ZhenguanWarriors.View.BattleView
                 }
             }
 
-            // █ 永久阶段指示器（大字粗体，屏幕顶部居中）
-            string gmPhase = GameManager.Instance != null ? GameManager.Instance.CurrentPage.ToString() : "null";
-            string phaseText = $"GM={gmPhase}  BT={_gamePhase}";
-            GUI.Label(new Rect(SW / 2 - 300, 10, 600, 50),
-                phaseText,
-                new GUIStyle { fontSize = 32, fontStyle = FontStyle.Bold,
-                    alignment = TextAnchor.MiddleCenter,
-                    normal = { textColor = Color.green } });
-
             // 过渡保护 — 页面切换时禁止绘制
             if (GameManager.Instance != null && GameManager.Instance.IsTransitioning) return;
 
@@ -1814,16 +1805,23 @@ namespace ZhenguanWarriors.View.BattleView
         /// <summary>选择关卡，进入战前编组</summary>
         public void SelectLevel(string levelId)
         {
-            Debug.Log($"[选关] 点击关卡: {levelId}");
             _currentLevel = LevelLibrary.Get(levelId);
-            if (_currentLevel == null) { Debug.LogError("[选关] 关卡数据为空"); return; }
+            if (_currentLevel == null) return;
             _currentLevelIndex = _levelOrder.IndexOf(levelId);
 
             _hexView.RebuildFromLevelData(_currentLevel);
             InitHeroPool();
 
-            // ⚡ 直接进入选人界面，跳过关前剧情（剧情系统后续修复）
-            GameManager.Instance.TransitionTo(GamePage.HeroSelect);
+            // 检查关前剧情
+            string storyId = $"story_{levelId}_pre";
+            if (StoryLibrary.Get(storyId) != null)
+            {
+                PlayLevelStory(storyId);
+            }
+            else
+            {
+                GameManager.Instance.TransitionTo(GamePage.HeroSelect);
+            }
         }
 
         private void PlayLevelStory(string storyId)

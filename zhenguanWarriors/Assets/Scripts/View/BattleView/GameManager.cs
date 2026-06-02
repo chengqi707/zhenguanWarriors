@@ -25,7 +25,6 @@ namespace ZhenguanWarriors.View.BattleView
         private DialogueUI _dialogue;
         private PauseMenu _pauseMenu;
         private ConfirmDialog _confirm;
-        private LevelSelectUI _levelSelectUI;
         private GamePage _previousPage;
 
         void Awake()
@@ -42,7 +41,6 @@ namespace ZhenguanWarriors.View.BattleView
             _dialogue = gameObject.AddComponent<DialogueUI>();
             _confirm = gameObject.AddComponent<ConfirmDialog>();
             _pauseMenu = gameObject.AddComponent<PauseMenu>();
-            _levelSelectUI = gameObject.AddComponent<LevelSelectUI>();
 
             // 横屏模式
             Screen.orientation = ScreenOrientation.LandscapeLeft;
@@ -134,25 +132,13 @@ namespace ZhenguanWarriors.View.BattleView
                     _mainMenu.SetPage(page);
                     break;
                 case GamePage.LevelSelect:
-                    _hexView.enabled = true;
-                    _battleCtrl.enabled = true;
-                    _battleCtrl.SetPage(page);
-                    // uGUI 关卡选择：显示 Canvas
-                    _levelSelectUI.Show();
-                    break;
                 case GamePage.HeroSelect:
                 case GamePage.EquipSetup:
-                    _hexView.enabled = true;
-                    _battleCtrl.enabled = true;
-                    _battleCtrl.SetPage(page);
-                    _levelSelectUI.Hide();
-                    break;
                 case GamePage.Battle:
                 case GamePage.Results:
                     _hexView.enabled = true;
                     _battleCtrl.enabled = true;
                     _battleCtrl.SetPage(page);
-                    _levelSelectUI.Hide();
                     break;
                 case GamePage.Story:
                     RestorePreviousPage();
@@ -199,7 +185,6 @@ namespace ZhenguanWarriors.View.BattleView
             _hexView.enabled = enabled;
             _battleCtrl.enabled = enabled;
             _dialogue.enabled = enabled;
-            if (!enabled) _levelSelectUI.Hide(); // 离开关卡选择时隐藏
         }
 
         public void SetPaused(bool paused)
