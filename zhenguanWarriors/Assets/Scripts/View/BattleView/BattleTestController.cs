@@ -1476,11 +1476,25 @@ namespace ZhenguanWarriors.View.BattleView
         /// <summary>OnGUI 计策选择面板 + 单挑按钮 + 战前编组</summary>
         void OnGUI()
         {
+            // 强制同步 GameManager 状态（安全兜底）
+            if (GameManager.Instance != null)
+            {
+                switch (GameManager.Instance.CurrentPage)
+                {
+                    case GamePage.LevelSelect: _gamePhase = GamePhase.LevelSelect; break;
+                    case GamePage.HeroSelect: _gamePhase = GamePhase.HeroSelect; break;
+                    case GamePage.EquipSetup: _gamePhase = GamePhase.EquipSetup; break;
+                    case GamePage.Battle: _gamePhase = GamePhase.Battle; break;
+                    case GamePage.Results: _gamePhase = GamePhase.Results; break;
+                }
+            }
+
             // █ 永久阶段指示器（大字粗体，屏幕顶部居中）
-            string phaseText = $"■■ {_gamePhase} ■■";
-            GUI.Label(new Rect(SW / 2 - 200, 10, 400, 40),
+            string gmPhase = GameManager.Instance != null ? GameManager.Instance.CurrentPage.ToString() : "null";
+            string phaseText = $"GM={gmPhase}  BT={_gamePhase}";
+            GUI.Label(new Rect(SW / 2 - 300, 10, 600, 50),
                 phaseText,
-                new GUIStyle { fontSize = 30, fontStyle = FontStyle.Bold,
+                new GUIStyle { fontSize = 32, fontStyle = FontStyle.Bold,
                     alignment = TextAnchor.MiddleCenter,
                     normal = { textColor = Color.green } });
 
