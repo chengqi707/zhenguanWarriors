@@ -1770,9 +1770,10 @@ namespace ZhenguanWarriors.View.BattleView
                     {
                         unit.Equip(GetDefaultWeapon(unit.UnitClass));
                         unit.Equip(unit.UnitClass == ClassType.Strategist || unit.UnitClass == ClassType.Archer ? "a003" : "a001");
+                        // ★ 先算好勾选状态再Add，避免集合大小不一致
+                        int currentSelected = _heroSelected.Count(v => v);
                         _heroPool.Add(unit);
-                        // 默认勾选直到满8人
-                        _heroSelected.Add(_heroPool.Count(u => _heroSelected[_heroPool.IndexOf(u)] is true) < 8);
+                        _heroSelected.Add(currentSelected < 8);
                     }
                 }
             }
