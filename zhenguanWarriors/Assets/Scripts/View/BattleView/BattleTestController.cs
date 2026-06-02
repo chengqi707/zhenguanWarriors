@@ -2262,7 +2262,7 @@ namespace ZhenguanWarriors.View.BattleView
         }
 
         /// <summary>自动存档</summary>
-        private void AutoSaveGame()
+        public void AutoSaveGame()
         {
             if (_currentLevel == null) return;
             var party = _playerParty.Count > 0 ? _playerParty :
