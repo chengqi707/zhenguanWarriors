@@ -57,9 +57,9 @@ namespace ZhenguanWarriors.View.BattleView
         /// <summary>重建关卡卡片（每次进入关卡选择时调用）</summary>
         public void RebuildLevelCards()
         {
-            // 清除旧卡片
-            foreach (Transform child in _cardContainer.transform)
-                Destroy(child.gameObject);
+            // 清除旧卡片（使用 DestroyImmediate 确保立即清除）
+            while (_cardContainer.transform.childCount > 0)
+                DestroyImmediate(_cardContainer.transform.GetChild(0).gameObject);
 
             var levelOrder = _battleCtrl.GetLevelOrder();
             if (levelOrder == null) return;
@@ -181,9 +181,12 @@ namespace ZhenguanWarriors.View.BattleView
 
         public void Hide()
         {
-            // 仅禁用 Canvas，不销毁子对象
-            // 销毁操作不能在 uGUI 按钮回调中执行，会导致 EventSystem 异常
-            if (_canvas != null) _canvas.enabled = false;
+            // 禁用 Canvas GameObject（比 Canvas.enabled 更彻底）
+            if (_canvas != null)
+            {
+                _canvas.gameObject.SetActive(false);
+                _canvas.enabled = false;
+            }
         }
     }
 }
