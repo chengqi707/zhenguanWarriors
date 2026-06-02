@@ -199,6 +199,7 @@ namespace ZhenguanWarriors.View.BattleView
             _hexView.enabled = enabled;
             _battleCtrl.enabled = enabled;
             _dialogue.enabled = enabled;
+            if (!enabled) _levelSelectUI.Hide(); // 离开关卡选择时隐藏
         }
 
         public void SetPaused(bool paused)

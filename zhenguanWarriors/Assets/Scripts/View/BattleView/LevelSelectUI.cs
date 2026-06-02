@@ -178,6 +178,12 @@ namespace ZhenguanWarriors.View.BattleView
 
         public void Hide()
         {
+            // 销毁所有卡片（比仅禁用Canvas更彻底）
+            if (_cardContainer != null)
+            {
+                foreach (Transform child in _cardContainer.transform)
+                    Destroy(child.gameObject);
+            }
             if (_canvas != null) _canvas.enabled = false;
         }
     }
