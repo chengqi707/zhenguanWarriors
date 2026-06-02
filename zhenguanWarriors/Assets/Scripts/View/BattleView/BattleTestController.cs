@@ -1358,6 +1358,16 @@ namespace ZhenguanWarriors.View.BattleView
         /// <summary>OnGUI 计策选择面板 + 单挑按钮 + 战前编组</summary>
         void OnGUI()
         {
+            // 显示错误信息（如果有）
+            if (!string.IsNullOrEmpty(_debugErr))
+            {
+                GUI.Box(new Rect(0, 0, SW, SH), "");
+                GUI.Label(new Rect(30, 30, SW - 60, SH - 60),
+                    _debugErr, new GUIStyle { fontSize = 28,
+                        normal = { textColor = Color.red }, wordWrap = true });
+                return;
+            }
+
             // ███ 终极调试：在一切之前显示当前状态 ███
             string debugPage = GameManager.Instance != null ?
                 GameManager.Instance.CurrentPage.ToString() : "GM=NULL";
@@ -1696,15 +1706,16 @@ namespace ZhenguanWarriors.View.BattleView
         public void SelectLevel(string levelId)
         {
             _currentLevel = LevelLibrary.Get(levelId);
-            if (_currentLevel == null) return;
+            if (_currentLevel == null) { _debugErr = "Level is null"; return; }
             _currentLevelIndex = _levelOrder.IndexOf(levelId);
 
             _hexView.RebuildFromLevelData(_currentLevel);
-            InitHeroPool();
+            try { InitHeroPool(); }
+            catch (System.Exception ex) { _debugErr = "InitHeroPool: " + ex.Message; return; }
 
-            // 直接进入选人界面（跳过剧情，剧情系统待单独修复）
             GameManager.Instance.TransitionTo(GamePage.HeroSelect);
         }
+        private string _debugErr;
 
         private void PlayLevelStory(string storyId)
         {
