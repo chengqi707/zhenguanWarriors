@@ -1358,7 +1358,15 @@ namespace ZhenguanWarriors.View.BattleView
         /// <summary>OnGUI 计策选择面板 + 单挑按钮 + 战前编组</summary>
         void OnGUI()
         {
-            // 强制同步 GameManager 状态（安全兜底）
+            // ███ 终极调试：在一切之前显示当前状态 ███
+            string debugPage = GameManager.Instance != null ?
+                GameManager.Instance.CurrentPage.ToString() : "GM=NULL";
+            GUI.Box(new Rect(0, 0, SW, 80), "");
+            GUIStyle dbgStyle = new GUIStyle { fontSize = 40, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter, normal = { textColor = Color.red } };
+            GUI.Label(new Rect(0, 0, SW, 80), $"PAGE: {debugPage}  |  PHASE: {_gamePhase}", dbgStyle);
+
+            // 强制同步 GameManager 状态
             if (GameManager.Instance != null)
             {
                 switch (GameManager.Instance.CurrentPage)
