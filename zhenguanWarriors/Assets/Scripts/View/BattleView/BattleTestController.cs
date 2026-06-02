@@ -1476,6 +1476,11 @@ namespace ZhenguanWarriors.View.BattleView
         /// <summary>OnGUI 计策选择面板 + 单挑按钮 + 战前编组</summary>
         void OnGUI()
         {
+            // 永久阶段指示器
+            GUI.Label(new Rect(SW - 200, 0, 200, 24),
+                $"Phase: {_gamePhase}", new GUIStyle { fontSize = 14,
+                    normal = { textColor = Color.green } });
+
             // 过渡保护 — 页面切换时禁止绘制
             if (GameManager.Instance != null && GameManager.Instance.IsTransitioning) return;
 
@@ -1798,26 +1803,10 @@ namespace ZhenguanWarriors.View.BattleView
             _currentLevelIndex = _levelOrder.IndexOf(levelId);
 
             _hexView.RebuildFromLevelData(_currentLevel);
-
-            // 初始化角色池（不填满队伍，只准备可选池）
             InitHeroPool();
 
-            // 检查关前剧情
-            string storyId = $"story_{levelId}_pre";
-            string pendingStory = GameState.PendingStoryId;
-            if (!string.IsNullOrEmpty(pendingStory) && pendingStory == storyId)
-            {
-                GameState.PendingStoryId = null;
-                PlayLevelStory(storyId);
-            }
-            else if (StoryLibrary.Get(storyId) != null)
-            {
-                PlayLevelStory(storyId);
-            }
-            else
-            {
-                GameManager.Instance.TransitionTo(GamePage.HeroSelect);
-            }
+            // ⚡ 直接进入选人界面，跳过关前剧情（剧情系统后续修复）
+            GameManager.Instance.TransitionTo(GamePage.HeroSelect);
         }
 
         private void PlayLevelStory(string storyId)

@@ -172,18 +172,17 @@ namespace ZhenguanWarriors.View.BattleView
 
         public void Show()
         {
-            if (_canvas != null) _canvas.enabled = true;
-            RebuildLevelCards();
+            if (_canvas != null)
+            {
+                _canvas.enabled = true;
+                RebuildLevelCards();
+            }
         }
 
         public void Hide()
         {
-            // 销毁所有卡片（比仅禁用Canvas更彻底）
-            if (_cardContainer != null)
-            {
-                foreach (Transform child in _cardContainer.transform)
-                    Destroy(child.gameObject);
-            }
+            // 仅禁用 Canvas，不销毁子对象
+            // 销毁操作不能在 uGUI 按钮回调中执行，会导致 EventSystem 异常
             if (_canvas != null) _canvas.enabled = false;
         }
     }
