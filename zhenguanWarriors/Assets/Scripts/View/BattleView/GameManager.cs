@@ -42,6 +42,9 @@ namespace ZhenguanWarriors.View.BattleView
             _confirm = gameObject.AddComponent<ConfirmDialog>();
             _pauseMenu = gameObject.AddComponent<PauseMenu>();
 
+            // 强制竖屏（兜底，部分Android设备可能忽略ProjectSettings）
+            Screen.orientation = ScreenOrientation.Portrait;
+
             SetAllEnabled(false);
             _splash.enabled = true;
             Debug.Log("[GameManager] 初始化完成");
