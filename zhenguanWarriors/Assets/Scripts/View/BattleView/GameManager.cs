@@ -44,8 +44,8 @@ namespace ZhenguanWarriors.View.BattleView
             _pauseMenu = gameObject.AddComponent<PauseMenu>();
             _levelSelectUI = gameObject.AddComponent<LevelSelectUI>();
 
-            // 强制竖屏（兜底，部分Android设备可能忽略ProjectSettings）
-            Screen.orientation = ScreenOrientation.Portrait;
+            // 横屏模式
+            Screen.orientation = ScreenOrientation.LandscapeLeft;
 
             SetAllEnabled(false);
             _splash.enabled = true;

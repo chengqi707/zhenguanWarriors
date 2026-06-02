@@ -30,7 +30,7 @@ namespace ZhenguanWarriors.View.BattleView
 
             var scaler = gameObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
+            scaler.referenceResolution = new Vector2(1920, 1080); // 横屏基准
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
             scaler.matchWidthOrHeight = 0.5f;
 
@@ -56,9 +56,9 @@ namespace ZhenguanWarriors.View.BattleView
             var levelOrder = _battleCtrl.GetLevelOrder();
             if (levelOrder == null) return;
 
-            float cardH = 130f;
-            float gap = 10f;
-            float startY = -80f; // 从上往下
+            float cardH = 100f;  // 横屏高度有限，卡片缩短
+            float gap = 8f;
+            float startY = -60f; // 从上往下
 
             for (int i = 0; i < levelOrder.Count; i++)
             {
@@ -107,8 +107,8 @@ namespace ZhenguanWarriors.View.BattleView
 
                 // 关卡名
                 CreateLabel(cardObj, $"第{i + 1}关  {level.name}",
-                    new Vector2(0, -10), new Vector2(1, 30),
-                    TextAnchor.UpperLeft, 20,
+                    new Vector2(0, -8), new Vector2(1, 24),
+                    TextAnchor.UpperLeft, 18,
                     unlocked ? Theme.Gold : Theme.TextDim);
 
                 // 信息行
@@ -120,16 +120,16 @@ namespace ZhenguanWarriors.View.BattleView
                     _ => "未知"
                 };
                 CreateLabel(cardObj, $"{info}    敌方{level.enemies.Count}人",
-                    new Vector2(0, -48), new Vector2(1, 26),
-                    TextAnchor.UpperLeft, 16, Theme.TextDim);
+                    new Vector2(0, -36), new Vector2(1, 20),
+                    TextAnchor.UpperLeft, 14, Theme.TextDim);
 
                 // 出场角色
                 string roster = string.Join(" ", level.availableCharacters.Take(4)
                     .Select(id => CharacterDatabase.Get(id)?.Name ?? id));
                 if (level.availableCharacters.Count > 4) roster += " …";
                 CreateLabel(cardObj, $"出场: {roster}",
-                    new Vector2(0, -78), new Vector2(1, 22),
-                    TextAnchor.UpperLeft, 14, new Color(0.7f, 0.9f, 0.7f));
+                    new Vector2(0, -58), new Vector2(1, 18),
+                    TextAnchor.UpperLeft, 12, new Color(0.7f, 0.9f, 0.7f));
 
                 // 锁定图标
                 if (!unlocked)
