@@ -1476,10 +1476,12 @@ namespace ZhenguanWarriors.View.BattleView
         /// <summary>OnGUI 计策选择面板 + 单挑按钮 + 战前编组</summary>
         void OnGUI()
         {
-            // █ 永久阶段指示器（大字）
-            GUI.Label(new Rect(10, SH - 50, 300, 40),
-                $"Phase: {_gamePhase}",
-                new GUIStyle { fontSize = 28, fontStyle = FontStyle.Bold,
+            // █ 永久阶段指示器（大字粗体，屏幕顶部居中）
+            string phaseText = $"■■ {_gamePhase} ■■";
+            GUI.Label(new Rect(SW / 2 - 200, 10, 400, 40),
+                phaseText,
+                new GUIStyle { fontSize = 30, fontStyle = FontStyle.Bold,
+                    alignment = TextAnchor.MiddleCenter,
                     normal = { textColor = Color.green } });
 
             // 过渡保护 — 页面切换时禁止绘制

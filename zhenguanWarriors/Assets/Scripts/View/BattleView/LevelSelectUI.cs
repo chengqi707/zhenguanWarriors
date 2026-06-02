@@ -33,18 +33,21 @@ namespace ZhenguanWarriors.View.BattleView
 
         void CreateCanvas()
         {
-            _canvas = gameObject.AddComponent<Canvas>();
+            // Canvas 放在独立子对象上，避免 SetActive 影响 GameRoot
+            var canvasGO = new GameObject("LevelSelectCanvas");
+            canvasGO.transform.SetParent(transform, false);
+
+            _canvas = canvasGO.AddComponent<Canvas>();
             _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
 
-            var scaler = gameObject.AddComponent<CanvasScaler>();
+            var scaler = canvasGO.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920, 1080); // 横屏基准
+            scaler.referenceResolution = new Vector2(1920, 1080);
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
             scaler.matchWidthOrHeight = 0.5f;
 
-            gameObject.AddComponent<GraphicRaycaster>();
+            canvasGO.AddComponent<GraphicRaycaster>();
 
-            // 容器
             _cardContainer = new GameObject("LevelCardContainer");
             _cardContainer.transform.SetParent(_canvas.transform, false);
             var containerRect = _cardContainer.AddComponent<RectTransform>();
