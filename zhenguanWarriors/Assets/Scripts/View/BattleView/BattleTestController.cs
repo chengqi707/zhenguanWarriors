@@ -253,16 +253,24 @@ namespace ZhenguanWarriors.View.BattleView
             // 标题
             Theme.DrawTitle(new Rect(0, 20, SW, 50), $"👥 选择出战武将   {selected}/8", 40);
 
-            // 角色卡片列表
+            // 角色卡片列表（带粗滚动条，支持触控滑动）
             float cardH = 110;
             float gap = 10;
             float startY = 80;
-            float listH = SH - startY - 140;
+            float svH = SH - startY - 145; // 滚动区域高度
+            float contentH = _heroPool.Count * (cardH + gap);
+
+            // 自定义垂直滚动条样式（加宽到30px，方便触控）
+            GUIStyle vsBar = new GUIStyle(GUI.skin.verticalScrollbar);
+            vsBar.fixedWidth = 30;
+            GUIStyle vsThumb = new GUIStyle(GUI.skin.verticalScrollbarThumb);
+            vsThumb.fixedWidth = 30;
 
             _partyScrollPos = GUI.BeginScrollView(
-                new Rect(20, startY, SW - 40, listH),
+                new Rect(20, startY, SW - 40, svH),
                 _partyScrollPos,
-                new Rect(0, 0, SW - 40, _heroPool.Count * (cardH + gap)));
+                new Rect(0, 0, SW - 60, contentH),
+                false, true, GUIStyle.none, vsBar);
 
             for (int i = 0; i < _heroPool.Count; i++)
             {
@@ -272,36 +280,38 @@ namespace ZhenguanWarriors.View.BattleView
                 bool atMax = selected >= 8 && !isChecked;
                 bool canToggle = !isRequired && !atMax;
                 float iy = i * (cardH + gap);
+                float cardW = SW - 65; // 减滚动条宽度
 
                 // 卡片背景
                 Color bg = isChecked ? new Color(0.22f, 0.28f, 0.38f) : new Color(0.14f, 0.10f, 0.08f);
                 if (isRequired) bg = new Color(0.28f, 0.22f, 0.15f);
                 GUI.backgroundColor = bg;
-                GUI.Box(new Rect(0, iy, SW - 40, cardH), "");
+                GUI.Box(new Rect(0, iy, cardW, cardH), "");
 
                 // 兵种色条
                 GUI.backgroundColor = GetClassColor(unit.UnitClass);
                 GUI.Box(new Rect(0, iy, 8, cardH), "");
                 GUI.backgroundColor = Color.white;
 
-                // 角色名 40px Bold
-                GUI.Label(new Rect(24, iy + 12, 400, 40),
+                // 角色名 40px Bold 垂直居中
+                GUI.Label(new Rect(24, iy + 4, cardW - 100, 40),
                     unit.Name,
-                    Theme.MakeLabel(40, FontStyle.Bold, isChecked ? Theme.TextLight : Theme.TextDim));
+                    Theme.MakeLabel(40, FontStyle.Bold, isChecked ? Theme.TextLight : Theme.TextDim,
+                                    TextAnchor.MiddleLeft));
 
                 // 等级 + 兵种 28px
-                GUI.Label(new Rect(24, iy + 54, 400, 28),
+                GUI.Label(new Rect(24, iy + 46, cardW - 100, 28),
                     $"Lv.{unit.Level}  {ClassData.GetName(unit.UnitClass)}",
-                    Theme.MakeLabel(28, FontStyle.Normal, Theme.TextDim));
+                    Theme.MakeLabel(28, FontStyle.Normal, Theme.TextDim, TextAnchor.MiddleLeft));
 
                 // 五维 28px
-                GUI.Label(new Rect(24, iy + 82, 500, 28),
+                GUI.Label(new Rect(24, iy + 76, cardW - 100, 28),
                     $"武{unit.BaseStrength} 统{unit.BaseCommand} 智{unit.BaseIntelligence} 敏{unit.BaseAgility} 运{unit.BaseLuck}",
-                    Theme.MakeLabel(28, FontStyle.Normal, Theme.TextDim));
+                    Theme.MakeLabel(28, FontStyle.Normal, Theme.TextDim, TextAnchor.MiddleLeft));
 
                 // 勾选框 48px
                 float cbSize = 48;
-                float cbX = SW - 40 - cbSize - 20;
+                float cbX = cardW - cbSize - 10;
                 float cbY = iy + (cardH - cbSize) / 2;
                 GUIStyle cbStyle = new GUIStyle { fontSize = 48, alignment = TextAnchor.MiddleCenter };
 
