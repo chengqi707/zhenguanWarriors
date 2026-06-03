@@ -901,6 +901,10 @@ namespace ZhenguanWarriors.View.BattleView
 
             _battleUI.ShowTip("选中己方单位 → 点击移动/攻击 | 底部选择计策");
             _turnManager.StartBattle();
+
+            // ★ 通知 GameManager 切换到战斗阶段（否则 EquipSetup UI 不会消失）
+            if (GameManager.Instance != null)
+                GameManager.Instance.TransitionTo(GamePage.Battle);
         }
 
         /// <summary>应用羁绊加成到出战队伍</summary>
