@@ -166,10 +166,11 @@ namespace ZhenguanWarriors.View.BattleView
             _ => Color.magenta
         };
 
-        public void ShowMoveRange(HexCoord start, int movePoints, ClassType unitClass)
+        public void ShowMoveRange(HexCoord start, int movePoints, ClassType unitClass,
+            HashSet<HexCoord> occupiedCells = null)
         {
             ClearHighlights();
-            var range = _pathFinder.GetMoveRange(start, movePoints, unitClass);
+            var range = _pathFinder.GetMoveRange(start, movePoints, unitClass, occupiedCells);
             foreach (var (pos, _) in range)
             {
                 if (_hexObjects.TryGetValue(pos, out var go))

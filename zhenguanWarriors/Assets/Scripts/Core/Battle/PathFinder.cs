@@ -88,7 +88,8 @@ namespace ZhenguanWarriors.Core.Battle
         /// <summary>
         /// 在移动范围内寻找最短路径（考虑兵种地形适性，用于移动范围显示）
         /// </summary>
-        public Dictionary<HexCoord, int> GetMoveRange(HexCoord start, int movePoints, ClassType unitClass)
+        public Dictionary<HexCoord, int> GetMoveRange(HexCoord start, int movePoints,
+            ClassType unitClass, HashSet<HexCoord> occupiedCells = null)
         {
             var costs = new Dictionary<HexCoord, int> { [start] = 0 };
             var frontier = new Queue<HexCoord>();
@@ -101,7 +102,12 @@ namespace ZhenguanWarriors.Core.Battle
 
                 foreach (var next in current.Neighbors())
                 {
+                    // 不可通行地形
                     if (!_grid.IsWalkable(next, unitClass))
+                        continue;
+
+                    // ★ 其他单位占据的格子不可走
+                    if (occupiedCells != null && occupiedCells.Contains(next))
                         continue;
 
                     int terrainCost = TerrainData.MoveCost(_grid.GetTerrain(next));
