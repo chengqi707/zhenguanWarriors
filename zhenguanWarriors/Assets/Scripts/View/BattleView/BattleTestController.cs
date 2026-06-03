@@ -238,7 +238,6 @@ namespace ZhenguanWarriors.View.BattleView
 
         private void DrawHeroSelectUI()
         {
-            float s = _uiScale;
             int selected = _heroSelected.Count(v => v);
 
             // 背景
@@ -248,24 +247,22 @@ namespace ZhenguanWarriors.View.BattleView
 
             // 顶部装饰
             GUI.backgroundColor = Theme.Primary;
-            GUI.Box(new Rect(0, 0, SW, 6 * s), "");
+            GUI.Box(new Rect(0, 0, SW, 8), "");
             GUI.backgroundColor = Color.white;
 
             // 标题
-            GUI.Label(new Rect(0, 20 * s, SW, 50 * s),
-                $"👥 选择出战武将     {selected}/8",
-                Theme.MakeLabel((int)(32 * s), FontStyle.Bold, Theme.Gold, TextAnchor.MiddleCenter));
+            Theme.DrawTitle(new Rect(0, 20, SW, 50), $"👥 选择出战武将   {selected}/8", 40);
 
             // 角色卡片列表
-            float startY = 80 * s;
-            float cardH = 110 * s;
-            float gap = 10 * s;
-            float listH = SH - startY - 140 * s;
+            float cardH = 110;
+            float gap = 10;
+            float startY = 80;
+            float listH = SH - startY - 140;
 
             _partyScrollPos = GUI.BeginScrollView(
-                new Rect(20 * s, startY, SW - 40 * s, listH),
+                new Rect(20, startY, SW - 40, listH),
                 _partyScrollPos,
-                new Rect(0, 0, SW - 40 * s, _heroPool.Count * (cardH + gap)));
+                new Rect(0, 0, SW - 40, _heroPool.Count * (cardH + gap)));
 
             for (int i = 0; i < _heroPool.Count; i++)
             {
@@ -280,34 +277,33 @@ namespace ZhenguanWarriors.View.BattleView
                 Color bg = isChecked ? new Color(0.22f, 0.28f, 0.38f) : new Color(0.14f, 0.10f, 0.08f);
                 if (isRequired) bg = new Color(0.28f, 0.22f, 0.15f);
                 GUI.backgroundColor = bg;
-                GUI.Box(new Rect(0, iy, SW - 40 * s, cardH), "");
+                GUI.Box(new Rect(0, iy, SW - 40, cardH), "");
 
                 // 兵种色条
                 GUI.backgroundColor = GetClassColor(unit.UnitClass);
-                GUI.Box(new Rect(0, iy, 8 * s, cardH), "");
+                GUI.Box(new Rect(0, iy, 8, cardH), "");
                 GUI.backgroundColor = Color.white;
 
-                // 角色名 (大字)
-                GUI.Label(new Rect(24 * s, iy + 10 * s, 350 * s, 36 * s),
+                // 角色名 40px Bold
+                GUI.Label(new Rect(24, iy + 12, 400, 40),
                     unit.Name,
-                    Theme.MakeLabel((int)(30 * s), FontStyle.Bold,
-                        isChecked ? Theme.TextLight : Theme.TextDim));
+                    Theme.MakeLabel(40, FontStyle.Bold, isChecked ? Theme.TextLight : Theme.TextDim));
 
-                // 等级 + 兵种
-                GUI.Label(new Rect(24 * s, iy + 48 * s, 350 * s, 24 * s),
+                // 等级 + 兵种 28px
+                GUI.Label(new Rect(24, iy + 54, 400, 28),
                     $"Lv.{unit.Level}  {ClassData.GetName(unit.UnitClass)}",
-                    Theme.MakeLabel((int)(20 * s), FontStyle.Normal, Theme.TextDim));
+                    Theme.MakeLabel(28, FontStyle.Normal, Theme.TextDim));
 
-                // 五维
-                GUI.Label(new Rect(24 * s, iy + 76 * s, 400 * s, 22 * s),
+                // 五维 28px
+                GUI.Label(new Rect(24, iy + 82, 500, 28),
                     $"武{unit.BaseStrength} 统{unit.BaseCommand} 智{unit.BaseIntelligence} 敏{unit.BaseAgility} 运{unit.BaseLuck}",
-                    Theme.MakeLabel((int)(18 * s), FontStyle.Normal, Theme.TextDim));
+                    Theme.MakeLabel(28, FontStyle.Normal, Theme.TextDim));
 
-                // 勾选框
-                float cbSize = 48 * s;
-                float cbX = SW - 40 * s - cbSize - 20 * s;
+                // 勾选框 48px
+                float cbSize = 48;
+                float cbX = SW - 40 - cbSize - 20;
                 float cbY = iy + (cardH - cbSize) / 2;
-                GUIStyle cbStyle = new GUIStyle { fontSize = (int)(40 * s), alignment = TextAnchor.MiddleCenter };
+                GUIStyle cbStyle = new GUIStyle { fontSize = 48, alignment = TextAnchor.MiddleCenter };
 
                 if (isRequired)
                 {
@@ -323,16 +319,11 @@ namespace ZhenguanWarriors.View.BattleView
                 {
                     string mark = isChecked ? "✅" : "☐";
                     cbStyle.normal.textColor = Color.white;
-                    if (GUI.Button(new Rect(cbX - 10 * s, cbY - 10 * s, cbSize + 20 * s, cbSize + 20 * s),
-                        mark, cbStyle))
-                    {
+                    if (GUI.Button(new Rect(cbX - 10, cbY - 10, cbSize + 20, cbSize + 20), mark, cbStyle))
                         _heroSelected[i] = !isChecked;
-                    }
                     // 点击整行也可切换
-                    if (GUI.Button(new Rect(0, iy, SW - 40 * s, cardH), "", GUIStyle.none))
-                    {
+                    if (GUI.Button(new Rect(0, iy, SW - 40, cardH), "", GUIStyle.none))
                         _heroSelected[i] = !isChecked;
-                    }
                 }
             }
             GUI.EndScrollView();
@@ -340,39 +331,35 @@ namespace ZhenguanWarriors.View.BattleView
             // ---- 羁绊实时预览 ----
             var previewParty = _heroPool.Where((_, idx) => _heroSelected[idx]).ToList();
             var previewBonds = BondSystem.CheckBonds(previewParty);
-            float bondY = SH - 110 * s;
+            float bondY = SH - 115;
             if (previewBonds.Count > 0)
             {
-                GUI.Label(new Rect(24 * s, bondY, SW - 48 * s, 24 * s),
-                    "✦ 羁绊已激活:", Theme.MakeLabel((int)(20 * s), FontStyle.Bold, Theme.Gold));
+                GUI.Label(new Rect(24, bondY, SW - 48, 24),
+                    "✦ 羁绊已激活:", Theme.MakeLabel(22, FontStyle.Bold, Theme.Gold));
                 for (int bi = 0; bi < previewBonds.Count; bi++)
                 {
                     var b = previewBonds[bi];
                     var names = b.characterIds.Select(id =>
                         previewParty.FirstOrDefault(u => u.Id == id)?.Name ?? id).ToList();
-                    GUI.Label(new Rect(30 * s, bondY + 28 + bi * 22, SW - 60 * s, 22),
+                    GUI.Label(new Rect(30, bondY + 28 + bi * 22, SW - 60, 22),
                         $"✅ {b.name} ({string.Join("+", names)})",
-                        Theme.MakeLabel((int)(16 * s), FontStyle.Normal, Color.yellow));
+                        Theme.MakeLabel(20, FontStyle.Normal, Color.yellow));
                 }
             }
 
             // ---- 底部按钮 ----
-            float btnY2 = SH - 65 * s;
+            float btnY2 = SH - 65;
             GUI.backgroundColor = Theme.BgCard;
-            if (GUI.Button(new Rect(24 * s, btnY2, 180 * s, 55 * s),
-                "← 返回选关", Theme.MakeButton((int)(20 * s))))
-            {
+            if (GUI.Button(new Rect(24, btnY2, 200, 55),
+                "← 返回选关", Theme.MakeButton(22)))
                 GameManager.Instance.TransitionTo(GamePage.LevelSelect);
-            }
 
             bool canConfirm = selected >= 1;
             GUI.enabled = canConfirm;
             GUI.backgroundColor = Theme.Primary;
-            if (GUI.Button(new Rect(SW - 200 * s, btnY2, 180 * s, 55 * s),
-                "确认阵容 →", Theme.MakeButton((int)(20 * s))))
-            {
+            if (GUI.Button(new Rect(SW - 220, btnY2, 200, 55),
+                "确认阵容 →", Theme.MakeButton(22)))
                 ConfirmHeroSelection();
-            }
             GUI.backgroundColor = Color.white;
             GUI.enabled = true;
         }
