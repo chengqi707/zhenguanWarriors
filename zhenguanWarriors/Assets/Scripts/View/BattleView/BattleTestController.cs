@@ -238,29 +238,143 @@ namespace ZhenguanWarriors.View.BattleView
 
         private void DrawHeroSelectUI()
         {
-            // ████████████████████████████████████████████████████████
-            // █ DEBUG: 用最大号红色文字确认HeroSelect阶段已激活      █
-            // ████████████████████████████████████████████████████████
-            Color huge = new Color(1f, 0f, 0f);
-            GUI.backgroundColor = Color.black;
+            float s = _uiScale;
+            int selected = _heroSelected.Count(v => v);
+
+            // 背景
+            GUI.backgroundColor = Theme.BgDark;
             GUI.Box(new Rect(0, 0, SW, SH), "");
+            GUI.backgroundColor = Color.white;
 
-            GUIStyle big = new GUIStyle { fontSize = 60, fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter, normal = { textColor = huge } };
-            GUI.Label(new Rect(0, SH / 2 - 100, SW, 120),
-                "■■ HERO SELECT ■■", big);
+            // 顶部装饰
+            GUI.backgroundColor = Theme.Primary;
+            GUI.Box(new Rect(0, 0, SW, 6 * s), "");
+            GUI.backgroundColor = Color.white;
 
-            GUIStyle small = new GUIStyle { fontSize = 30,
-                alignment = TextAnchor.MiddleCenter, normal = { textColor = Color.white } };
-            GUI.Label(new Rect(0, SH / 2 + 40, SW, 60),
-                $"heroPool={_heroPool.Count}  selected={_heroSelected.Count(v => v)}", small);
+            // 标题
+            GUI.Label(new Rect(0, 20 * s, SW, 50 * s),
+                $"👥 选择出战武将     {selected}/8",
+                Theme.MakeLabel((int)(32 * s), FontStyle.Bold, Theme.Gold, TextAnchor.MiddleCenter));
 
-            // 有一个"下一步"按钮（调试用）
-            if (GUI.Button(new Rect(SW / 2 - 100, SH - 100, 200, 60),
-                "确认阵容 →", new GUIStyle(GUI.skin.button) { fontSize = 24 }))
+            // 角色卡片列表
+            float startY = 80 * s;
+            float cardH = 110 * s;
+            float gap = 10 * s;
+            float listH = SH - startY - 140 * s;
+
+            _partyScrollPos = GUI.BeginScrollView(
+                new Rect(20 * s, startY, SW - 40 * s, listH),
+                _partyScrollPos,
+                new Rect(0, 0, SW - 40 * s, _heroPool.Count * (cardH + gap)));
+
+            for (int i = 0; i < _heroPool.Count; i++)
+            {
+                var unit = _heroPool[i];
+                bool isRequired = _currentLevel.requiredCharacters.Contains(unit.Id);
+                bool isChecked = _heroSelected[i];
+                bool atMax = selected >= 8 && !isChecked;
+                bool canToggle = !isRequired && !atMax;
+                float iy = i * (cardH + gap);
+
+                // 卡片背景
+                Color bg = isChecked ? new Color(0.22f, 0.28f, 0.38f) : new Color(0.14f, 0.10f, 0.08f);
+                if (isRequired) bg = new Color(0.28f, 0.22f, 0.15f);
+                GUI.backgroundColor = bg;
+                GUI.Box(new Rect(0, iy, SW - 40 * s, cardH), "");
+
+                // 兵种色条
+                GUI.backgroundColor = GetClassColor(unit.UnitClass);
+                GUI.Box(new Rect(0, iy, 8 * s, cardH), "");
+                GUI.backgroundColor = Color.white;
+
+                // 角色名 (大字)
+                GUI.Label(new Rect(24 * s, iy + 10 * s, 350 * s, 36 * s),
+                    unit.Name,
+                    Theme.MakeLabel((int)(30 * s), FontStyle.Bold,
+                        isChecked ? Theme.TextLight : Theme.TextDim));
+
+                // 等级 + 兵种
+                GUI.Label(new Rect(24 * s, iy + 48 * s, 350 * s, 24 * s),
+                    $"Lv.{unit.Level}  {ClassData.GetName(unit.UnitClass)}",
+                    Theme.MakeLabel((int)(20 * s), FontStyle.Normal, Theme.TextDim));
+
+                // 五维
+                GUI.Label(new Rect(24 * s, iy + 76 * s, 400 * s, 22 * s),
+                    $"武{unit.BaseStrength} 统{unit.BaseCommand} 智{unit.BaseIntelligence} 敏{unit.BaseAgility} 运{unit.BaseLuck}",
+                    Theme.MakeLabel((int)(18 * s), FontStyle.Normal, Theme.TextDim));
+
+                // 勾选框
+                float cbSize = 48 * s;
+                float cbX = SW - 40 * s - cbSize - 20 * s;
+                float cbY = iy + (cardH - cbSize) / 2;
+                GUIStyle cbStyle = new GUIStyle { fontSize = (int)(40 * s), alignment = TextAnchor.MiddleCenter };
+
+                if (isRequired)
+                {
+                    cbStyle.normal.textColor = Color.green;
+                    GUI.Label(new Rect(cbX, cbY, cbSize, cbSize), "✅", cbStyle);
+                }
+                else if (!canToggle)
+                {
+                    cbStyle.normal.textColor = Theme.TextDim;
+                    GUI.Label(new Rect(cbX, cbY, cbSize, cbSize), atMax ? "✖" : "☐", cbStyle);
+                }
+                else
+                {
+                    string mark = isChecked ? "✅" : "☐";
+                    cbStyle.normal.textColor = Color.white;
+                    if (GUI.Button(new Rect(cbX - 10 * s, cbY - 10 * s, cbSize + 20 * s, cbSize + 20 * s),
+                        mark, cbStyle))
+                    {
+                        _heroSelected[i] = !isChecked;
+                    }
+                    // 点击整行也可切换
+                    if (GUI.Button(new Rect(0, iy, SW - 40 * s, cardH), "", GUIStyle.none))
+                    {
+                        _heroSelected[i] = !isChecked;
+                    }
+                }
+            }
+            GUI.EndScrollView();
+
+            // ---- 羁绊实时预览 ----
+            var previewParty = _heroPool.Where((_, idx) => _heroSelected[idx]).ToList();
+            var previewBonds = BondSystem.CheckBonds(previewParty);
+            float bondY = SH - 110 * s;
+            if (previewBonds.Count > 0)
+            {
+                GUI.Label(new Rect(24 * s, bondY, SW - 48 * s, 24 * s),
+                    "✦ 羁绊已激活:", Theme.MakeLabel((int)(20 * s), FontStyle.Bold, Theme.Gold));
+                for (int bi = 0; bi < previewBonds.Count; bi++)
+                {
+                    var b = previewBonds[bi];
+                    var names = b.characterIds.Select(id =>
+                        previewParty.FirstOrDefault(u => u.Id == id)?.Name ?? id).ToList();
+                    GUI.Label(new Rect(30 * s, bondY + 28 + bi * 22, SW - 60 * s, 22),
+                        $"✅ {b.name} ({string.Join("+", names)})",
+                        Theme.MakeLabel((int)(16 * s), FontStyle.Normal, Color.yellow));
+                }
+            }
+
+            // ---- 底部按钮 ----
+            float btnY2 = SH - 65 * s;
+            GUI.backgroundColor = Theme.BgCard;
+            if (GUI.Button(new Rect(24 * s, btnY2, 180 * s, 55 * s),
+                "← 返回选关", Theme.MakeButton((int)(20 * s))))
+            {
+                GameManager.Instance.TransitionTo(GamePage.LevelSelect);
+            }
+
+            bool canConfirm = selected >= 1;
+            GUI.enabled = canConfirm;
+            GUI.backgroundColor = Theme.Primary;
+            if (GUI.Button(new Rect(SW - 200 * s, btnY2, 180 * s, 55 * s),
+                "确认阵容 →", Theme.MakeButton((int)(20 * s))))
             {
                 ConfirmHeroSelection();
             }
+            GUI.backgroundColor = Color.white;
+            GUI.enabled = true;
         }
 
         /// <summary>确认选人，进入装备调整</summary>
@@ -1368,13 +1482,10 @@ namespace ZhenguanWarriors.View.BattleView
                 return;
             }
 
-            // ███ 终极调试：在一切之前显示当前状态 ███
-            string debugPage = GameManager.Instance != null ?
-                GameManager.Instance.CurrentPage.ToString() : "GM=NULL";
-            GUI.Box(new Rect(0, 0, SW, 80), "");
-            GUIStyle dbgStyle = new GUIStyle { fontSize = 40, fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter, normal = { textColor = Color.red } };
-            GUI.Label(new Rect(0, 0, SW, 80), $"PAGE: {debugPage}  |  PHASE: {_gamePhase}", dbgStyle);
+            // 小字阶段指示器（调试用，后续可移除）
+            GUI.Label(new Rect(SW - 300, 0, 300, 24),
+                $"P:{GameManager.Instance?.CurrentPage} PH:{_gamePhase}",
+                Theme.MakeLabel(12, FontStyle.Normal, Color.gray));
 
             // 强制同步 GameManager 状态
             if (GameManager.Instance != null)
