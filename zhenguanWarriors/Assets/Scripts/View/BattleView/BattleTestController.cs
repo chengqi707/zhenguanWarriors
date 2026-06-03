@@ -254,8 +254,8 @@ namespace ZhenguanWarriors.View.BattleView
             Theme.DrawTitle(new Rect(0, 20, SW, 50), $"👥 选择出战武将   {selected}/8", 40);
 
             // 角色卡片列表（带粗滚动条，支持触控滑动）
-            float cardH = 110;
-            float gap = 10;
+            float cardH = 150;
+            float gap = 12;
             float startY = 80;
             float svH = SH - startY - 145; // 滚动区域高度
             float contentH = _heroPool.Count * (cardH + gap);
@@ -293,21 +293,21 @@ namespace ZhenguanWarriors.View.BattleView
                 GUI.Box(new Rect(0, iy, 8, cardH), "");
                 GUI.backgroundColor = Color.white;
 
-                // 角色名 40px Bold 垂直居中
-                GUI.Label(new Rect(24, iy + 4, cardW - 100, 40),
+                // 角色名 48px Bold 垂直居中
+                GUI.Label(new Rect(24, iy + 6, cardW - 100, 50),
                     unit.Name,
-                    Theme.MakeLabel(40, FontStyle.Bold, isChecked ? Theme.TextLight : Theme.TextDim,
+                    Theme.MakeLabel(48, FontStyle.Bold, isChecked ? Theme.TextLight : Theme.TextDim,
                                     TextAnchor.MiddleLeft));
 
-                // 等级 + 兵种 28px
-                GUI.Label(new Rect(24, iy + 46, cardW - 100, 28),
+                // 等级 + 兵种 32px
+                GUI.Label(new Rect(24, iy + 62, cardW - 100, 32),
                     $"Lv.{unit.Level}  {ClassData.GetName(unit.UnitClass)}",
-                    Theme.MakeLabel(28, FontStyle.Normal, Theme.TextDim, TextAnchor.MiddleLeft));
+                    Theme.MakeLabel(32, FontStyle.Normal, Theme.TextDim, TextAnchor.MiddleLeft));
 
-                // 五维 28px
-                GUI.Label(new Rect(24, iy + 76, cardW - 100, 28),
+                // 五维 32px
+                GUI.Label(new Rect(24, iy + 100, cardW - 100, 32),
                     $"武{unit.BaseStrength} 统{unit.BaseCommand} 智{unit.BaseIntelligence} 敏{unit.BaseAgility} 运{unit.BaseLuck}",
-                    Theme.MakeLabel(28, FontStyle.Normal, Theme.TextDim, TextAnchor.MiddleLeft));
+                    Theme.MakeLabel(32, FontStyle.Normal, Theme.TextDim, TextAnchor.MiddleLeft));
 
                 // 勾选框 48px
                 float cbSize = 48;
@@ -428,7 +428,7 @@ namespace ZhenguanWarriors.View.BattleView
             _partyScrollPos = GUI.BeginScrollView(
                 new Rect(15 * s, panelY + 28 * s, leftW - 10 * s, panelH - 38 * s),
                 _partyScrollPos,
-                new Rect(0, 0, leftW - 20 * s, _playerParty.Count * 72 * s));
+                new Rect(0, 0, leftW - 20 * s, _playerParty.Count * 82 * s));
 
             for (int i = 0; i < _playerParty.Count; i++)
             {
@@ -437,25 +437,25 @@ namespace ZhenguanWarriors.View.BattleView
                 float iy = i * 72 * s;
 
                 GUI.backgroundColor = sel ? new Color(0.3f, 0.4f, 0.6f) : new Color(0.15f, 0.12f, 0.10f);
-                GUI.Box(new Rect(0, iy, leftW - 20 * s, 68 * s), "");
+                GUI.Box(new Rect(0, iy, leftW - 20 * s, 82 * s), "");
 
                 if (sel)
                 {
                     GUI.backgroundColor = Theme.Primary;
-                    GUI.Box(new Rect(0, iy, 4 * s, 68 * s), "");
+                    GUI.Box(new Rect(0, iy, 4 * s, 82 * s), "");
                 }
 
-                GUI.Label(new Rect(12 * s, iy + 6 * s, leftW - 40 * s, 24 * s),
-                    u.Name, Theme.MakeLabel((int)(18 * s), FontStyle.Bold,
+                GUI.Label(new Rect(12 * s, iy + 8 * s, leftW - 40 * s, 28 * s),
+                    u.Name, Theme.MakeLabel((int)(22 * s), FontStyle.Bold,
                         sel ? Theme.Gold : Theme.TextLight));
-                GUI.Label(new Rect(12 * s, iy + 32 * s, leftW - 40 * s, 18 * s),
+                GUI.Label(new Rect(12 * s, iy + 40 * s, leftW - 40 * s, 22 * s),
                     $"{ClassData.GetName(u.UnitClass)} Lv.{u.Level}",
-                    Theme.MakeLabel((int)(14 * s), FontStyle.Normal, Theme.TextDim));
-                GUI.Label(new Rect(12 * s, iy + 50 * s, leftW - 40 * s, 16 * s),
+                    Theme.MakeLabel((int)(18 * s), FontStyle.Normal, Theme.TextDim));
+                GUI.Label(new Rect(12 * s, iy + 62 * s, leftW - 40 * s, 18 * s),
                     $"HP {u.CurrentHp}/{u.MaxHp}  MP {u.CurrentMp}/{u.MaxMp}",
-                    Theme.MakeLabel((int)(12 * s), FontStyle.Normal, Theme.TextDim));
+                    Theme.MakeLabel((int)(16 * s), FontStyle.Normal, Theme.TextDim));
 
-                if (GUI.Button(new Rect(0, iy, leftW - 20 * s, 68 * s), "", GUIStyle.none))
+                if (GUI.Button(new Rect(0, iy, leftW - 20 * s, 82 * s), "", GUIStyle.none))
                 {
                     _selectedPartyIndex = i;
                     _showEquipList = false;
@@ -580,7 +580,7 @@ namespace ZhenguanWarriors.View.BattleView
             var equip = string.IsNullOrEmpty(equipId) ? null : EquipmentLibrary.Get(equipId);
             bool isEmpty = equip == null;
 
-            float cardH = 72 * s;
+            float cardH = 100 * s;
             bool isEditing = _showEquipList && _editingSlot == slot;
 
             // 卡片背景
