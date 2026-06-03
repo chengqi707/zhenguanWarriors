@@ -242,7 +242,7 @@ namespace ZhenguanWarriors.View.BattleView
 
             // 背景
             GUI.backgroundColor = Theme.BgDark;
-            GUI.Box(new Rect(0, 0, SW, SH), "");
+            GUI.Box(Theme.ClampToScreen(new Rect(0, 0, SW, SH)), "");
             GUI.backgroundColor = Color.white;
 
             // 顶部装饰
@@ -396,7 +396,7 @@ namespace ZhenguanWarriors.View.BattleView
 
             // 背景
             GUI.backgroundColor = Theme.BgDark;
-            GUI.Box(new Rect(0, 0, SW, SH), "");
+            GUI.Box(Theme.ClampToScreen(new Rect(0, 0, SW, SH)), "");
 
             GUI.backgroundColor = Theme.Primary;
             GUI.Box(new Rect(0, 0, SW, 6 * s), "");
@@ -1727,9 +1727,9 @@ namespace ZhenguanWarriors.View.BattleView
 
         private void DrawLevelSelectUI()
         {
-            // 背景
+            // 背景（已裁剪到屏幕边界）
             GUI.backgroundColor = Theme.BgDark;
-            GUI.Box(new Rect(0, 0, SW, SH), "");
+            GUI.Box(Theme.ClampToScreen(new Rect(0, 0, SW, SH)), "");
             GUI.backgroundColor = Color.white;
 
             // 顶部装饰
@@ -1756,22 +1756,23 @@ namespace ZhenguanWarriors.View.BattleView
                 bool unlocked = GameState.IsLevelUnlocked(levelId);
                 float y = startY + i * (cardH + gap);
 
-                // 卡片背景
+                // 卡片背景（裁剪到屏幕边界）
+                var cardRect = Theme.ClampToScreen(new Rect(cardX, y, cardW, cardH));
                 GUI.backgroundColor = unlocked ? new Color(0.25f, 0.18f, 0.12f) : new Color(0.12f, 0.08f, 0.06f);
-                GUI.Box(new Rect(cardX, y, cardW, cardH), "");
+                GUI.Box(cardRect, "");
                 GUI.backgroundColor = Color.white;
 
                 // 左侧装饰条
                 if (unlocked)
                 {
                     GUI.backgroundColor = Theme.Primary;
-                    GUI.Box(new Rect(cardX, y, 6, cardH), "");
+                    GUI.Box(Theme.ClampToScreen(new Rect(cardX, y, 6, cardH)), "");
                     GUI.backgroundColor = Color.white;
                 }
 
                 // 关卡名 40px Bold 居中
                 string levelTitle = $"第{i + 1}关  {level.name}";
-                GUI.Label(new Rect(cardX, y + 10, cardW, 48),
+                GUI.Label(Theme.ClampToScreen(new Rect(cardX, y + 10, cardW, 48)),
                     levelTitle,
                     Theme.MakeLabel(40, FontStyle.Bold, unlocked ? Theme.Gold : Theme.TextDim,
                                     TextAnchor.MiddleCenter));
@@ -1784,7 +1785,7 @@ namespace ZhenguanWarriors.View.BattleView
                     VictoryConditionType.DefendTurns => $"坚守{level.defendTurns}回合",
                     _ => "未知"
                 };
-                GUI.Label(new Rect(cardX, y + 60, cardW, 28),
+                GUI.Label(Theme.ClampToScreen(new Rect(cardX, y + 60, cardW, 28)),
                     $"{info}    敌方{level.enemies.Count}人",
                     Theme.MakeLabel(28, FontStyle.Normal, Theme.TextDim, TextAnchor.MiddleCenter));
 
@@ -1792,7 +1793,7 @@ namespace ZhenguanWarriors.View.BattleView
                 string roster = string.Join(" ", level.availableCharacters.Take(4)
                     .Select(id => CharacterDatabase.Get(id)?.Name ?? id));
                 if (level.availableCharacters.Count > 4) roster += " …";
-                GUI.Label(new Rect(cardX, y + 90, cardW, 24),
+                GUI.Label(Theme.ClampToScreen(new Rect(cardX, y + 90, cardW, 24)),
                     $"出场: {roster}",
                     Theme.MakeLabel(22, FontStyle.Normal, new Color(0.7f, 0.9f, 0.7f), TextAnchor.MiddleCenter));
 
@@ -1801,11 +1802,11 @@ namespace ZhenguanWarriors.View.BattleView
                 {
                     GUIStyle lockStyle = new GUIStyle { fontSize = 48, alignment = TextAnchor.MiddleCenter,
                         normal = { textColor = Theme.TextDim } };
-                    GUI.Label(new Rect(cardX + cardW - 80, y + 30, 60, 60), "🔒", lockStyle);
+                    GUI.Label(Theme.ClampToScreen(new Rect(cardX + cardW - 80, y + 30, 60, 60)), "🔒", lockStyle);
                 }
 
                 // 点击
-                if (unlocked && GUI.Button(new Rect(cardX, y, cardW, cardH), "", GUIStyle.none))
+                if (unlocked && GUI.Button(cardRect, "", GUIStyle.none))
                     SelectLevel(levelId);
             }
         }

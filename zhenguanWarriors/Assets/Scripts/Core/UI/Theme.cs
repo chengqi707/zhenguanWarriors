@@ -90,5 +90,21 @@ namespace ZhenguanWarriors.Core.UI
         {
             GUI.Label(rect, text, MakeLabel(fontSize, FontStyle.Bold, Gold, TextAnchor.MiddleCenter));
         }
+
+        // ===== 屏幕边界安全工具 =====
+
+        /// <summary>将 Rect 裁剪到屏幕范围内，防止 UI 溢出屏幕边缘</summary>
+        public static Rect ClampToScreen(Rect r)
+        {
+            float sw = Screen.width;
+            float sh = Screen.height;
+            float x = UnityEngine.Mathf.Clamp(r.x, 0, sw - 10);
+            float y = UnityEngine.Mathf.Clamp(r.y, 0, sh - 10);
+            float w = UnityEngine.Mathf.Min(r.width, sw - x);
+            float h = UnityEngine.Mathf.Min(r.height, sh - y);
+            w = UnityEngine.Mathf.Max(w, 10); // 最小宽度
+            h = UnityEngine.Mathf.Max(h, 10); // 最小高度
+            return new Rect(x, y, w, h);
+        }
     }
 }
