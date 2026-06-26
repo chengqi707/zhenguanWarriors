@@ -537,5 +537,16 @@ GUI.Label(new Rect(0, 0, 400, 48), "text",
   - 深入审计当前代码完成度，发现与 MVP 实际差距：8 关 JSON 仅 `level_01.json` 存在、剧情对话流程被跳过、友军 AI 未接入、音效系统仍占位、装备获取途径缺失。
   - 在 `docs/ROADMAP.md` 中新增 **Sprint 8：MVP 缺口补齐与稳定性加固**，列出 P0/P1/P2 任务清单与验收标准。
   - 更新 MVP 最终规格状态，将"关卡/剧情/音频"标记为待补齐（⚡）。
+- **v0.6（2026-06-27）Sprint 8 完成——MVP 缺口补齐与稳定性加固**：
+  - 8 关全部导出为 JSON 并支持 `LoadFromResources` 加载；`LevelJsonLoader` 补全 `turnEvents` 与奖励字段序列化。
+  - 剧情流程接入：选关后播放 `story_{levelId}_pre`，胜利后播放 `story_{levelId}_post`；补齐 `story_02_post` ~ `story_06_post`。
+  - `TurnManager` 增加 `AllyTurn` 兜底处理，避免含友军单位时回合卡死。
+  - 音效系统启用：`AudioManager` 取消注释并实际播放 BGM/SFX；新增占位 WAV 文件；主菜单、战斗、结算、设置开关均接入音频。
+  - 单位名字标签默认显示；战场上可查看单位名称与兵种。
+  - 装备获取途径：关卡配置 `rewardEquipIds` / `rewardGold`；胜利后自动发放金币、自动装备或存入仓库。
+  - 防御性编程：关键路径增加 `GetComponent` / `Camera.main` / `_hexView` / `_turnManager` 判空。
+  - 协程安全：`MoveUnitAnimation` 使用 `try-finally` 确保 `_isAnimating` 重置，移动中增加单位/视觉空引用检查。
+  - 存档兼容性：`SAVE_VERSION` 升级到 2；`LoadFromPath` 增加版本迁移与字段缺失兜底。
+  - 涉及文件：`LevelData.cs`、`LevelJsonLoader.cs`、`StoryData.cs`、`TurnManager.cs`、`AudioManager.cs`、`SaveManager.cs`、`SaveData.cs`、`BattleTestController.cs`、`UnitVisual.cs`、`HexGridView.cs`、`MainMenuController.cs`。
 - v0.4（2026-05-31）更新商业化方案，明确广告播放变现策略（激励视频/Banner/插屏），加入版本规划
 - v0.5（2026-06-02）新增第6章完整用户交互流程与UX设计（导航架构/页面布局/交互规范），新增第9章UI/UX设计规范
