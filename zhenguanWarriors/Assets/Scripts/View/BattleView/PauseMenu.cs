@@ -43,6 +43,8 @@ namespace ZhenguanWarriors.View.BattleView
         {
             _isOpen = false;
             Time.timeScale = 1f;
+            // ★ 关闭暂停菜单时执行待处理的保存退出/撤退
+            ExecutePendingAction();
         }
 
         /// <summary>外部调用：检查是否有待处理的退出/撤退操作</summary>

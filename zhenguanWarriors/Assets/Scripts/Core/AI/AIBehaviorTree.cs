@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 using ZhenguanWarriors.Core.Battle;
 using ZhenguanWarriors.Core.Character;
 using ZhenguanWarriors.Core.Combat;
@@ -33,6 +34,7 @@ namespace ZhenguanWarriors.Core.AI
 
     /// <summary>
     /// AI行为树——敌方单位每回合的决策逻辑
+    /// v2: 增加路径诊断日志，帮助定位重叠问题
     /// </summary>
     public class AIBehaviorTree
     {
@@ -60,7 +62,11 @@ namespace ZhenguanWarriors.Core.AI
 
             // === 1. 撤退判断 ===
             var retreat = CheckRetreat(unit);
-            if (retreat != null) return retreat;
+            if (retreat != null)
+            {
+                Debug.Log($"[AI-Decide] {unit.Name} 选择撤退 → 目标格({retreat.TargetCell.q},{retreat.TargetCell.r}) | {retreat.Reason}");
+                return retreat;
+            }
 
             // 极简难度：只用集火+移动，不用计策不撤退
             if (_difficulty == "easy")
@@ -68,16 +74,29 @@ namespace ZhenguanWarriors.Core.AI
 
             // === 2. 高价值计策 ===
             var skillAction = CheckSkillUsage(unit);
-            if (skillAction != null) return skillAction;
+            if (skillAction != null)
+            {
+                Debug.Log($"[AI-Decide] {unit.Name} 选择计策 → 目标格({skillAction.TargetCell.q},{skillAction.TargetCell.r}) | {skillAction.Reason}");
+                return skillAction;
+            }
 
             // === 3. 集火攻击 ===
             var attack = CheckAttack(unit);
-            if (attack != null) return attack;
+            if (attack != null)
+            {
+                Debug.Log($"[AI-Decide] {unit.Name} 选择攻击 → 目标{attack.TargetUnit?.Name}@({attack.TargetUnit?.Position.q},{attack.TargetUnit?.Position.r}) | {attack.Reason}");
+                return attack;
+            }
 
             // === 4. 移动逼近 ===
             var move = CheckMoveTowards(unit);
-            if (move != null) return move;
+            if (move != null)
+            {
+                Debug.Log($"[AI-Decide] {unit.Name} 选择移动 → 目标格({move.TargetCell.q},{move.TargetCell.r}) | {move.Reason}");
+                return move;
+            }
 
+            Debug.Log($"[AI-Decide] {unit.Name} 无行动");
             return new AIAction { Type = AIActionType.Skip, Reason = "无行动" };
         }
 
@@ -105,17 +124,25 @@ namespace ZhenguanWarriors.Core.AI
             {
                 var healer = allies.OrderBy(a => unit.Position.Distance(a.Position)).First();
                 retreatTarget = healer.Position;
+                Debug.Log($"[CheckRetreat] {unit.Name} HP低，向治疗者 {healer.Name}@({healer.Position.q},{healer.Position.r}) 撤退");
             }
             else
             {
                 // 向阵营后方撤退（假设敌方在右侧，向左退）
                 retreatTarget = new HexCoord(Math.Max(0, unit.Position.q - 3), unit.Position.r);
+                Debug.Log($"[CheckRetreat] {unit.Name} HP低，无治疗者，向阵营后方({retreatTarget.q},{retreatTarget.r})撤退");
             }
 
             var path = FindPath(unit, retreatTarget);
             if (path.Count > 1)
             {
                 var nextStep = path[1];
+                // 最终防线：如果路径第一格仍被占（理论上FindPath已排除），记录日志
+                var blocker = _allUnits.FirstOrDefault(u => u.IsAlive && u != unit && u.Position == nextStep);
+                if (blocker != null)
+                {
+                    Debug.Log($"[CheckRetreat] {unit.Name} 撤退路径第一格({nextStep.q},{nextStep.r})仍被 {blocker.Name}[{blocker.Faction}] 占据，将尝试移动到该格。");
+                }
                 return new AIAction
                 {
                     Type = AIActionType.Retreat,
@@ -239,6 +266,8 @@ namespace ZhenguanWarriors.Core.AI
                 }
             }
 
+            Debug.Log($"[CheckMoveTowards] {unit.Name} 当前@({unit.Position.q},{unit.Position.r}) → 目标{target.Name}@({target.Position.q},{target.Position.r}) 路径{path.Count}格 dest=({dest.q},{dest.r})");
+
             if (dest == unit.Position) return null;
 
             return new AIAction
@@ -263,10 +292,22 @@ namespace ZhenguanWarriors.Core.AI
         private List<BattleUnit> GetAliveUnits(Faction faction) =>
             _allUnits.Where(u => u.Faction == faction && u.IsAlive).ToList();
 
+        /// <summary>获取除自己外所有存活单位占据的格子</summary>
+        private HashSet<HexCoord> GetOccupiedCells(BattleUnit self)
+        {
+            var occupied = new HashSet<HexCoord>();
+            foreach (var u in _allUnits)
+            {
+                if (u.IsAlive && u != self)
+                    occupied.Add(u.Position);
+            }
+            return occupied;
+        }
+
         private List<HexCoord> FindPath(BattleUnit unit, HexCoord target)
         {
             var pf = new PathFinder(_grid);
-            return pf.FindPath(unit.Position, target, unit.UnitClass);
+            return pf.FindPath(unit.Position, target, unit.UnitClass, GetOccupiedCells(unit));
         }
 
         private bool IsCellOccupiedByAlly(HexCoord cell, Faction faction) =>

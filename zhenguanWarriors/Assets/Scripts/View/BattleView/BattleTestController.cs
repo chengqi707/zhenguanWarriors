@@ -83,6 +83,9 @@ namespace ZhenguanWarriors.View.BattleView
         private List<string> _resultsLog = new();
         private Vector2 _resultsScroll;
 
+        // ========== 文件日志（解决adb logcat被设备加密的问题） ==========
+        private string _logFilePath;
+
         void Start()
         {
             _hexView = GetComponent<HexGridView>();
@@ -90,12 +93,17 @@ namespace ZhenguanWarriors.View.BattleView
             _dialogueUI = GetComponent<DialogueUI>();
 
             // DPI自适应缩放（竖屏基准：1080x1920）
-            float wScale = SW / 1080f;
-            float hScale = SH / 1920f;
+            float wScale = SW / 1920f;
+            float hScale = SH / 1080f;
             _uiScale = Mathf.Min(wScale, hScale);
             if (_uiScale < 0.6f) _uiScale = 0.6f;
             if (_uiScale > 2.5f) _uiScale = 2.5f;
             Debug.Log($"[缩放] SW={SW} SH={SH} wS={wScale:F2} hS={hScale:F2} scale={_uiScale:F2}");
+
+            // 初始化文件日志路径
+            _logFilePath = System.IO.Path.Combine(Application.persistentDataPath, "overlap_log.txt");
+            FileLog($"=== 日志启动 @ {System.DateTime.Now:yyyy-MM-dd HH:mm:ss} ===");
+            FileLog($"日志文件路径: {_logFilePath}");
         }
 
         /// <summary>GameManager 调用，设置当前页面</summary>
@@ -131,6 +139,8 @@ namespace ZhenguanWarriors.View.BattleView
             // 仅战斗阶段处理输入
             if (_gamePhase != GamePhase.Battle) return;
             if (_isAnimating) return;
+            // 网格未就绪时也跳过
+            if (_hexView == null || _hexView.Grid == null) return;
 
             // 手机触摸输入
             if (Input.touchCount > 0)
@@ -238,6 +248,7 @@ namespace ZhenguanWarriors.View.BattleView
 
         private void DrawHeroSelectUI()
         {
+            float s = _uiScale;
             int selected = _heroSelected.Count(v => v);
 
             // 背景
@@ -247,29 +258,29 @@ namespace ZhenguanWarriors.View.BattleView
 
             // 顶部装饰
             GUI.backgroundColor = Theme.Primary;
-            GUI.Box(new Rect(0, 0, SW, 8), "");
+            GUI.Box(new Rect(0, 0, SW, 8 * s), "");
             GUI.backgroundColor = Color.white;
 
             // 标题
-            Theme.DrawTitle(new Rect(0, 20, SW, 50), $"👥 选择出战武将   {selected}/8", 40);
+            Theme.DrawTitle(new Rect(0, 20 * s, SW, 50 * s), $"👥 选择出战武将   {selected}/8", (int)(36 * s));
 
             // 角色卡片列表（带粗滚动条，支持触控滑动）
-            float cardH = 150;
-            float gap = 12;
-            float startY = 80;
-            float svH = SH - startY - 145; // 滚动区域高度
+            float cardH = 165 * s;
+            float gap = 12 * s;
+            float startY = 80 * s;
+            float svH = SH - startY - 145 * s; // 滚动区域高度
             float contentH = _heroPool.Count * (cardH + gap);
 
             // 自定义垂直滚动条样式（加宽到30px，方便触控）
             GUIStyle vsBar = new GUIStyle(GUI.skin.verticalScrollbar);
-            vsBar.fixedWidth = 30;
+            vsBar.fixedWidth = 30 * s;
             GUIStyle vsThumb = new GUIStyle(GUI.skin.verticalScrollbarThumb);
-            vsThumb.fixedWidth = 30;
+            vsThumb.fixedWidth = 30 * s;
 
             _partyScrollPos = GUI.BeginScrollView(
-                new Rect(20, startY, SW - 40, svH),
+                new Rect(20 * s, startY, SW - 40 * s, svH),
                 _partyScrollPos,
-                new Rect(0, 0, SW - 60, contentH),
+                new Rect(0, 0, SW - 60 * s, contentH),
                 false, true, GUIStyle.none, vsBar);
 
             for (int i = 0; i < _heroPool.Count; i++)
@@ -280,7 +291,7 @@ namespace ZhenguanWarriors.View.BattleView
                 bool atMax = selected >= 8 && !isChecked;
                 bool canToggle = !isRequired && !atMax;
                 float iy = i * (cardH + gap);
-                float cardW = SW - 65; // 减滚动条宽度
+                float cardW = SW - 65 * s; // 减滚动条宽度
 
                 // 卡片背景
                 Color bg = isChecked ? new Color(0.22f, 0.28f, 0.38f) : new Color(0.14f, 0.10f, 0.08f);
@@ -290,30 +301,30 @@ namespace ZhenguanWarriors.View.BattleView
 
                 // 兵种色条
                 GUI.backgroundColor = GetClassColor(unit.UnitClass);
-                GUI.Box(new Rect(0, iy, 8, cardH), "");
+                GUI.Box(new Rect(0, iy, 8 * s, cardH), "");
                 GUI.backgroundColor = Color.white;
 
-                // 角色名 48px Bold 垂直居中
-                GUI.Label(new Rect(24, iy + 6, cardW - 100, 50),
+                // 角色名
+                GUI.Label(new Rect(24 * s, iy + 6 * s, cardW - 100 * s, 52 * s),
                     unit.Name,
-                    Theme.MakeLabel(48, FontStyle.Bold, isChecked ? Theme.TextLight : Theme.TextDim,
+                    Theme.MakeLabel((int)(42 * s), FontStyle.Bold, isChecked ? Theme.TextLight : Theme.TextDim,
                                     TextAnchor.MiddleLeft));
 
-                // 等级 + 兵种 32px
-                GUI.Label(new Rect(24, iy + 62, cardW - 100, 32),
+                // 等级 + 兵种
+                GUI.Label(new Rect(24 * s, iy + 62 * s, cardW - 100 * s, 36 * s),
                     $"Lv.{unit.Level}  {ClassData.GetName(unit.UnitClass)}",
-                    Theme.MakeLabel(32, FontStyle.Normal, Theme.TextDim, TextAnchor.MiddleLeft));
+                    Theme.MakeLabel((int)(28 * s), FontStyle.Normal, Theme.TextDim, TextAnchor.MiddleLeft));
 
-                // 五维 32px
-                GUI.Label(new Rect(24, iy + 100, cardW - 100, 32),
+                // 五维
+                GUI.Label(new Rect(24 * s, iy + 104 * s, cardW - 100 * s, 36 * s),
                     $"武{unit.BaseStrength} 统{unit.BaseCommand} 智{unit.BaseIntelligence} 敏{unit.BaseAgility} 运{unit.BaseLuck}",
-                    Theme.MakeLabel(32, FontStyle.Normal, Theme.TextDim, TextAnchor.MiddleLeft));
+                    Theme.MakeLabel((int)(28 * s), FontStyle.Normal, Theme.TextDim, TextAnchor.MiddleLeft));
 
-                // 勾选框 48px
-                float cbSize = 48;
-                float cbX = cardW - cbSize - 10;
+                // 勾选框
+                float cbSize = 48 * s;
+                float cbX = cardW - cbSize - 10 * s;
                 float cbY = iy + (cardH - cbSize) / 2;
-                GUIStyle cbStyle = new GUIStyle { fontSize = 48, alignment = TextAnchor.MiddleCenter };
+                GUIStyle cbStyle = new GUIStyle { fontSize = (int)(48 * s), alignment = TextAnchor.MiddleCenter };
 
                 if (isRequired)
                 {
@@ -329,10 +340,10 @@ namespace ZhenguanWarriors.View.BattleView
                 {
                     string mark = isChecked ? "✅" : "☐";
                     cbStyle.normal.textColor = Color.white;
-                    if (GUI.Button(new Rect(cbX - 10, cbY - 10, cbSize + 20, cbSize + 20), mark, cbStyle))
+                    if (GUI.Button(new Rect(cbX - 10 * s, cbY - 10 * s, cbSize + 20 * s, cbSize + 20 * s), mark, cbStyle))
                         _heroSelected[i] = !isChecked;
                     // 点击整行也可切换
-                    if (GUI.Button(new Rect(0, iy, SW - 40, cardH), "", GUIStyle.none))
+                    if (GUI.Button(new Rect(0, iy, SW - 40 * s, cardH), "", GUIStyle.none))
                         _heroSelected[i] = !isChecked;
                 }
             }
@@ -341,34 +352,34 @@ namespace ZhenguanWarriors.View.BattleView
             // ---- 羁绊实时预览 ----
             var previewParty = _heroPool.Where((_, idx) => _heroSelected[idx]).ToList();
             var previewBonds = BondSystem.CheckBonds(previewParty);
-            float bondY = SH - 115;
+            float bondY = SH - 115 * s;
             if (previewBonds.Count > 0)
             {
-                GUI.Label(new Rect(24, bondY, SW - 48, 24),
-                    "✦ 羁绊已激活:", Theme.MakeLabel(22, FontStyle.Bold, Theme.Gold));
+                GUI.Label(new Rect(24 * s, bondY, SW - 48 * s, 24 * s),
+                    "✦ 羁绊已激活:", Theme.MakeLabel((int)(22 * s), FontStyle.Bold, Theme.Gold));
                 for (int bi = 0; bi < previewBonds.Count; bi++)
                 {
                     var b = previewBonds[bi];
                     var names = b.characterIds.Select(id =>
                         previewParty.FirstOrDefault(u => u.Id == id)?.Name ?? id).ToList();
-                    GUI.Label(new Rect(30, bondY + 28 + bi * 22, SW - 60, 22),
+                    GUI.Label(new Rect(30 * s, bondY + 28 * s + bi * 22 * s, SW - 60 * s, 22 * s),
                         $"✅ {b.name} ({string.Join("+", names)})",
-                        Theme.MakeLabel(20, FontStyle.Normal, Color.yellow));
+                        Theme.MakeLabel((int)(20 * s), FontStyle.Normal, Color.yellow));
                 }
             }
 
             // ---- 底部按钮 ----
-            float btnY2 = SH - 65;
+            float btnY2 = SH - 65 * s;
             GUI.backgroundColor = Theme.BgCard;
-            if (GUI.Button(new Rect(24, btnY2, 200, 55),
-                "← 返回选关", Theme.MakeButton(22)))
+            if (GUI.Button(new Rect(24 * s, btnY2, 200 * s, 55 * s),
+                "← 返回选关", Theme.MakeButton((int)(22 * s))))
                 GameManager.Instance.TransitionTo(GamePage.LevelSelect);
 
             bool canConfirm = selected >= 1;
             GUI.enabled = canConfirm;
             GUI.backgroundColor = Theme.Primary;
-            if (GUI.Button(new Rect(SW - 220, btnY2, 200, 55),
-                "确认阵容 →", Theme.MakeButton(22)))
+            if (GUI.Button(new Rect(SW - 220 * s, btnY2, 200 * s, 55 * s),
+                "确认阵容 →", Theme.MakeButton((int)(22 * s))))
                 ConfirmHeroSelection();
             GUI.backgroundColor = Color.white;
             GUI.enabled = true;
@@ -416,7 +427,7 @@ namespace ZhenguanWarriors.View.BattleView
 
             // 标题
             Theme.DrawTitle(new Rect(0, 15 * s, SW, 40 * s),
-                $"⚔ 装备调整   {(unit != null ? unit.Name : "")}", (int)(24 * s));
+                $"⚔ 装备调整   {(unit != null ? unit.Name : "")}", (int)(32 * s));
 
             float panelY = 65 * s;
             float panelH = SH - 135 * s;
@@ -428,7 +439,7 @@ namespace ZhenguanWarriors.View.BattleView
             _partyScrollPos = GUI.BeginScrollView(
                 new Rect(15 * s, panelY + 28 * s, leftW - 10 * s, panelH - 38 * s),
                 _partyScrollPos,
-                new Rect(0, 0, leftW - 20 * s, _playerParty.Count * 82 * s));
+                new Rect(0, 0, leftW - 20 * s, _playerParty.Count * 100 * s));
 
             for (int i = 0; i < _playerParty.Count; i++)
             {
@@ -437,25 +448,25 @@ namespace ZhenguanWarriors.View.BattleView
                 float iy = i * 72 * s;
 
                 GUI.backgroundColor = sel ? new Color(0.3f, 0.4f, 0.6f) : new Color(0.15f, 0.12f, 0.10f);
-                GUI.Box(new Rect(0, iy, leftW - 20 * s, 82 * s), "");
+                GUI.Box(new Rect(0, iy, leftW - 20 * s, 100 * s), "");
 
                 if (sel)
                 {
                     GUI.backgroundColor = Theme.Primary;
-                    GUI.Box(new Rect(0, iy, 4 * s, 82 * s), "");
+                    GUI.Box(new Rect(0, iy, 4 * s, 100 * s), "");
                 }
 
-                GUI.Label(new Rect(12 * s, iy + 8 * s, leftW - 40 * s, 28 * s),
-                    u.Name, Theme.MakeLabel((int)(22 * s), FontStyle.Bold,
+                GUI.Label(new Rect(12 * s, iy + 6 * s, leftW - 40 * s, 48 * s),
+                    u.Name, Theme.MakeLabel((int)(44 * s), FontStyle.Bold,
                         sel ? Theme.Gold : Theme.TextLight));
-                GUI.Label(new Rect(12 * s, iy + 40 * s, leftW - 40 * s, 22 * s),
+                GUI.Label(new Rect(12 * s, iy + 56 * s, leftW - 40 * s, 22 * s),
                     $"{ClassData.GetName(u.UnitClass)} Lv.{u.Level}",
-                    Theme.MakeLabel((int)(18 * s), FontStyle.Normal, Theme.TextDim));
-                GUI.Label(new Rect(12 * s, iy + 62 * s, leftW - 40 * s, 18 * s),
+                    Theme.MakeLabel((int)(20 * s), FontStyle.Normal, Theme.TextDim));
+                GUI.Label(new Rect(12 * s, iy + 78 * s, leftW - 40 * s, 20 * s),
                     $"HP {u.CurrentHp}/{u.MaxHp}  MP {u.CurrentMp}/{u.MaxMp}",
-                    Theme.MakeLabel((int)(16 * s), FontStyle.Normal, Theme.TextDim));
+                    Theme.MakeLabel((int)(18 * s), FontStyle.Normal, Theme.TextDim));
 
-                if (GUI.Button(new Rect(0, iy, leftW - 20 * s, 82 * s), "", GUIStyle.none))
+                if (GUI.Button(new Rect(0, iy, leftW - 20 * s, 100 * s), "", GUIStyle.none))
                 {
                     _selectedPartyIndex = i;
                     _showEquipList = false;
@@ -503,7 +514,7 @@ namespace ZhenguanWarriors.View.BattleView
                             .Where(p => p != null).Select(p => $"{p.name}({p.description})").ToList();
                         GUI.Label(new Rect(rightX, ry, rightW, 22 * s),
                             $"⚡ {string.Join("  ", pnames)}",
-                            Theme.MakeLabel((int)(15 * s), FontStyle.Normal, Theme.BuffCyan));
+                            Theme.MakeLabel((int)(17 * s), FontStyle.Normal, Theme.BuffCyan));
                         ry += 24 * s;
                     }
 
@@ -515,14 +526,14 @@ namespace ZhenguanWarriors.View.BattleView
                             _playerParty.FirstOrDefault(u => u.Id == id)?.Name ?? id).ToList();
                         GUI.Label(new Rect(rightX, ry, rightW, 22 * s),
                             $"✦ {bd.name}: {string.Join("+", bnames)}",
-                            Theme.MakeLabel((int)(15 * s), FontStyle.Normal, Theme.Gold));
+                            Theme.MakeLabel((int)(17 * s), FontStyle.Normal, Theme.Gold));
                         ry += 22 * s;
                     }
 
                     // 最终属性
                     GUI.Label(new Rect(rightX, ry, rightW, 22 * s),
                         $"攻击范围: {unit.AttackRange}  移动力: {unit.MoveRange}",
-                        Theme.MakeLabel((int)(15 * s), FontStyle.Normal, Theme.HpGreen));
+                        Theme.MakeLabel((int)(17 * s), FontStyle.Normal, Theme.HpGreen));
                 }
             }
 
@@ -537,18 +548,18 @@ namespace ZhenguanWarriors.View.BattleView
             GUI.backgroundColor = Color.white;
         }
 
-        /// <summary>五维对比三列</summary>
+        /// <summary>五维对比三列（更紧凑排版，更大字号）</summary>
         private void DrawStatComparison(float x, ref float y, float w, BattleUnit unit, float s)
         {
-            Theme.DrawPanel(new Rect(x, y, w, 110 * s), "五维");
+            Theme.DrawPanel(new Rect(x, y, w, 95 * s), "五维");
 
             float colW = w / 3;
-            float headerY = y + 22 * s;
-            float valY = headerY + 20 * s;
+            float headerY = y + 16 * s;
+            float valY = headerY + 18 * s;
 
-            GUI.Label(new Rect(x + 5 * s, headerY, colW, 20 * s), "基础", Theme.MakeLabel((int)(13 * s), FontStyle.Bold, Theme.TextDim, TextAnchor.MiddleCenter));
-            GUI.Label(new Rect(x + colW + 5 * s, headerY, colW, 20 * s), "装备加成", Theme.MakeLabel((int)(13 * s), FontStyle.Bold, Theme.TextDim, TextAnchor.MiddleCenter));
-            GUI.Label(new Rect(x + colW * 2 + 5 * s, headerY, colW, 20 * s), "总计", Theme.MakeLabel((int)(13 * s), FontStyle.Bold, Theme.TextDim, TextAnchor.MiddleCenter));
+            GUI.Label(new Rect(x + 5 * s, headerY, colW, 18 * s), "基础", Theme.MakeLabel((int)(16 * s), FontStyle.Bold, Theme.TextDim, TextAnchor.MiddleCenter));
+            GUI.Label(new Rect(x + colW + 5 * s, headerY, colW, 18 * s), "装备加成", Theme.MakeLabel((int)(16 * s), FontStyle.Bold, Theme.TextDim, TextAnchor.MiddleCenter));
+            GUI.Label(new Rect(x + colW * 2 + 5 * s, headerY, colW, 18 * s), "总计", Theme.MakeLabel((int)(16 * s), FontStyle.Bold, Theme.TextDim, TextAnchor.MiddleCenter));
 
             string[] statNames = { "武", "统", "智", "敏", "运" };
             int[] baseVals = { unit.BaseStrength, unit.BaseCommand, unit.BaseIntelligence, unit.BaseAgility, unit.BaseLuck };
@@ -556,21 +567,21 @@ namespace ZhenguanWarriors.View.BattleView
 
             for (int i = 0; i < 5; i++)
             {
-                float rowY = valY + i * 17 * s;
+                float rowY = valY + i * 15 * s;
                 int bonus = totalVals[i] - baseVals[i];
-                GUI.Label(new Rect(x + 5 * s, rowY, colW, 16 * s),
-                    $"{statNames[i]}  {baseVals[i]}", Theme.MakeLabel((int)(14 * s), FontStyle.Normal, Theme.TextLight, TextAnchor.MiddleCenter));
-                GUI.Label(new Rect(x + colW + 5 * s, rowY, colW, 16 * s),
-                    bonus > 0 ? $"+{bonus}" : "—", Theme.MakeLabel((int)(14 * s), FontStyle.Normal,
+                GUI.Label(new Rect(x + 5 * s, rowY, colW, 15 * s),
+                    $"{statNames[i]}  {baseVals[i]}", Theme.MakeLabel((int)(16 * s), FontStyle.Normal, Theme.TextLight, TextAnchor.MiddleCenter));
+                GUI.Label(new Rect(x + colW + 5 * s, rowY, colW, 15 * s),
+                    bonus > 0 ? $"+{bonus}" : "—", Theme.MakeLabel((int)(16 * s), FontStyle.Normal,
                         bonus > 0 ? Theme.HpGreen : Theme.TextDim, TextAnchor.MiddleCenter));
-                GUI.Label(new Rect(x + colW * 2 + 5 * s, rowY, colW, 16 * s),
-                    $"{totalVals[i]}", Theme.MakeLabel((int)(15 * s), FontStyle.Bold, Theme.TextLight, TextAnchor.MiddleCenter));
+                GUI.Label(new Rect(x + colW * 2 + 5 * s, rowY, colW, 15 * s),
+                    $"{totalVals[i]}", Theme.MakeLabel((int)(18 * s), FontStyle.Bold, Theme.TextLight, TextAnchor.MiddleCenter));
             }
 
-            y += 115 * s;
+            y += 100 * s;
         }
 
-        /// <summary>装备卡</summary>
+        /// <summary>装备卡（压缩高度，可读字号）</summary>
         private void DrawEquipCard(float x, ref float y, float w, BattleUnit unit, EquipmentType slot, float s)
         {
             string slotName = slot == EquipmentType.Weapon ? "武器" :
@@ -580,7 +591,7 @@ namespace ZhenguanWarriors.View.BattleView
             var equip = string.IsNullOrEmpty(equipId) ? null : EquipmentLibrary.Get(equipId);
             bool isEmpty = equip == null;
 
-            float cardH = 100 * s;
+            float cardH = 145 * s;
             bool isEditing = _showEquipList && _editingSlot == slot;
 
             // 卡片背景
@@ -607,19 +618,19 @@ namespace ZhenguanWarriors.View.BattleView
 
                 // 属性
                 string statText = FormatEquipStats(equip);
-                GUI.Label(new Rect(x + 16 * s, y + 28 * s, w - 80 * s, 22 * s),
-                    statText, Theme.MakeLabel((int)(14 * s), FontStyle.Normal, Theme.TextLight));
+                GUI.Label(new Rect(x + 16 * s, y + 22 * s, w - 80 * s, 22 * s),
+                    statText, Theme.MakeLabel((int)(16 * s), FontStyle.Normal, Theme.TextLight));
 
                 // 特效
                 if (!string.IsNullOrEmpty(equip.effectDesc))
                 {
-                    GUI.Label(new Rect(x + 16 * s, y + 48 * s, w - 80 * s, 18 * s),
-                        equip.effectDesc, Theme.MakeLabel((int)(13 * s), FontStyle.Normal, Theme.TextDim));
+                    GUI.Label(new Rect(x + 16 * s, y + 46 * s, w - 80 * s, 20 * s),
+                        equip.effectDesc, Theme.MakeLabel((int)(15 * s), FontStyle.Normal, Theme.TextDim));
                 }
 
                 // 卸下
-                if (GUI.Button(new Rect(x + w - 60 * s, y + 8 * s, 50 * s, 24 * s),
-                    "卸下", Theme.MakeButton((int)(12 * s))))
+                if (GUI.Button(new Rect(x + w - 60 * s, y + 6 * s, 50 * s, 26 * s),
+                    "卸下", Theme.MakeButton((int)(14 * s))))
                 {
                     unit.Unequip(slot);
                     _showEquipList = false;
@@ -654,7 +665,7 @@ namespace ZhenguanWarriors.View.BattleView
                 GUI.Label(new Rect(x + 20 * s, y + 40 * s, w - 40 * s, 30 * s),
                     "没有可用装备", Theme.MakeLabel((int)(16 * s), FontStyle.Normal, Theme.TextDim));
                 if (GUI.Button(new Rect(x + w - 80 * s, y + 5 * s, 70 * s, 24 * s),
-                    "关闭", Theme.MakeButton((int)(13 * s))))
+                    "关闭", Theme.MakeButton((int)(14 * s))))
                     _showEquipList = false;
                 return;
             }
@@ -696,7 +707,7 @@ namespace ZhenguanWarriors.View.BattleView
                 // 属性
                 string stats = FormatEquipStats(e);
                 GUI.Label(new Rect(14 * s, iy + 28 * s, w - 60 * s, 18 * s),
-                    stats, Theme.MakeLabel((int)(13 * s), FontStyle.Normal, Theme.TextLight));
+                    stats, Theme.MakeLabel((int)(15 * s), FontStyle.Normal, Theme.TextLight));
 
                 // ★ 标记
                 if (equipped)
@@ -716,7 +727,7 @@ namespace ZhenguanWarriors.View.BattleView
             GUI.EndScrollView();
 
             if (GUI.Button(new Rect(x + w - 80 * s, y + 5 * s, 70 * s, 24 * s),
-                "关闭", Theme.MakeButton((int)(13 * s))))
+                "关闭", Theme.MakeButton((int)(14 * s))))
                 _showEquipList = false;
         }
 
@@ -850,18 +861,167 @@ namespace ZhenguanWarriors.View.BattleView
 
         // ========== 开始战斗 ==========
 
+        // ========== 重叠诊断工具 ==========
+
+        /// <summary>写入文件日志（绕过 adb logcat 加密限制）</summary>
+        private void FileLog(string message)
+        {
+            if (string.IsNullOrEmpty(_logFilePath)) return;
+            try
+            {
+                var line = $"[{System.DateTime.Now:HH:mm:ss.fff}] {message}\n";
+                System.IO.File.AppendAllText(_logFilePath, line);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[FileLog] 写入失败: {e.Message}");
+            }
+        }
+
+        /// <summary>检测所有单位位置重叠，返回重叠详情</summary>
+        private List<string> DetectOverlaps()
+        {
+            var overlaps = new List<string>();
+            var posMap = new Dictionary<HexCoord, List<BattleUnit>>();
+            foreach (var u in _allUnits.Where(u => u.IsAlive))
+            {
+                if (!posMap.ContainsKey(u.Position))
+                    posMap[u.Position] = new List<BattleUnit>();
+                posMap[u.Position].Add(u);
+            }
+            foreach (var kv in posMap)
+            {
+                if (kv.Value.Count > 1)
+                {
+                    var names = string.Join(", ", kv.Value.Select(u => $"{u.Name}[{u.Faction}]"));
+                    overlaps.Add($"[重叠] 格子({kv.Key.q},{kv.Key.r}) 被 {kv.Value.Count} 个单位占据: {names}");
+                }
+            }
+            return overlaps;
+        }
+
+        /// <summary>记录当前所有单位位置快照（用于对比）</summary>
+        private string DumpUnitPositions(string label)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"===== {label} =====");
+            foreach (var u in _allUnits.Where(u => u.IsAlive).OrderBy(u => u.Faction.ToString()).ThenBy(u => u.Name))
+            {
+                sb.AppendLine($"  [{u.Faction}] {u.Name} @({u.Position.q},{u.Position.r}) HP={u.CurrentHp}/{u.MaxHp} State={u.State} Moved={u.HasMovedThisTurn} Acted={u.HasActed}");
+            }
+            var result = sb.ToString();
+            FileLog(result); // 同时写入文件
+            return result;
+        }
+
+        /// <summary>在关键位置调用的重叠检查器——检测到重叠就输出详细日志</summary>
+        private void CheckOverlapAt(string checkpoint)
+        {
+            var overlaps = DetectOverlaps();
+            if (overlaps.Count > 0)
+            {
+                string msg = $"[重叠检测] 检查点: {checkpoint} — 发现 {overlaps.Count} 处重叠!";
+                Debug.LogError(msg);
+                FileLog(msg);
+                foreach (var o in overlaps)
+                {
+                    Debug.LogError(o);
+                    FileLog(o);
+                }
+                Debug.LogError(DumpUnitPositions($"重叠现场@{checkpoint}"));
+            }
+            else
+            {
+                string msg = $"[重叠检测] 检查点: {checkpoint} — 无重叠 ✓";
+                Debug.Log(msg);
+                FileLog(msg);
+            }
+        }
+
+        /// <summary>修复所有单位位置重叠：将重叠单位推到最近的空格</summary>
+        private void ResolveUnitOverlaps()
+        {
+            var overlaps = DetectOverlaps();
+            if (overlaps.Count > 0)
+            {
+                string msg1 = $"[ResolveUnitOverlaps] 发现 {overlaps.Count} 处重叠，开始修复:";
+                Debug.LogWarning(msg1);
+                FileLog(msg1);
+                foreach (var o in overlaps)
+                {
+                    Debug.LogWarning(o);
+                    FileLog(o);
+                }
+                Debug.Log(DumpUnitPositions("修复前"));
+            }
+
+            var occupied = new HashSet<HexCoord>();
+            int fixedCount = 0;
+            foreach (var unit in _allUnits.Where(u => u.IsAlive).OrderBy(u => u.Faction))
+            {
+                if (occupied.Contains(unit.Position))
+                {
+                    HexCoord oldPos = unit.Position;
+                    bool found = false;
+                    for (int d = 1; d <= 6 && !found; d++)
+                    {
+                        foreach (var cell in unit.Position.Range(d))
+                        {
+                            if (_hexView != null && _hexView.Grid != null && _hexView.Grid.InBounds(cell)
+                                && !occupied.Contains(cell))
+                            {
+                                unit.Position = cell;
+                                found = true;
+                                fixedCount++;
+                                string msg2 = $"[重叠修复] {unit.Name} 从 ({oldPos.q},{oldPos.r}) → ({cell.q},{cell.r}) 距离={d}";
+                                Debug.Log(msg2);
+                                FileLog(msg2);
+                                break;
+                            }
+                        }
+                    }
+                    if (!found)
+                    {
+                        string msg3 = $"[重叠] 无法为 {unit.Name} 找到空位！当前位置({oldPos.q},{oldPos.r})保留，仍与其他单位重叠！";
+                        Debug.LogError(msg3);
+                        FileLog(msg3);
+                    }
+                }
+                occupied.Add(unit.Position);
+            }
+
+            if (fixedCount > 0)
+            {
+                Debug.Log(DumpUnitPositions($"修复后（修复了{fixedCount}个）"));
+                // 修复后再次检查
+                var after = DetectOverlaps();
+                if (after.Count > 0)
+                {
+                    Debug.LogError($"[ResolveUnitOverlaps] 修复后仍有 {after.Count} 处重叠未解决！");
+                    foreach (var o in after)
+                        Debug.LogError(o);
+                }
+                else
+                {
+                    Debug.Log($"[ResolveUnitOverlaps] 所有重叠已修复 ✓");
+                }
+            }
+        }
+
         /// <summary>从战前编组过渡到战斗</summary>
         private void StartBattle()
         {
-            _gamePhase = GamePhase.Battle; // 内部状态同步
             _showEquipList = false;
+            // 注意：_gamePhase 延后到初始化完成后才设为 Battle，防止 Update 提前处理点击
 
             // 将玩家队伍设置为战斗单位
             _allUnits.Clear();
             _allUnits.AddRange(_playerParty);
+            Debug.Log($"[StartBattle] 玩家队伍 { _playerParty.Count} 人，位置分布：{string.Join(", ", _playerParty.Select(u => $"{u.Name}@({u.Position.q},{u.Position.r})"))}");
 
             // 敌方单位
             CreateEnemyUnits();
+            CheckOverlapAt("CreateEnemyUnits后");
 
             // 设置位置
             float startX = 1;
@@ -871,6 +1031,8 @@ namespace ZhenguanWarriors.View.BattleView
                 _playerParty[i].Position = new HexCoord((int)(startX + i % 2), (int)(startY + i / 2));
                 _playerParty[i].NewTurn();
             }
+            Debug.Log($"[StartBattle] 玩家重新布置到起始区域：{string.Join(", ", _playerParty.Select(u => $"{u.Name}@({u.Position.q},{u.Position.r})"))}");
+            CheckOverlapAt("玩家位置设置后");
 
             // 天气系统（从关卡数据读取）
             WeatherType weatherType = _currentLevel?.weather ?? WeatherType.Sunny;
@@ -884,6 +1046,10 @@ namespace ZhenguanWarriors.View.BattleView
                 _ => "normal"
             };
             _aiTree = new AIBehaviorTree(_allUnits, _hexView.Grid, _weather, _skillExecutor, diffStr);
+
+            // ★ 初始重叠修复：确保所有单位位置不重叠
+            ResolveUnitOverlaps();
+            CheckOverlapAt("ResolveUnitOverlaps后");
 
             // 创建可视化
             foreach (var unit in _allUnits)
@@ -911,6 +1077,9 @@ namespace ZhenguanWarriors.View.BattleView
 
             _battleUI.ShowTip("选中己方单位 → 点击移动/攻击 | 底部选择计策");
             _turnManager.StartBattle();
+
+            // ★ 所有初始化完成后再设为 Battle 阶段（防止 Update 提前处理点击）
+            _gamePhase = GamePhase.Battle;
 
             // ★ 通知 GameManager 切换到战斗阶段（否则 EquipSetup UI 不会消失）
             if (GameManager.Instance != null)
@@ -1061,7 +1230,10 @@ namespace ZhenguanWarriors.View.BattleView
             // 检查 HexGridView 是否就绪
             if (_hexView == null || _hexView.Grid == null)
             {
-                Debug.LogError("HexGridView 尚未初始化");
+                // 非战斗阶段点击忽略（如结算后/切换中）
+                if (_gamePhase != GamePhase.Battle)
+                    return;
+                Debug.LogError($"HexGridView 未初始化 (phase={_gamePhase} page={GameManager.Instance?.CurrentPage})");
                 return;
             }
 
@@ -1142,25 +1314,43 @@ namespace ZhenguanWarriors.View.BattleView
             HexCoord cell = clickedCell.Value;
             BattleUnit unitAtCell = _turnManager.GetUnitAt(cell);
 
-            // 如果点击的是自己的单位——选中它
+            // 如果点击的是自己的单位——选中它（只针对未行动的单位）
             if (unitAtCell != null && unitAtCell.Faction == Faction.Player
-                && unitAtCell.State == UnitState.Ready)
+                && unitAtCell.State == UnitState.Ready && !unitAtCell.HasActed)
             {
                 SelectUnit(unitAtCell);
                 return;
             }
 
-            // 如果已经选中了单位——尝试计策/攻击/移动
             if (_selectedUnit != null && _selectedUnit.State == UnitState.Ready)
             {
-                // 计策优先：如果选中了计策
+                // 计策优先
                 if (!string.IsNullOrEmpty(_selectedSkillId))
                 {
                     TryUseSkill(_selectedUnit, cell);
                     return;
                 }
 
-                // 点击敌人→普通攻击
+                // ========== 已移动但未攻击 = 攻击阶段 ==========
+                if (_selectedUnit.HasMovedThisTurn && !_selectedUnit.HasActed)
+                {
+                    // 点击攻击范围内的敌人→攻击
+                    if (unitAtCell != null && unitAtCell.Faction == Faction.Enemy
+                        && _selectedUnit.Position.Distance(cell) <= _selectedUnit.AttackRange)
+                    {
+                        AttackUnit(_selectedUnit, unitAtCell);
+                        return;
+                    }
+                    // 点击其他任何地方→待机
+                    _battleUI?.ShowTip($"{_selectedUnit.Name} 待机");
+                    DeselectUnit();
+                    EndUnitAction();
+                    return;
+                }
+
+                // ========== 未移动 = 移动/攻击阶段 ==========
+
+                // 点击攻击范围内的敌人→攻击（原地攻击，不移动）
                 if (unitAtCell != null && unitAtCell.Faction == Faction.Enemy
                     && _selectedUnit.Position.Distance(cell) <= _selectedUnit.AttackRange)
                 {
@@ -1168,10 +1358,9 @@ namespace ZhenguanWarriors.View.BattleView
                     return;
                 }
 
-                // 点击友方→如果有治疗计策选中，尝试治疗
+                // 点击友方→如果有治疗计策，尝试治疗
                 if (unitAtCell != null && unitAtCell.Faction == Faction.Player && !_selectedUnit.HasActed)
                 {
-                    // 检查是否有治疗计策并自动使用
                     var healSkill = _selectedUnit.SkillIds
                         .Select(id => SkillLibrary.Get(id))
                         .FirstOrDefault(s => s != null && s.type == SkillType.Heal
@@ -1186,12 +1375,13 @@ namespace ZhenguanWarriors.View.BattleView
                 }
 
                 // 点击空地→移动（排除其他单位占据的格子）
-                var occ2 = new HashSet<HexCoord>(_allUnits.Where(u => u != _selectedUnit && u.IsAlive).Select(u => u.Position));
+                var occ2 = new HashSet<HexCoord>(_allUnits.Where(u => u != _selectedUnit && u.IsAlive)
+                    .Select(u => u.Position));
                 var range = _hexView.PathFinder.GetMoveRange(
                     _selectedUnit.Position, _selectedUnit.MoveRange, _selectedUnit.UnitClass, occ2);
                 if (range.ContainsKey(cell))
                 {
-                    _selectedSkillId = null; // 移动时取消计策选择
+                    _selectedSkillId = null;
                     StartCoroutine(MoveUnitAnimation(_selectedUnit, cell));
                     return;
                 }
@@ -1260,8 +1450,11 @@ namespace ZhenguanWarriors.View.BattleView
             _hexView.ClearHighlights();
             DeselectUnit();
 
-            // 计算路径
-            var path = _hexView.PathFinder.FindPath(unit.Position, target);
+            // 计算路径（排除其他单位，并按当前兵种寻路）
+            var occupied = new HashSet<HexCoord>(_allUnits
+                .Where(u => u != unit && u.IsAlive)
+                .Select(u => u.Position));
+            var path = _hexView.PathFinder.FindPath(unit.Position, target, unit.UnitClass, occupied);
             if (path.Count < 2)
             {
                 _isAnimating = false;
@@ -1273,6 +1466,29 @@ namespace ZhenguanWarriors.View.BattleView
                 _isAnimating = false;
                 yield break;
             }
+
+            // ★ 重叠保护：移动前确认目标格无其他单位
+            var blockingUnit = _allUnits.FirstOrDefault(u => u != unit && u.IsAlive && u.Position == target);
+            if (blockingUnit != null)
+            {
+                Debug.LogWarning($"[MoveUnitAnimation] {unit.Name} 目标格({target.q},{target.r})被 {blockingUnit.Name}[{blockingUnit.Faction}] 占据，无法移动！");
+                _battleUI?.ShowTip($"目标格子被 {blockingUnit.Name} 占据！无法移动");
+                _isAnimating = false;
+                yield break;
+            }
+
+            // 最终防线：检查路径中间格是否被占据（FindPath已处理occupiedCells，此处不应再触发）
+            for (int i = 1; i < path.Count - 1; i++) // 不检查起点和终点
+            {
+                var midUnit = _allUnits.FirstOrDefault(u => u != unit && u.IsAlive && u.Position == path[i]);
+                if (midUnit != null)
+                {
+                    Debug.LogWarning($"[MoveUnitAnimation] 路径中间格({path[i].q},{path[i].r})被 {midUnit.Name}[{midUnit.Faction}] 占据！");
+                }
+            }
+            Debug.Log($"[MoveUnitAnimation] {unit.Name} 从({unit.Position.q},{unit.Position.r}) → ({target.q},{target.r}) 路径共{path.Count}格");
+
+            CheckOverlapAt($"MoveUnitAnimation-{unit.Name}移动前");
 
             // 沿路径逐格移动
             float stepDuration = 0.15f;
@@ -1295,15 +1511,48 @@ namespace ZhenguanWarriors.View.BattleView
             }
 
             unit.HasMovedThisTurn = true;
+            unit.Position = target;
+            Debug.Log($"[MoveUnitAnimation] {unit.Name} 已到达 ({target.q},{target.r})");
+            CheckOverlapAt($"MoveUnitAnimation-{unit.Name}移动后");
             _battleUI?.ShowTip($"{unit.Name} 移动到 ({target.q},{target.r})");
+
+            // ★ 检查攻击范围内是否有敌人 → 保持选中让玩家选择攻击或待机
+            bool hasTarget = _allUnits.Any(u => u.Faction == Faction.Enemy && u.IsAlive
+                && target.Distance(u.Position) <= unit.AttackRange);
+
             _isAnimating = false;
-            EndUnitAction();
+
+            if (hasTarget)
+            {
+                // 重新选中单位，显示攻击范围高亮
+                _selectedUnit = unit;
+                var enemyCells = _allUnits.Where(u => u.Faction == Faction.Enemy && u.IsAlive
+                    && target.Distance(u.Position) <= unit.AttackRange)
+                    .Select(u => u.Position).ToList();
+                _hexView.ShowAttackRange(target, unit.AttackRange, enemyCells);
+                if (_unitVisuals.TryGetValue(unit, out var vis))
+                    vis.SetSelected(true);
+                _battleUI?.ShowTip($"{unit.Name} 选择攻击目标或点击空白处待机");
+            }
+            else
+            {
+                _battleUI?.ShowTip($"{unit.Name} 到达目标位置，范围内无敌方");
+                EndUnitAction();
+            }
         }
 
         // ========== 攻击 ==========
 
         private void AttackUnit(BattleUnit attacker, BattleUnit defender)
         {
+            CheckOverlapAt($"AttackUnit-{attacker.Name}攻击前");
+            Debug.Log($"[AttackUnit] {attacker.Name}@({attacker.Position.q},{attacker.Position.r}) 攻击 {defender.Name}@({defender.Position.q},{defender.Position.r})");
+            // 检查攻击者和被攻击者是否在同一位置
+            if (attacker.Position == defender.Position)
+            {
+                Debug.LogError($"[AttackUnit] ⚠ {attacker.Name} 和 {defender.Name} 在同一位置({attacker.Position.q},{attacker.Position.r})！攻击发起时两者重叠！");
+            }
+
             var attackerTerrain = _hexView.Grid.GetTerrain(attacker.Position);
             var result = CombatCalculator.CalcPhysicalDamage(attacker, defender, 0, 0, attackerTerrain);
 
@@ -1364,6 +1613,20 @@ namespace ZhenguanWarriors.View.BattleView
                 }
                 _battleUI?.ShowTip(expLog);
                 Debug.Log(expLog);
+
+                // ★ 阵亡后立即检查胜负（不需要等全队行动完毕）
+                if (_victoryChecker != null && !_victoryChecker.IsVictory && !_victoryChecker.IsDefeat)
+                {
+                    _victoryChecker.Check();
+                    if (_victoryChecker.IsVictory || _victoryChecker.IsDefeat)
+                    {
+                        _hexView.ClearHighlights();
+                        _selectedUnit = null;
+                        _turnManager.SetPhase(_victoryChecker.IsVictory
+                            ? TurnManager.TurnPhase.Victory : TurnManager.TurnPhase.Defeat);
+                        return;
+                    }
+                }
             }
 
             _hexView.ClearHighlights();
@@ -1464,6 +1727,23 @@ namespace ZhenguanWarriors.View.BattleView
             // 更新血条
             foreach (var kv in _unitVisuals)
                 kv.Value.UpdateHpBar();
+
+            // ★ 计策击杀后立即检查胜负
+            var deadNow = _allUnits.Where(u => u.IsDead).ToList();
+            if (deadNow.Count > 0 && _victoryChecker != null && !_victoryChecker.IsVictory && !_victoryChecker.IsDefeat)
+            {
+                _victoryChecker.Check();
+                if (_victoryChecker.IsVictory || _victoryChecker.IsDefeat)
+                {
+                    _hexView.ClearHighlights();
+                    _selectedSkillId = null;
+                    _selectedUnit = null;
+                    _isAnimating = false;
+                    _turnManager.SetPhase(_victoryChecker.IsVictory
+                        ? TurnManager.TurnPhase.Victory : TurnManager.TurnPhase.Defeat);
+                    return;
+                }
+            }
 
             _hexView.ClearHighlights();
             _selectedSkillId = null;
@@ -1737,6 +2017,7 @@ namespace ZhenguanWarriors.View.BattleView
 
         private void DrawLevelSelectUI()
         {
+            float s = _uiScale;
             // 背景（已裁剪到屏幕边界）
             GUI.backgroundColor = Theme.BgDark;
             GUI.Box(Theme.ClampToScreen(new Rect(0, 0, SW, SH)), "");
@@ -1744,18 +2025,18 @@ namespace ZhenguanWarriors.View.BattleView
 
             // 顶部装饰
             GUI.backgroundColor = Theme.Primary;
-            GUI.Box(new Rect(0, 0, SW, 8), "");
+            GUI.Box(new Rect(0, 0, SW, 8 * s), "");
             GUI.backgroundColor = Color.white;
 
-            // 标题 48px 居中
-            Theme.DrawTitle(new Rect(0, 20, SW, 55), "🏯 征战天下", 48);
+            // 标题
+            Theme.DrawTitle(new Rect(0, 20 * s, SW, 55 * s), "🏯 征战天下", (int)(42 * s));
 
             // 卡片
-            float cardX = 40;
-            float cardW = SW - 80;
-            float cardH = 120;
-            float startY = 90;
-            float gap = 14;
+            float cardX = 40 * s;
+            float cardW = SW - 80 * s;
+            float cardH = 160 * s;
+            float startY = 90 * s;
+            float gap = 14 * s;
 
             for (int i = 0; i < _levelOrder.Count; i++)
             {
@@ -1776,18 +2057,18 @@ namespace ZhenguanWarriors.View.BattleView
                 if (unlocked)
                 {
                     GUI.backgroundColor = Theme.Primary;
-                    GUI.Box(Theme.ClampToScreen(new Rect(cardX, y, 6, cardH)), "");
+                    GUI.Box(Theme.ClampToScreen(new Rect(cardX, y, 6 * s, cardH)), "");
                     GUI.backgroundColor = Color.white;
                 }
 
-                // 关卡名 40px Bold 居中
+                // 关卡名
                 string levelTitle = $"第{i + 1}关  {level.name}";
-                GUI.Label(Theme.ClampToScreen(new Rect(cardX, y + 10, cardW, 48)),
+                GUI.Label(Theme.ClampToScreen(new Rect(cardX, y + 10 * s, cardW, 48 * s)),
                     levelTitle,
-                    Theme.MakeLabel(40, FontStyle.Bold, unlocked ? Theme.Gold : Theme.TextDim,
+                    Theme.MakeLabel((int)(38 * s), FontStyle.Bold, unlocked ? Theme.Gold : Theme.TextDim,
                                     TextAnchor.MiddleCenter));
 
-                // 信息行 28px 居中
+                // 信息行
                 string info = level.victoryType switch
                 {
                     VictoryConditionType.DefeatAll => "全灭敌军",
@@ -1795,24 +2076,24 @@ namespace ZhenguanWarriors.View.BattleView
                     VictoryConditionType.DefendTurns => $"坚守{level.defendTurns}回合",
                     _ => "未知"
                 };
-                GUI.Label(Theme.ClampToScreen(new Rect(cardX, y + 60, cardW, 28)),
+                GUI.Label(Theme.ClampToScreen(new Rect(cardX, y + 65 * s, cardW, 28 * s)),
                     $"{info}    敌方{level.enemies.Count}人",
-                    Theme.MakeLabel(28, FontStyle.Normal, Theme.TextDim, TextAnchor.MiddleCenter));
+                    Theme.MakeLabel((int)(26 * s), FontStyle.Normal, Theme.TextDim, TextAnchor.MiddleCenter));
 
-                // 角色 22px 居中
+                // 角色
                 string roster = string.Join(" ", level.availableCharacters.Take(4)
                     .Select(id => CharacterDatabase.Get(id)?.Name ?? id));
                 if (level.availableCharacters.Count > 4) roster += " …";
-                GUI.Label(Theme.ClampToScreen(new Rect(cardX, y + 90, cardW, 24)),
+                GUI.Label(Theme.ClampToScreen(new Rect(cardX, y + 98 * s, cardW, 24 * s)),
                     $"出场: {roster}",
-                    Theme.MakeLabel(22, FontStyle.Normal, new Color(0.7f, 0.9f, 0.7f), TextAnchor.MiddleCenter));
+                    Theme.MakeLabel((int)(22 * s), FontStyle.Normal, new Color(0.7f, 0.9f, 0.7f), TextAnchor.MiddleCenter));
 
                 // 锁定
                 if (!unlocked)
                 {
-                    GUIStyle lockStyle = new GUIStyle { fontSize = 48, alignment = TextAnchor.MiddleCenter,
+                    GUIStyle lockStyle = new GUIStyle { fontSize = (int)(48 * s), alignment = TextAnchor.MiddleCenter,
                         normal = { textColor = Theme.TextDim } };
-                    GUI.Label(Theme.ClampToScreen(new Rect(cardX + cardW - 80, y + 30, 60, 60)), "🔒", lockStyle);
+                    GUI.Label(Theme.ClampToScreen(new Rect(cardX + cardW - 80 * s, y + 30 * s, 60 * s, 60 * s)), "🔒", lockStyle);
                 }
 
                 // 点击
@@ -1912,63 +2193,65 @@ namespace ZhenguanWarriors.View.BattleView
 
         private void DrawResultsUI()
         {
+            float s = _uiScale;
             GUI.backgroundColor = Theme.BgDark;
-            GUI.Box(new Rect(0, 0, Screen.width, Screen.height), "");
+            GUI.Box(new Rect(0, 0, SW, SH), "");
             GUI.backgroundColor = Color.white;
 
-            float w = 440;
-            float h = 370;
-            float x = (Screen.width - w) / 2;
-            float y = (Screen.height - h) / 2;
+            // 结算面板 — 按缩放适配尺寸
+            float pw = Mathf.Min(480 * s, SW - 40 * s);
+            float ph = Mathf.Min(400 * s, SH - 40 * s);
+            float px = (SW - pw) / 2;
+            float py = (SH - ph) / 2;
 
-            // 结算面板
-            Theme.DrawPanel(new Rect(x, y, w, h));
+            Theme.DrawPanel(new Rect(px, py, pw, ph));
 
             // 顶部装饰
             bool isVictory = _resultsTitle.Contains("胜利");
             Color titleColor = isVictory ? Theme.Gold : Theme.Primary;
             GUI.backgroundColor = titleColor;
-            GUI.Box(new Rect(x, y, w, 4), "");
+            GUI.Box(new Rect(px, py, pw, 4 * s), "");
             GUI.backgroundColor = Color.white;
 
             // 标题
-            Theme.DrawTitle(new Rect(x, y + 15, w, 45), _resultsTitle, 30);
+            Theme.DrawTitle(new Rect(px, py + 15 * s, pw, 45 * s), _resultsTitle, (int)(30 * s));
 
             // 结果信息
-            GUI.Label(new Rect(x + 20, y + 65, w - 40, 30),
+            GUI.Label(new Rect(px + 20 * s, py + 65 * s, pw - 40 * s, 30 * s),
                 _resultsMessage,
-                Theme.MakeLabel(16, FontStyle.Normal, Theme.TextLight, TextAnchor.MiddleCenter));
+                Theme.MakeLabel((int)(16 * s), FontStyle.Normal, Theme.TextLight, TextAnchor.MiddleCenter));
 
-            // 战斗日志
-            GUI.Label(new Rect(x + 20, y + 100, w - 40, 20),
-                "战斗记录:", Theme.MakeLabel(12, FontStyle.Normal, Theme.TextDim));
+            // 战斗记录
+            GUI.Label(new Rect(px + 20 * s, py + 100 * s, pw - 40 * s, 20 * s),
+                "战斗记录:", Theme.MakeLabel((int)(13 * s), FontStyle.Normal, Theme.TextDim));
 
+            float logAreaH = Mathf.Min(120 * s, ph - 220 * s);
             _resultsScroll = GUI.BeginScrollView(
-                new Rect(x + 20, y + 120, w - 40, 120),
+                new Rect(px + 20 * s, py + 120 * s, pw - 40 * s, logAreaH),
                 _resultsScroll,
-                new Rect(0, 0, w - 60, _resultsLog.Count * 20));
+                new Rect(0, 0, pw - 60 * s, _resultsLog.Count * 20 * s));
 
             for (int i = 0; i < _resultsLog.Count; i++)
             {
                 Color logColor = _resultsLog[i].Contains("解锁") ? Theme.Gold :
                     _resultsLog[i].Contains("阵亡") ? Theme.HpRed : Theme.Parchment;
-                GUI.Label(new Rect(5, i * 20, w - 70, 20),
+                GUI.Label(new Rect(5 * s, i * 20 * s, pw - 70 * s, 20 * s),
                     _resultsLog[i],
-                    Theme.MakeLabel(11, FontStyle.Normal, logColor));
+                    Theme.MakeLabel((int)(12 * s), FontStyle.Normal, logColor));
             }
             GUI.EndScrollView();
 
             // 按钮
-            float btnY = y + h - 55;
-            float btnW = 120;
-            float gap = 15;
-            float totalBtnW = btnW * 3 + gap * 2;
-            float btnStartX = x + (w - totalBtnW) / 2;
+            float btnY = py + ph - 55 * s;
+            float btnW = 120 * s;
+            float gap2 = 15 * s;
+            float totalBtnW = btnW * 3 + gap2 * 2;
+            float btnStartX = px + (pw - totalBtnW) / 2;
 
             // 重试（朱红）
             GUI.backgroundColor = Theme.PrimaryDark;
-            if (GUI.Button(new Rect(btnStartX, btnY, btnW, 40), "🔄 重试",
-                Theme.MakeButton(15)))
+            if (GUI.Button(new Rect(btnStartX, btnY, btnW, 40 * s), "🔄 重试",
+                Theme.MakeButton((int)(15 * s))))
             {
                 RetryLevel();
             }
@@ -1980,8 +2263,8 @@ namespace ZhenguanWarriors.View.BattleView
                 bool hasNext = _currentLevelIndex + 1 < _levelOrder.Count;
                 GUI.enabled = hasNext;
                 GUI.backgroundColor = Theme.Gold;
-                if (GUI.Button(new Rect(btnStartX + btnW + gap, btnY, btnW, 40), "▶ 下一关",
-                    Theme.MakeButton(15)))
+                if (GUI.Button(new Rect(btnStartX + btnW + gap2, btnY, btnW, 40 * s), "▶ 下一关",
+                    Theme.MakeButton((int)(15 * s))))
                 {
                     string nextId = _levelOrder[_currentLevelIndex + 1];
                     GameState.UnlockLevel(nextId);
@@ -1992,8 +2275,8 @@ namespace ZhenguanWarriors.View.BattleView
 
             // 返回关卡选择
             GUI.backgroundColor = Theme.BgCard;
-            if (GUI.Button(new Rect(btnStartX + (btnW + gap) * 2, btnY, btnW, 40),
-                "🏯 选关", Theme.MakeButton(15)))
+            if (GUI.Button(new Rect(btnStartX + (btnW + gap2) * 2, btnY, btnW, 40 * s),
+                "🏯 选关", Theme.MakeButton((int)(15 * s))))
             {
                 _gamePhase = GamePhase.LevelSelect;
                 CleanupBattle();
@@ -2169,12 +2452,20 @@ namespace ZhenguanWarriors.View.BattleView
             switch (phase)
             {
                 case TurnManager.TurnPhase.PlayerTurn:
+                    // ★ 回合开始修复可能的重叠
+                    CheckOverlapAt("PlayerTurn开始前");
+                    ResolveUnitOverlaps();
+                    CheckOverlapAt("PlayerTurn-ResolveUnitOverlaps后");
+                    // 刷新所有单位的视觉位置
+                    foreach (var kv in _unitVisuals)
+                        kv.Value.UpdatePosition();
                     _battleUI?.UpdateTurnInfo(_turnManager.TurnNumber, "玩家回合");
                     // 回合开始时自动存档
                     if (_turnManager.TurnNumber == 1 || _turnManager.TurnNumber % 3 == 0)
                         AutoSaveGame();
                     break;
                 case TurnManager.TurnPhase.EnemyTurn:
+                    CheckOverlapAt("EnemyTurn开始前");
                     _battleUI?.UpdateTurnInfo(_turnManager.TurnNumber, "敌方回合");
                     break;
                 case TurnManager.TurnPhase.Victory:
@@ -2293,8 +2584,9 @@ namespace ZhenguanWarriors.View.BattleView
                 return;
             }
 
+            CheckOverlapAt($"EnemyAI-{enemy.Name}行动前");
             var action = _aiTree.Decide(enemy);
-            Debug.Log($"AI {enemy.Name} 决策: {action.Reason}");
+            Debug.Log($"AI {enemy.Name} 决策: {action.Reason} | 类型={action.Type} | 目标格=({action.TargetCell.q},{action.TargetCell.r})");
 
             switch (action.Type)
             {
@@ -2308,10 +2600,19 @@ namespace ZhenguanWarriors.View.BattleView
 
                 case AIActionType.Move:
                 case AIActionType.Retreat:
+                    // ★ AI移动不与其他单位重叠
+                    var blocker = _allUnits.FirstOrDefault(u => u != enemy && u.IsAlive && u.Position == action.TargetCell);
+                    if (blocker != null)
+                    {
+                        Debug.LogWarning($"[EnemyAI] {enemy.Name} 目标格({action.TargetCell.q},{action.TargetCell.r})被 {blocker.Name}[{blocker.Faction}] 占据，原地待命");
+                        _battleUI?.ShowTip($"{enemy.Name} 目标被占据，原地待命");
+                        break;
+                    }
                     enemy.Position = action.TargetCell;
                     enemy.HasMovedThisTurn = true;
                     if (_unitVisuals.TryGetValue(enemy, out var vis))
                         vis.UpdatePosition();
+                    Debug.Log($"[EnemyAI] {enemy.Name} 移动到 ({action.TargetCell.q},{action.TargetCell.r}) | {action.Reason}");
                     _battleUI?.ShowTip($"{enemy.Name} {action.Reason}");
                     break;
 
@@ -2319,12 +2620,21 @@ namespace ZhenguanWarriors.View.BattleView
                     break;
             }
 
+            CheckOverlapAt($"EnemyAI-{enemy.Name}行动后");
             _turnManager.EndUnitAction();
         }
 
         private void ExecuteAIAttack(BattleUnit attacker, BattleUnit defender)
         {
             if (defender == null || defender.IsDead) return;
+
+            CheckOverlapAt($"ExecuteAIAttack-{attacker.Name}攻击前");
+            Debug.Log($"[ExecuteAIAttack] {attacker.Name}@({attacker.Position.q},{attacker.Position.r}) 攻击 {defender.Name}@({defender.Position.q},{defender.Position.r})");
+            // 检查攻击者和被攻击者是否在同一位置
+            if (attacker.Position == defender.Position)
+            {
+                Debug.LogError($"[ExecuteAIAttack] ⚠ {attacker.Name} 和 {defender.Name} 在同一位置({attacker.Position.q},{attacker.Position.r})！攻击发起时两者重叠！");
+            }
 
             var attackerTerrain = _hexView.Grid.GetTerrain(attacker.Position);
             var result = CombatCalculator.CalcPhysicalDamage(attacker, defender, 0, 0, attackerTerrain);
@@ -2372,6 +2682,18 @@ namespace ZhenguanWarriors.View.BattleView
                     }
                 }
                 Debug.Log(expLog);
+
+                // ★ AI击杀后立即检查胜负
+                if (_victoryChecker != null && !_victoryChecker.IsVictory && !_victoryChecker.IsDefeat)
+                {
+                    _victoryChecker.Check();
+                    if (_victoryChecker.IsDefeat || _victoryChecker.IsVictory)
+                    {
+                        _turnManager.SetPhase(_victoryChecker.IsVictory
+                            ? TurnManager.TurnPhase.Victory : TurnManager.TurnPhase.Defeat);
+                        return;
+                    }
+                }
             }
         }
 
@@ -2403,6 +2725,18 @@ namespace ZhenguanWarriors.View.BattleView
                 if (_unitVisuals.TryGetValue(du, out var deadVis))
                 {
                     StartCoroutine(DeathAnimation(deadVis, du));
+                }
+            }
+
+            // ★ AI计策击杀后立即检查胜负
+            if (deadUnits.Count > 0 && _victoryChecker != null && !_victoryChecker.IsVictory && !_victoryChecker.IsDefeat)
+            {
+                _victoryChecker.Check();
+                if (_victoryChecker.IsDefeat || _victoryChecker.IsVictory)
+                {
+                    _turnManager.SetPhase(_victoryChecker.IsVictory
+                        ? TurnManager.TurnPhase.Victory : TurnManager.TurnPhase.Defeat);
+                    return;
                 }
             }
         }

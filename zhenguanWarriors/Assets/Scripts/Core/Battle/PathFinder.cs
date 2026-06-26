@@ -21,11 +21,31 @@ namespace ZhenguanWarriors.Core.Battle
         /// <summary>
         /// 寻路（考虑兵种地形适性）。返回从起点到终点的路径（含起点、终点），
         /// 不可达时返回空列表。
+        /// 此方法忽略其他单位，如需排除请使用带 occupiedCells 的重载。
         /// </summary>
         public List<HexCoord> FindPath(HexCoord start, HexCoord end, ClassType unitClass)
         {
+            return FindPath(start, end, unitClass, null);
+        }
+
+        /// <summary>
+        /// 寻路（考虑兵种地形适性 + 其他单位占据）。
+        /// occupiedCells 为需要排除的格子（通常传入其他单位位置），路径会绕过这些格子。
+        /// </summary>
+        public List<HexCoord> FindPath(HexCoord start, HexCoord end, ClassType unitClass, HashSet<HexCoord> occupiedCells)
+        {
             if (!_grid.IsWalkable(end, unitClass))
+            {
+                UnityEngine.Debug.LogWarning($"[PathFinder] 目标格({end.q},{end.r})不可通行！");
                 return new List<HexCoord>();
+            }
+
+            // 目标格被占据则不可达
+            if (occupiedCells != null && occupiedCells.Contains(end))
+            {
+                UnityEngine.Debug.LogWarning($"[PathFinder] 目标格({end.q},{end.r})被其他单位占据！");
+                return new List<HexCoord>();
+            }
 
             var frontier = new SortedSet<(int priority, int index, HexCoord coord)>();
             var cameFrom = new Dictionary<HexCoord, HexCoord>();
@@ -45,6 +65,10 @@ namespace ZhenguanWarriors.Core.Battle
 
                 foreach (var next in current.Neighbors())
                 {
+                    // 跳过被其他单位占据的格子（起点除外）
+                    if (occupiedCells != null && occupiedCells.Contains(next) && next != start)
+                        continue;
+
                     if (!_grid.IsWalkable(next, unitClass))
                         continue;
 
@@ -64,7 +88,10 @@ namespace ZhenguanWarriors.Core.Battle
             }
 
             if (!cameFrom.ContainsKey(end) && start != end)
+            {
+                UnityEngine.Debug.LogWarning($"[PathFinder] 从({start.q},{start.r})到({end.q},{end.r})不可达！");
                 return new List<HexCoord>();
+            }
 
             // 回溯路径
             var path = new List<HexCoord>();
