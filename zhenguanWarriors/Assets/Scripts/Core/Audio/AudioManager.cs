@@ -4,7 +4,6 @@ namespace ZhenguanWarriors.Core.Audio
 {
     /// <summary>
     /// 音频管理器——BGM/SFX播放框架
-    /// 当前为占位实现，实际音频资源待Sprint 7外部导入
     /// </summary>
     public class AudioManager : MonoBehaviour
     {
@@ -74,10 +73,23 @@ namespace ZhenguanWarriors.Core.Audio
         public void PlayBGM(string clipPath)
         {
             if (!_bgmEnabled) return;
-            // 占位：实际播放时需要加载 AudioClip
-            // var clip = Resources.Load<AudioClip>(clipPath);
-            // if (clip != null) { _bgmSource.clip = clip; _bgmSource.Play(); }
-            Debug.Log($"[音频] BGM: {clipPath} (占位)");
+            var clip = Resources.Load<AudioClip>(clipPath);
+            if (clip != null)
+            {
+                if (_bgmSource.clip != clip)
+                {
+                    _bgmSource.clip = clip;
+                    _bgmSource.Play();
+                }
+                else if (!_bgmSource.isPlaying)
+                {
+                    _bgmSource.Play();
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"[音频] BGM资源缺失: {clipPath}");
+            }
         }
 
         public void StopBGM()
@@ -96,10 +108,15 @@ namespace ZhenguanWarriors.Core.Audio
         public void PlaySFX(string clipPath)
         {
             if (!_sfxEnabled) return;
-            // 占位：实际播放时需要加载 AudioClip
-            // var clip = Resources.Load<AudioClip>(clipPath);
-            // if (clip != null) _sfxSource.PlayOneShot(clip);
-            Debug.Log($"[音频] SFX: {clipPath} (占位)");
+            var clip = Resources.Load<AudioClip>(clipPath);
+            if (clip != null)
+            {
+                _sfxSource.PlayOneShot(clip);
+            }
+            else
+            {
+                Debug.LogWarning($"[音频] SFX资源缺失: {clipPath}");
+            }
         }
 
         public void SetSFXEnabled(bool enabled)

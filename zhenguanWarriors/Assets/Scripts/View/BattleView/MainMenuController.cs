@@ -1,6 +1,7 @@
 using UnityEngine;
 using ZhenguanWarriors.Core.Save;
 using ZhenguanWarriors.Core.UI;
+using ZhenguanWarriors.Core.Audio;
 
 namespace ZhenguanWarriors.View.BattleView
 {
@@ -20,6 +21,8 @@ namespace ZhenguanWarriors.View.BattleView
             if (_scale < 0.6f) _scale = 0.6f;
             if (_scale > 2.5f) _scale = 2.5f;
             _currentSubPage = SubPage.Main;
+
+            AudioManager.PlayBgm(AudioManager.BgmClips.Title);
         }
 
         /// <summary>GameManager 调用，设置子页面</summary>
@@ -69,6 +72,7 @@ namespace ZhenguanWarriors.View.BattleView
             if (GUI.Button(new Rect(cx - btnW / 2, startY, btnW, btnH),
                 "⚔  新 游 戏", Theme.MakeButton((int)(26 * s))))
             {
+                AudioManager.PlaySfx(AudioManager.SfxClips.Click);
                 SaveManager.ResetNewGame();
                 GameManager.Instance.TransitionTo(GamePage.LevelSelect);
             }
@@ -79,6 +83,7 @@ namespace ZhenguanWarriors.View.BattleView
             if (GUI.Button(new Rect(cx - btnW / 2, startY + btnH + gap, btnW, btnH),
                 "💾  继 续 游 戏", Theme.MakeButton((int)(26 * s))))
             {
+                AudioManager.PlaySfx(AudioManager.SfxClips.Click);
                 var save = SaveManager.LoadLatest();
                 if (save != null)
                 {
@@ -93,6 +98,7 @@ namespace ZhenguanWarriors.View.BattleView
             if (GUI.Button(new Rect(cx - btnW / 2, startY + (btnH + gap) * 2, btnW, btnH),
                 "⚙  设 置", Theme.MakeButton((int)(24 * s), FontStyle.Normal)))
             {
+                AudioManager.PlaySfx(AudioManager.SfxClips.Click);
                 _currentSubPage = SubPage.Settings;
             }
             GUI.backgroundColor = Color.white;
@@ -131,14 +137,41 @@ namespace ZhenguanWarriors.View.BattleView
                 if (GUI.Button(new Rect(SW / 2f - btnW2 * 2 + i * (btnW2 + 10 * s), y,
                     btnW2, 45 * s), diffNames[i],
                     Theme.MakeButton(sel ? (int)(18 * s) : (int)(16 * s))))
+                {
+                    AudioManager.PlaySfx(AudioManager.SfxClips.Click);
                     GameState.CurrentDifficulty = diff;
+                }
             }
             GUI.backgroundColor = Color.white;
             y += 70 * s;
 
-            // 音效占位
-            GUI.Label(new Rect(x, y, w, h), "🎵 音效将在最终版本添加", Theme.MakeLabel((int)(18 * s)));
-            y += 60 * s;
+            // BGM / SFX 开关
+            GUI.Label(new Rect(x, y, w, h), "🎵 音乐音效", Theme.MakeLabel((int)(22 * s), FontStyle.Bold));
+            y += 45 * s;
+
+            bool bgmOn = GameState.CurrentSave?.bgmOn ?? true;
+            bool sfxOn = GameState.CurrentSave?.sfxOn ?? true;
+
+            GUI.backgroundColor = bgmOn ? Theme.Primary : Theme.BgCard;
+            if (GUI.Button(new Rect(x, y, 150 * s, 45 * s), $"BGM: {(bgmOn ? "开" : "关")}",
+                Theme.MakeButton((int)(18 * s))))
+            {
+                AudioManager.PlaySfx(AudioManager.SfxClips.Click);
+                bgmOn = !bgmOn;
+                AudioManager.Instance.SetBGMEnabled(bgmOn);
+                if (GameState.CurrentSave != null) GameState.CurrentSave.bgmOn = bgmOn;
+            }
+            GUI.backgroundColor = sfxOn ? Theme.Primary : Theme.BgCard;
+            if (GUI.Button(new Rect(x + 170 * s, y, 150 * s, 45 * s), $"SFX: {(sfxOn ? "开" : "关")}",
+                Theme.MakeButton((int)(18 * s))))
+            {
+                AudioManager.PlaySfx(AudioManager.SfxClips.Click);
+                sfxOn = !sfxOn;
+                AudioManager.Instance.SetSFXEnabled(sfxOn);
+                if (GameState.CurrentSave != null) GameState.CurrentSave.sfxOn = sfxOn;
+            }
+            GUI.backgroundColor = Color.white;
+            y += 70 * s;
 
             // 存档管理
             GUI.Label(new Rect(x, y, w, h), "📦 存档管理", Theme.MakeLabel((int)(22 * s), FontStyle.Bold));
@@ -147,6 +180,7 @@ namespace ZhenguanWarriors.View.BattleView
             if (GUI.Button(new Rect(x + w + 20 * s, y, 140 * s, h), "清空存档",
                 Theme.MakeButton((int)(18 * s))))
             {
+                AudioManager.PlaySfx(AudioManager.SfxClips.Click);
                 SaveManager.DeleteAllSaves();
                 _hasSaveData = false;
             }
@@ -169,7 +203,10 @@ namespace ZhenguanWarriors.View.BattleView
             GUI.backgroundColor = Theme.BgCard;
             if (GUI.Button(new Rect(SW / 2f - 120 * s, SH - 90 * s, 240 * s, 60 * s),
                 "← 返回", Theme.MakeButton((int)(20 * s))))
+            {
+                AudioManager.PlaySfx(AudioManager.SfxClips.Click);
                 _currentSubPage = SubPage.Main;
+            }
             GUI.backgroundColor = Color.white;
         }
     }

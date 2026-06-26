@@ -7,6 +7,7 @@ using ZhenguanWarriors.Core.AI;
 using ZhenguanWarriors.Core.UI;
 using ZhenguanWarriors.Core.Save;
 using ZhenguanWarriors.Core.Story;
+using ZhenguanWarriors.Core.Audio;
 using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
@@ -391,14 +392,20 @@ namespace ZhenguanWarriors.View.BattleView
             GUI.backgroundColor = Theme.BgCard;
             if (GUI.Button(new Rect(24 * s, btnY2, 200 * s, 55 * s),
                 "← 返回选关", Theme.MakeButton((int)(22 * s))))
+            {
+                AudioManager.PlaySfx(AudioManager.SfxClips.Click);
                 GameManager.Instance.TransitionTo(GamePage.LevelSelect);
+            }
 
             bool canConfirm = selected >= 1;
             GUI.enabled = canConfirm;
             GUI.backgroundColor = Theme.Primary;
             if (GUI.Button(new Rect(SW - 220 * s, btnY2, 200 * s, 55 * s),
                 "确认阵容 →", Theme.MakeButton((int)(22 * s))))
+            {
+                AudioManager.PlaySfx(AudioManager.SfxClips.Click);
                 ConfirmHeroSelection();
+            }
             GUI.backgroundColor = Color.white;
             GUI.enabled = true;
         }
@@ -561,6 +568,7 @@ namespace ZhenguanWarriors.View.BattleView
             if (GUI.Button(new Rect(SW / 2 - 150 * s, bY, 300 * s, 55 * s),
                 "⚔  开 始 战 斗", Theme.MakeButton((int)(22 * s))))
             {
+                AudioManager.PlaySfx(AudioManager.SfxClips.Click);
                 StartBattle();
             }
             GUI.backgroundColor = Color.white;
@@ -1102,6 +1110,10 @@ namespace ZhenguanWarriors.View.BattleView
             _battleUI?.ShowTip("选中己方单位 → 点击移动/攻击 | 底部选择计策");
             _turnManager?.StartBattle();
 
+            // 战斗BGM（Boss关使用boss音乐）
+            bool isBossLevel = _currentLevel?.enemies.Any(e => e.isBoss) ?? false;
+            AudioManager.PlayBgm(isBossLevel ? AudioManager.BgmClips.Boss : AudioManager.BgmClips.Battle);
+
             // ★ 所有初始化完成后再设为 Battle 阶段（防止 Update 提前处理点击）
             _gamePhase = GamePhase.Battle;
 
@@ -1587,6 +1599,11 @@ namespace ZhenguanWarriors.View.BattleView
 
             defender.TakeDamage(result.damage);
 
+            // 攻击音效
+            if (result.isHit)
+                AudioManager.PlaySfx(result.isCrit ? AudioManager.SfxClips.Crit : AudioManager.SfxClips.Attack);
+            AudioManager.PlaySfx(AudioManager.SfxClips.Hit);
+
             string critText = result.isCrit ? "【暴击】" : "";
             string hitText = result.isHit ?
                 $"造成 {result.damage} 点伤害" : "未命中";
@@ -1614,6 +1631,7 @@ namespace ZhenguanWarriors.View.BattleView
             if (defender.IsDead)
             {
                 Debug.Log($"{defender.Name} 阵亡！");
+                AudioManager.PlaySfx(AudioManager.SfxClips.Death);
                 if (_unitVisuals.TryGetValue(defender, out var deadVis))
                 {
                     StartCoroutine(DeathAnimation(deadVis, defender));
@@ -1740,6 +1758,7 @@ namespace ZhenguanWarriors.View.BattleView
 
             _isAnimating = true;
             string log = _skillExecutor.Execute(skill, caster, targetCell);
+            AudioManager.PlaySfx(skill.type == SkillType.Heal ? AudioManager.SfxClips.Heal : AudioManager.SfxClips.Skill);
             _battleUI?.ShowTip(log);
             Debug.Log(log);
 
@@ -1994,12 +2013,14 @@ namespace ZhenguanWarriors.View.BattleView
 
             if (GUI.Button(new Rect(btnX, btnY, btnW, btnH2), "攻击"))
             {
+                AudioManager.PlaySfx(AudioManager.SfxClips.Click);
                 ExecuteDuelRound(DuelAction.Attack);
             }
             btnX += 110;
 
             if (GUI.Button(new Rect(btnX, btnY, btnW, btnH2), "防御"))
             {
+                AudioManager.PlaySfx(AudioManager.SfxClips.Click);
                 ExecuteDuelRound(DuelAction.Defend);
             }
             btnX += 110;
@@ -2007,6 +2028,7 @@ namespace ZhenguanWarriors.View.BattleView
             GUI.enabled = _duelSystem.PlayerSpecialGauge > 0;
             if (GUI.Button(new Rect(btnX, btnY, btnW, btnH2), "必杀"))
             {
+                AudioManager.PlaySfx(AudioManager.SfxClips.Click);
                 ExecuteDuelRound(DuelAction.Special);
             }
             GUI.enabled = true;
@@ -2014,6 +2036,8 @@ namespace ZhenguanWarriors.View.BattleView
 
         private void ExecuteDuelRound(DuelAction playerAction)
         {
+            AudioManager.PlaySfx(AudioManager.SfxClips.Duel);
+
             // 敌方随机选择
             var enemyAction = (DuelAction)UnityEngine.Random.Range(0, 3);
             _duelSystem.ExecuteRound(playerAction, enemyAction);
@@ -2127,7 +2151,10 @@ namespace ZhenguanWarriors.View.BattleView
 
                 // 点击
                 if (unlocked && GUI.Button(cardRect, "", GUIStyle.none))
+                {
+                    AudioManager.PlaySfx(AudioManager.SfxClips.Click);
                     SelectLevel(levelId);
+                }
             }
         }
 
@@ -2290,6 +2317,7 @@ namespace ZhenguanWarriors.View.BattleView
             if (GUI.Button(new Rect(btnStartX, btnY, btnW, 40 * s), "🔄 重试",
                 Theme.MakeButton((int)(15 * s))))
             {
+                AudioManager.PlaySfx(AudioManager.SfxClips.Click);
                 RetryLevel();
             }
             GUI.backgroundColor = Color.white;
@@ -2303,6 +2331,7 @@ namespace ZhenguanWarriors.View.BattleView
                 if (GUI.Button(new Rect(btnStartX + btnW + gap2, btnY, btnW, 40 * s), "▶ 下一关",
                     Theme.MakeButton((int)(15 * s))))
                 {
+                    AudioManager.PlaySfx(AudioManager.SfxClips.Click);
                     string nextId = _levelOrder[_currentLevelIndex + 1];
                     GameState.UnlockLevel(nextId);
                     SelectLevel(nextId);
@@ -2315,6 +2344,7 @@ namespace ZhenguanWarriors.View.BattleView
             if (GUI.Button(new Rect(btnStartX + (btnW + gap2) * 2, btnY, btnW, 40 * s),
                 "🏯 选关", Theme.MakeButton((int)(15 * s))))
             {
+                AudioManager.PlaySfx(AudioManager.SfxClips.Click);
                 _gamePhase = GamePhase.LevelSelect;
                 CleanupBattle();
                 if (GameManager.Instance != null)
@@ -2522,6 +2552,9 @@ namespace ZhenguanWarriors.View.BattleView
             _resultsTitle = isVictory ? "🎉 胜利！" : "💀 战败";
             _resultsMessage = _victoryChecker?.ResultMessage
                 ?? (isVictory ? "战斗结束" : "战斗失败");
+
+            // 结算BGM
+            AudioManager.PlayBgm(isVictory ? AudioManager.BgmClips.Victory : AudioManager.BgmClips.Defeat);
 
             if (isVictory)
             {
