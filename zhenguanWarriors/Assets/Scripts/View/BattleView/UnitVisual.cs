@@ -43,6 +43,7 @@ namespace ZhenguanWarriors.View.BattleView
             visual.BuildVisuals();
             visual.UpdatePosition();
             visual.UpdateHpBar();
+            visual.UpdateNameVisibility();
             return visual;
         }
 
@@ -113,7 +114,7 @@ namespace ZhenguanWarriors.View.BattleView
             nameLabel.color = Color.white;
             nameLabel.anchor = TextAnchor.MiddleCenter;
             nameLabel.alignment = TextAlignment.Center;
-            nameLabel.transform.localPosition = new Vector3(0, -unitRadius - 0.15f, -0.03f);
+            nameLabel.transform.localPosition = new Vector3(0, -unitRadius - 0.45f, -0.03f);
             // TextMesh 自带 MeshRenderer，无需手动设置 material
             // Unity 会自动处理字体渲染
 
@@ -126,7 +127,7 @@ namespace ZhenguanWarriors.View.BattleView
             classLabel.color = new Color(0.8f, 0.8f, 0.6f);
             classLabel.anchor = TextAnchor.MiddleCenter;
             classLabel.alignment = TextAlignment.Center;
-            classLabel.transform.localPosition = new Vector3(0, -unitRadius - 0.35f, -0.03f);
+            classLabel.transform.localPosition = new Vector3(0, -unitRadius - 0.65f, -0.03f);
         }
 
         // ========== 生成纹理方法 ==========
@@ -342,7 +343,7 @@ namespace ZhenguanWarriors.View.BattleView
         public void UpdateNameVisibility()
         {
             if (nameLabel != null)
-                nameLabel.gameObject.SetActive(false); // 简版先隐藏，复杂版再加
+                nameLabel.gameObject.SetActive(true);
         }
 
         /// <summary>
