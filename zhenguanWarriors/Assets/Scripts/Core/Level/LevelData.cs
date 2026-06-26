@@ -163,7 +163,7 @@ namespace ZhenguanWarriors.Core.Level
                 height = 12,
                 weather = WeatherType.Sunny,
                 wind = WindDirection.None,
-                availableCharacters = new List<string> { "lishimin", "zhangsun_wuji", "chai_shao", "liu_hongji" },
+                availableCharacters = new List<string> { "lishimin", "li_jing", "zhangsun_wuji", "chai_shao", "liu_hongji" },
                 requiredCharacters = new List<string> { "lishimin" },
                 victoryType = VictoryConditionType.DefeatAll,
                 defeatTypes = new List<DefeatConditionType> { DefeatConditionType.PlayerDead }

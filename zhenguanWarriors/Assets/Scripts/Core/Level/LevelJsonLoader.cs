@@ -99,7 +99,19 @@ namespace ZhenguanWarriors.Core.Level
                 if (i < level.enemies.Count - 1) sb.Append(",");
                 sb.AppendLine();
             }
-            sb.AppendLine("  ]");
+            sb.AppendLine("  ],");
+
+            // 回合事件（剧情触发点）
+            sb.AppendLine("  \"turnEvents\": {");
+            int teIdx = 0;
+            foreach (var kv in level.turnEvents)
+            {
+                sb.Append($"    \"{kv.Key}\": \"{EscapeJson(kv.Value)}\"");
+                if (teIdx < level.turnEvents.Count - 1) sb.Append(",");
+                sb.AppendLine();
+                teIdx++;
+            }
+            sb.AppendLine("  }");
 
             sb.AppendLine("}");
             return sb.ToString();
@@ -251,6 +263,24 @@ namespace ZhenguanWarriors.Core.Level
                     foreach (var s in arr)
                         if (Enum.TryParse<DefeatConditionType>(s, out var dt))
                             level.defeatTypes.Add(dt);
+                }
+                // 回合事件（剧情触发点）
+                else if (line.Contains("\"turnEvents\""))
+                {
+                    i++; // skip to first entry
+                    while (i < lines.Length && !lines[i].Trim().StartsWith("}"))
+                    {
+                        var teLine = lines[i].Trim().TrimEnd(',').TrimEnd('}');
+                        var colonIdx = teLine.IndexOf(':');
+                        if (colonIdx > 0)
+                        {
+                            var keyStr = teLine.Substring(0, colonIdx).Trim().Trim('"');
+                            var valStr = teLine.Substring(colonIdx + 1).Trim().Trim('"').TrimEnd(',');
+                            if (int.TryParse(keyStr, out int turn))
+                                level.turnEvents[turn] = valStr;
+                        }
+                        i++;
+                    }
                 }
             }
 

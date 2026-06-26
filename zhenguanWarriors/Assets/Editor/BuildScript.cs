@@ -2,8 +2,17 @@ using UnityEditor;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 
+using ZhenguanWarriors.Core.Level;
+
 public class BuildScript
 {
+    [MenuItem("贞观勇士/导出全部关卡JSON")]
+    public static void ExportLevels()
+    {
+        LevelLibrary.ExportAllToJson();
+        Debug.Log("[编辑器] 全部关卡 JSON 导出完成");
+    }
+
     public static void BuildAPK()
     {
         string[] scenes = new string[] { "Assets/Scenes/SampleScene.scene" };
