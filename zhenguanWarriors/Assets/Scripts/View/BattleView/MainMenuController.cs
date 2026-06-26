@@ -16,7 +16,7 @@ namespace ZhenguanWarriors.View.BattleView
         void OnEnable()
         {
             _hasSaveData = SaveManager.HasAnySave();
-            _scale = Mathf.Min(SW / 1080f, SH / 1920f);
+            _scale = Mathf.Min(SW / 1920f, SH / 1080f);
             if (_scale < 0.6f) _scale = 0.6f;
             if (_scale > 2.5f) _scale = 2.5f;
             _currentSubPage = SubPage.Main;

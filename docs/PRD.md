@@ -533,5 +533,9 @@ GUI.Label(new Rect(0, 0, 400, 48), "text",
   - **返回导航**：`PauseMenu.Close()` 调用 `ExecutePendingAction()`，解决"保存并退出""撤退"确认后不生效的问题。
   - **单位重叠**：`PathFinder.FindPath` 新增 `occupiedCells` 重载；`AIBehaviorTree` 与 `BattleTestController.MoveUnitAnimation` 同步传入其他单位占据格，根治寻路穿过/落到其他单位的问题；同时修复 `MoveUnitAnimation` 默认按步兵寻路的 bug，改为按实际兵种寻路。
   - 涉及文件：`PauseMenu.cs`、`PathFinder.cs`、`AIBehaviorTree.cs`、`BattleTestController.cs`。
+- **v0.5（2026-06-27）MVP 缺口梳理与 Sprint 8 规划**：
+  - 深入审计当前代码完成度，发现与 MVP 实际差距：8 关 JSON 仅 `level_01.json` 存在、剧情对话流程被跳过、友军 AI 未接入、音效系统仍占位、装备获取途径缺失。
+  - 在 `docs/ROADMAP.md` 中新增 **Sprint 8：MVP 缺口补齐与稳定性加固**，列出 P0/P1/P2 任务清单与验收标准。
+  - 更新 MVP 最终规格状态，将"关卡/剧情/音频"标记为待补齐（⚡）。
 - v0.4（2026-05-31）更新商业化方案，明确广告播放变现策略（激励视频/Banner/插屏），加入版本规划
 - v0.5（2026-06-02）新增第6章完整用户交互流程与UX设计（导航架构/页面布局/交互规范），新增第9章UI/UX设计规范

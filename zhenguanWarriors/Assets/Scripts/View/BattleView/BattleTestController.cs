@@ -92,6 +92,24 @@ namespace ZhenguanWarriors.View.BattleView
             _battleUI = GetComponent<BattleUI>();
             _dialogueUI = GetComponent<DialogueUI>();
 
+            // 防御性校验：核心组件缺失时禁用自身，避免后续空引用崩溃
+            if (_hexView == null)
+            {
+                Debug.LogError("[战斗] 缺少 HexGridView 组件，战斗控制器将禁用。");
+                enabled = false;
+                return;
+            }
+            if (_battleUI == null)
+            {
+                Debug.LogError("[战斗] 缺少 BattleUI 组件，战斗控制器将禁用。");
+                enabled = false;
+                return;
+            }
+            if (_dialogueUI == null)
+            {
+                Debug.LogWarning("[战斗] 缺少 DialogueUI 组件，剧情功能不可用。");
+            }
+
             // DPI自适应缩放（竖屏基准：1080x1920）
             float wScale = SW / 1920f;
             float hScale = SH / 1080f;
@@ -1038,6 +1056,12 @@ namespace ZhenguanWarriors.View.BattleView
             WeatherType weatherType = _currentLevel?.weather ?? WeatherType.Sunny;
             WindDirection windDir = _currentLevel?.wind ?? WindDirection.None;
             _weather = new WeatherSystem(weatherType, windDir);
+
+            if (_hexView?.Grid == null)
+            {
+                Debug.LogError("[StartBattle] _hexView.Grid 为空，无法创建 SkillExecutor 与 AI。");
+                return;
+            }
             _skillExecutor = new SkillExecutor(_allUnits, _hexView.Grid, _weather);
             string diffStr = GameState.CurrentDifficulty switch
             {
@@ -1075,8 +1099,8 @@ namespace ZhenguanWarriors.View.BattleView
             // 重置回春使用记录（新关卡）
             SkillExecutor.ResetReviveTracker();
 
-            _battleUI.ShowTip("选中己方单位 → 点击移动/攻击 | 底部选择计策");
-            _turnManager.StartBattle();
+            _battleUI?.ShowTip("选中己方单位 → 点击移动/攻击 | 底部选择计策");
+            _turnManager?.StartBattle();
 
             // ★ 所有初始化完成后再设为 Battle 阶段（防止 Update 提前处理点击）
             _gamePhase = GamePhase.Battle;
@@ -1312,7 +1336,7 @@ namespace ZhenguanWarriors.View.BattleView
             if (clickedCell == null) return;
 
             HexCoord cell = clickedCell.Value;
-            BattleUnit unitAtCell = _turnManager.GetUnitAt(cell);
+            BattleUnit unitAtCell = _turnManager?.GetUnitAt(cell);
 
             // 如果点击的是自己的单位——选中它（只针对未行动的单位）
             if (unitAtCell != null && unitAtCell.Faction == Faction.Player
@@ -1377,6 +1401,11 @@ namespace ZhenguanWarriors.View.BattleView
                 // 点击空地→移动（排除其他单位占据的格子）
                 var occ2 = new HashSet<HexCoord>(_allUnits.Where(u => u != _selectedUnit && u.IsAlive)
                     .Select(u => u.Position));
+                if (_hexView?.PathFinder == null)
+                {
+                    Debug.LogError("[ProcessClick] _hexView.PathFinder 为空，无法计算移动范围。");
+                    return;
+                }
                 var range = _hexView.PathFinder.GetMoveRange(
                     _selectedUnit.Position, _selectedUnit.MoveRange, _selectedUnit.UnitClass, occ2);
                 if (range.ContainsKey(cell))

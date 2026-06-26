@@ -184,6 +184,31 @@ namespace ZhenguanWarriors.View.BattleView
                 go.GetComponent<MeshRenderer>().material.color = GetTerrainColor(_grid.GetTerrain(pos));
         }
 
+        /// <summary>高亮攻击范围内格子</summary>
+        public void ShowAttackRange(HexCoord center, int range, List<HexCoord> targets = null)
+        {
+            ClearHighlights();
+            Color attackColor = new Color(1f, 0.25f, 0.15f, 0.5f);
+            foreach (var cell in center.Range(range))
+            {
+                if (_grid.InBounds(cell) && _hexObjects.TryGetValue(cell, out var go))
+                {
+                    if (targets == null || targets.Contains(cell))
+                        go.GetComponent<MeshRenderer>().material.color = attackColor;
+                }
+            }
+        }
+
+        /// <summary>高亮指定格子集合</summary>
+        public void HighlightCells(HashSet<HexCoord> cells, Color color)
+        {
+            foreach (var pos in cells)
+            {
+                if (_hexObjects.TryGetValue(pos, out var go))
+                    go.GetComponent<MeshRenderer>().material.color = color;
+            }
+        }
+
         public void RefreshCellColor(HexCoord cell)
         {
             if (_hexObjects.TryGetValue(cell, out var go))
@@ -193,6 +218,11 @@ namespace ZhenguanWarriors.View.BattleView
         void SetupCamera()
         {
             var cam = Camera.main;
+            if (cam == null)
+            {
+                Debug.LogError("[HexGridView] Camera.main 为空，无法自动设置相机。");
+                return;
+            }
             cam.orthographic = true;
             float cx = gridWidth * hexSize * 0.75f;
             float cy = gridHeight * hexSize * 0.5f;

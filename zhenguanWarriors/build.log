@@ -1,0 +1,99 @@
+[Licensing::Module] Trying to connect to existing licensing client channel...
+[Licensing::IpcConnector] Connection attempt to the License Client on channel: "LicenseClient-QiCheng" failed because channel doesn't exist; code: "0x80000002"
+[Licensing::Module] GetFullLicensingClientPath:	 C:\Program Files\Tuanjie Hub\TuanjieLicensingClient_V1\Tuanjie.Licensing.Client.exe
+[Licensing::Module] Successfully launched the LicensingClient (PId: 19924)
+[Licensing::IpcConnector] Successfully connected to the License Client on channel: "LicenseClient-QiCheng" at "2026-06-25T15:05:55.6626251Z"
+[Licensing::Client] Error: Code 10 while verifying Licensing Client signature (process Id: 19924, path: "C:/Program Files/Tuanjie Hub/TuanjieLicensingClient_V1/Tuanjie.Licensing.Client.exe")
+[Licensing::Module] Error: LicensingClient has failed validation; ignoring
+[Licensing::Client] Successfully send message: {"AuthorizationCheck":"Ewh7pyyrCOXtAA==","messageType":"HandshakeRequest","protocolVersion":"1.12","userAgent":"TuanjieEditor/2022.3.62t8 (Windows; U; Windows NT 10.0; zh)","externalCorrelationId":"6878802632741453076"} at 1782399957
+[Licensing::Client] Successfully receive message: {"protocolVersion":"1.12","sessionId":"77f7dd6a5200421cb3ea487bba200dea","context":{"DeviceName":"DESKTOP-0EUNA4F","DeviceModel":"81Q5 (LENOVO)","PhysicalMemoryMB":"16295","SystemLanguageISO":"zh","ProcessorCount":"8","ProcessorType":"Intel(R) Core(TM) i5-9300H CPU @ 2.40GHz","OperatingSystem":"Windows 10  (10.0.26200) 64bit","OperatingSystemNumeric":"1000","Legacy.MachineBinding1":"00342-35606-38982-AAOEM","Legacy.MachineBinding2":"00523_88_9192C4_52.2","Legacy.MachineBinding4":"UEYxWVlDVzI=","Legacy.MachineBinding5":"f8:75:a4:0c:aa:69","EnvironmentUser":"QiCheng","EnvironmentDomain":"DESKTOP-0EUNA4F","EnvironmentHostname":"DESKTOP-0EUNA4F"},"assemblyProductVersion":"1.14.0+5d8f2d1","machineId":"ArZP4TMPdCVGxOKZQApd9v/XPcs=","correlationId":"9fc9bc8059226421b6bd48b0f951af6c","responseCode":200,"responseStatus":"Handshake successful","messageType":"HandshakeResponse"} at 1782399957
+[Licensing::Client] Handshaking with LicensingClient:
+  Version:                 1.14.0+5d8f2d1
+  Session Id:              77f7dd6a5200421cb3ea487bba200dea
+  Correlation Id:          9fc9bc8059226421b6bd48b0f951af6c
+  External correlation Id: 6878802632741453076
+  Machine Id:              ArZP4TMPdCVGxOKZQApd9v/XPcs=
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-QiCheng" (connect: 4.28s, validation: 0.16s, handshake: 1.39s)
+[Licensing::IpcConnector] Successfully connected to the License Notification on channel: "LicenseClient-QiCheng-notifications" at "2026-06-25T15:05:57.2095508Z"
+[Licensing::Module] Connected to LicensingClient (PId: 19924, launch time: 1.21, total connection time: 5.83s)
+[Licensing::Module] Error: Access token is unavailable; failed to update
+[Licensing::Client] Successfully send message: {"AuthorizationCheck":"1Divmf5XA2DQ0w==","messageType":"UpdateLicenseRequest","AccessToken":"","OrgId":"","ProjectId":"","forceUpdateLicense":true} at 1782399957
+[Licensing::Client] Successfully receive message: {"responseCode":200,"responseStatus":"Licenses updated.","messageType":"UpdateLicenseResponse","authorizationCheck":"1Divmf5XA2DQ06QPlEomoHjTGpFw"} at 1782399958
+[Licensing::Client] Attempt to check time stamp (startTime: 1782399957, endTime: 1782399958)
+[Licensing::Client] Successfully updated license
+Built from 'tuanjie/1.9/staging' branch; Version is '2022.3.62t8 (eaa6929bf4e5) revision 15378066'; Using compiler version '192829333'; Build Type 'Release'
+OS: 'Windows 11  (10.0.26200) 64bit CoreCountrySpecific' Language: 'zh' Physical Memory: 16295 MB
+[Licensing::Client] Successfully send message: {"AuthorizationCheck":"Yq4yM1NXS1z/hA==","messageType":"EntitlementDetailsRequest","entitlementIds":["com.unity.editor.legacy.pro","com.unity.editor.headless"],"packageEntitlementIds":[],"includeCustomData":false} at 1782399958
+[Licensing::Client] Successfully receive message: {"entitlementGroups":[{"entitlementGroupId":"F4-3MJA-KYQQ-2WJF-6GYT-PA6E","entitlementGroupIdHash":"cc59f2df8b74935280ed906e68397da277db037b","productName":"Unity Personal","productType":"TuanjieEditor","licenseType":"ULF","expiration":1782749160000,"matchedEntitlements":[{"entitlementId":"com.unity.editor.headless","isPackage":false,"count":1}]}],"responseCode":200,"responseStatus":"Found 1 entitlement groups and 0 free entitlements matching requested entitlement ids","messageType":"EntitlementDetailsResponse","authorizationCheck":"Yq4yM1NXS1z/hEKrgphN8VTu8gQd"} at 1782399958
+[Licensing::Client] Attempt to check time stamp (startTime: 1782399958, endTime: 1782399958)
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] Serial number assigned to: "F4-3MJA-KYQQ-2WJF-6GYT-XXXX"
+BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1, IsPro: 0
+[Licensing::Client] Successfully send message: {"AuthorizationCheck":"Yq4yM1NXS1z/hA==","messageType":"EntitlementDetailsRequest","entitlementIds":["com.unity.editor.headless","com.unity.editor.ui"],"packageEntitlementIds":[],"includeCustomData":false} at 1782399958
+[Licensing::Client] Successfully receive message: {"entitlementGroups":[{"entitlementGroupId":"F4-3MJA-KYQQ-2WJF-6GYT-PA6E","entitlementGroupIdHash":"cc59f2df8b74935280ed906e68397da277db037b","productName":"Unity Personal","productType":"TuanjieEditor","licenseType":"ULF","expiration":1782749160000,"matchedEntitlements":[{"entitlementId":"com.unity.editor.ui","isPackage":false,"count":1},{"entitlementId":"com.unity.editor.headless","isPackage":false,"count":1}]}],"responseCode":200,"responseStatus":"Found 1 entitlement groups and 0 free entitlements matching requested entitlement ids","messageType":"EntitlementDetailsResponse","authorizationCheck":"Yq4yM1NXS1z/hEKrgphN8VTu8gQd"} at 1782399958
+[Licensing::Client] Attempt to check time stamp (startTime: 1782399958, endTime: 1782399958)
+[Licensing::Client] Successfully resolved entitlement details
+
+COMMAND LINE ARGUMENTS:
+C:\Program Files\Tuanjie\Hub\Editor\2022.3.62t8\Editor\Tuanjie.exe
+-quit
+-batchmode
+-projectPath
+C:/chengqi/Android/AndroidProject/zhenguanWarriors/zhenguanWarriors
+-executeMethod
+BuildScript.BuildAPK
+-logFile
+C:/chengqi/Android/AndroidProject/zhenguanWarriors/zhenguanWarriors/build.log
+Successfully changed project path to: C:/chengqi/Android/AndroidProject/zhenguanWarriors/zhenguanWarriors
+C:/chengqi/Android/AndroidProject/zhenguanWarriors/zhenguanWarriors
+[Memory] Configuration Parameters - Can be set up in boot.config
+    "memorysetup-bucket-allocator-granularity=16"
+    "memorysetup-bucket-allocator-bucket-count=8"
+    "memorysetup-bucket-allocator-block-size=33554432"
+    "memorysetup-bucket-allocator-block-count=8"
+    "memorysetup-main-allocator-block-size=16777216"
+    "memorysetup-thread-allocator-block-size=16777216"
+    "memorysetup-gfx-main-allocator-block-size=16777216"
+    "memorysetup-gfx-thread-allocator-block-size=16777216"
+    "memorysetup-cache-allocator-block-size=4194304"
+    "memorysetup-typetree-allocator-block-size=2097152"
+    "memorysetup-profiler-bucket-allocator-granularity=16"
+    "memorysetup-profiler-bucket-allocator-bucket-count=8"
+    "memorysetup-profiler-bucket-allocator-block-size=33554432"
+    "memorysetup-profiler-bucket-allocator-block-count=8"
+    "memorysetup-profiler-allocator-block-size=16777216"
+    "memorysetup-profiler-editor-allocator-block-size=1048576"
+    "memorysetup-temp-allocator-size-main=16777216"
+    "memorysetup-job-temp-allocator-block-size=2097152"
+    "memorysetup-job-temp-allocator-block-size-background=1048576"
+    "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
+    "memorysetup-allocator-temp-initial-block-size-main=262144"
+    "memorysetup-allocator-temp-initial-block-size-worker=262144"
+    "memorysetup-temp-allocator-size-gfx=262144"
+    "memorysetup-temp-allocator-size-background-worker=32768"
+    "memorysetup-temp-allocator-size-job-worker=262144"
+    "memorysetup-temp-allocator-size-preload-manager=33554432"
+    "memorysetup-temp-allocator-size-nav-mesh-worker=65536"
+    "memorysetup-temp-allocator-size-audio-worker=65536"
+    "memorysetup-temp-allocator-size-cloud-worker=32768"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gfx=262144"
+Player connection [6312]  Target information:
+
+Player connection [6312]  * "[IP] 192.168.1.8 [Port] 55504 [Flags] 2 [Guid] 3145300685 [EditorId] 3145300685 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-0EUNA4F) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [6312] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [6312] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Input System module state changed to: Initialized.
+AS: AutoStreaming module initializing.
+[LiveLink] LiveLink library is loaded successfully. Initializing...
+Begin write certificate to file.
+Write certificate complete, return 1.
+InitScreenManager.StartServer, cert is C:/Users/QiCheng/AppData/Roaming/Tuanjie/17876-rest-certificate.pem
+Start HTTP server port 38000, HTTPS server port 38443.
+[Package Manager] Server::CheckExitCode -- Server stopped with exit code `101`
+[Package Manager] PackageManager Server::Start -- Process restart attempt #2
+
+[Package Manager] UpmClient::Connect -- Could not connect to IPC stream "Upm-17876" after 30.0 seconds.
+[Package Manager] Failed to start the Tuanjie Package Manager local server process. Make sure the process [C:/Program Files/Tuanjie/Hub/Editor/2022.3.62t8/Editor/Data/Resources/PackageManager/Server/TuanjiePackageManager.exe] is not blocked by Windows Defender or any other anti-virus configuration.
+Exiting without the bug reporter. Application will terminate with return code 1

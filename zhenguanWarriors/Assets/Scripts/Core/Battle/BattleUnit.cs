@@ -178,6 +178,7 @@ namespace ZhenguanWarriors.Core.Battle
             {
                 State = UnitState.Ready;
                 HasActed = false;
+                HasMovedThisTurn = false;
             }
         }
 
