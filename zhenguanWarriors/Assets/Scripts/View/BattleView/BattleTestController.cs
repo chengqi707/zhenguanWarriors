@@ -1488,97 +1488,91 @@ namespace ZhenguanWarriors.View.BattleView
         private IEnumerator MoveUnitAnimation(BattleUnit unit, HexCoord target)
         {
             _isAnimating = true;
-            _hexView.ClearHighlights();
-            DeselectUnit();
-
-            // 计算路径（排除其他单位，并按当前兵种寻路）
-            var occupied = new HashSet<HexCoord>(_allUnits
-                .Where(u => u != unit && u.IsAlive)
-                .Select(u => u.Position));
-            var path = _hexView.PathFinder.FindPath(unit.Position, target, unit.UnitClass, occupied);
-            if (path.Count < 2)
+            try
             {
-                _isAnimating = false;
-                yield break;
-            }
+                _hexView.ClearHighlights();
+                DeselectUnit();
 
-            if (!_unitVisuals.TryGetValue(unit, out var visual))
-            {
-                _isAnimating = false;
-                yield break;
-            }
+                // 计算路径（排除其他单位，并按当前兵种寻路）
+                var occupied = new HashSet<HexCoord>(_allUnits
+                    .Where(u => u != unit && u.IsAlive)
+                    .Select(u => u.Position));
+                var path = _hexView.PathFinder.FindPath(unit.Position, target, unit.UnitClass, occupied);
+                if (path.Count < 2)
+                    yield break;
 
-            // ★ 重叠保护：移动前确认目标格无其他单位
-            var blockingUnit = _allUnits.FirstOrDefault(u => u != unit && u.IsAlive && u.Position == target);
-            if (blockingUnit != null)
-            {
-                Debug.LogWarning($"[MoveUnitAnimation] {unit.Name} 目标格({target.q},{target.r})被 {blockingUnit.Name}[{blockingUnit.Faction}] 占据，无法移动！");
-                _battleUI?.ShowTip($"目标格子被 {blockingUnit.Name} 占据！无法移动");
-                _isAnimating = false;
-                yield break;
-            }
+                if (!_unitVisuals.TryGetValue(unit, out var visual) || visual == null)
+                    yield break;
 
-            // 最终防线：检查路径中间格是否被占据（FindPath已处理occupiedCells，此处不应再触发）
-            for (int i = 1; i < path.Count - 1; i++) // 不检查起点和终点
-            {
-                var midUnit = _allUnits.FirstOrDefault(u => u != unit && u.IsAlive && u.Position == path[i]);
-                if (midUnit != null)
+                // ★ 重叠保护：移动前确认目标格无其他单位
+                var blockingUnit = _allUnits.FirstOrDefault(u => u != unit && u.IsAlive && u.Position == target);
+                if (blockingUnit != null)
                 {
-                    Debug.LogWarning($"[MoveUnitAnimation] 路径中间格({path[i].q},{path[i].r})被 {midUnit.Name}[{midUnit.Faction}] 占据！");
+                    Debug.LogWarning($"[MoveUnitAnimation] {unit.Name} 目标格({target.q},{target.r})被 {blockingUnit.Name}[{blockingUnit.Faction}] 占据，无法移动！");
+                    _battleUI?.ShowTip($"目标格子被 {blockingUnit.Name} 占据！无法移动");
+                    yield break;
+                }
+
+                Debug.Log($"[MoveUnitAnimation] {unit.Name} 从({unit.Position.q},{unit.Position.r}) → ({target.q},{target.r}) 路径共{path.Count}格");
+                CheckOverlapAt($"MoveUnitAnimation-{unit.Name}移动前");
+
+                // 沿路径逐格移动
+                float stepDuration = 0.15f;
+                for (int i = 1; i < path.Count; i++)
+                {
+                    if (visual == null) yield break;
+                    unit.Position = path[i];
+                    Vector3 startPos = visual.transform.position;
+                    Vector3 endPos = _hexView.HexToWorld(path[i]);
+
+                    float elapsed = 0f;
+                    while (elapsed < stepDuration)
+                    {
+                        if (visual == null) yield break;
+                        elapsed += Time.deltaTime;
+                        float t = elapsed / stepDuration;
+                        t = t * t * (3f - 2f * t); // smoothstep
+                        visual.transform.position = Vector3.Lerp(startPos, endPos, t);
+                        yield return null;
+                    }
+                    if (visual != null)
+                        visual.transform.position = endPos;
+                }
+
+                if (unit != null)
+                {
+                    unit.HasMovedThisTurn = true;
+                    unit.Position = target;
+                }
+                Debug.Log($"[MoveUnitAnimation] {unit.Name} 已到达 ({target.q},{target.r})");
+                CheckOverlapAt($"MoveUnitAnimation-{unit.Name}移动后");
+                _battleUI?.ShowTip($"{unit.Name} 移动到 ({target.q},{target.r})");
+
+                // ★ 检查攻击范围内是否有敌人 → 保持选中让玩家选择攻击或待机
+                bool hasTarget = _allUnits.Any(u => u.Faction == Faction.Enemy && u.IsAlive
+                    && target.Distance(u.Position) <= unit.AttackRange);
+
+                if (hasTarget)
+                {
+                    // 重新选中单位，显示攻击范围高亮
+                    _selectedUnit = unit;
+                    var enemyCells = _allUnits.Where(u => u.Faction == Faction.Enemy && u.IsAlive
+                        && target.Distance(u.Position) <= unit.AttackRange)
+                        .Select(u => u.Position).ToList();
+                    _hexView.ShowAttackRange(target, unit.AttackRange, enemyCells);
+                    if (_unitVisuals.TryGetValue(unit, out var vis))
+                        vis.SetSelected(true);
+                    _battleUI?.ShowTip($"{unit.Name} 选择攻击目标或点击空白处待机");
+                }
+                else
+                {
+                    _battleUI?.ShowTip($"{unit.Name} 到达目标位置，范围内无敌方");
+                    EndUnitAction();
                 }
             }
-            Debug.Log($"[MoveUnitAnimation] {unit.Name} 从({unit.Position.q},{unit.Position.r}) → ({target.q},{target.r}) 路径共{path.Count}格");
-
-            CheckOverlapAt($"MoveUnitAnimation-{unit.Name}移动前");
-
-            // 沿路径逐格移动
-            float stepDuration = 0.15f;
-            for (int i = 1; i < path.Count; i++)
+            finally
             {
-                unit.Position = path[i];
-                Vector3 startPos = visual.transform.position;
-                Vector3 endPos = _hexView.HexToWorld(path[i]);
-
-                float elapsed = 0f;
-                while (elapsed < stepDuration)
-                {
-                    elapsed += Time.deltaTime;
-                    float t = elapsed / stepDuration;
-                    t = t * t * (3f - 2f * t); // smoothstep
-                    visual.transform.position = Vector3.Lerp(startPos, endPos, t);
-                    yield return null;
-                }
-                visual.transform.position = endPos;
-            }
-
-            unit.HasMovedThisTurn = true;
-            unit.Position = target;
-            Debug.Log($"[MoveUnitAnimation] {unit.Name} 已到达 ({target.q},{target.r})");
-            CheckOverlapAt($"MoveUnitAnimation-{unit.Name}移动后");
-            _battleUI?.ShowTip($"{unit.Name} 移动到 ({target.q},{target.r})");
-
-            // ★ 检查攻击范围内是否有敌人 → 保持选中让玩家选择攻击或待机
-            bool hasTarget = _allUnits.Any(u => u.Faction == Faction.Enemy && u.IsAlive
-                && target.Distance(u.Position) <= unit.AttackRange);
-
-            _isAnimating = false;
-
-            if (hasTarget)
-            {
-                // 重新选中单位，显示攻击范围高亮
-                _selectedUnit = unit;
-                var enemyCells = _allUnits.Where(u => u.Faction == Faction.Enemy && u.IsAlive
-                    && target.Distance(u.Position) <= unit.AttackRange)
-                    .Select(u => u.Position).ToList();
-                _hexView.ShowAttackRange(target, unit.AttackRange, enemyCells);
-                if (_unitVisuals.TryGetValue(unit, out var vis))
-                    vis.SetSelected(true);
-                _battleUI?.ShowTip($"{unit.Name} 选择攻击目标或点击空白处待机");
-            }
-            else
-            {
-                _battleUI?.ShowTip($"{unit.Name} 到达目标位置，范围内无敌方");
-                EndUnitAction();
+                _isAnimating = false; // 确保任何情况下都重置
             }
         }
 
