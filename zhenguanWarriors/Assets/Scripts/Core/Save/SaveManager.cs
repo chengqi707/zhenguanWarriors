@@ -16,7 +16,7 @@ namespace ZhenguanWarriors.Core.Save
         private const string SAVE_DIR = "saves";
         private const string AUTO_SAVE = "auto";
         private const string SAVE_EXT = ".json";
-        private const int SAVE_VERSION = 1;
+        private const int SAVE_VERSION = 2;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, SAVE_DIR);
 
@@ -209,7 +209,17 @@ namespace ZhenguanWarriors.Core.Save
             {
                 if (!File.Exists(path)) return null;
                 string json = File.ReadAllText(path);
-                return JsonUtility.FromJson<SaveData>(json);
+                var data = JsonUtility.FromJson<SaveData>(json);
+                if (data == null) return null;
+
+                if (data.version < SAVE_VERSION)
+                {
+                    Debug.LogWarning($"[存档] 版本迁移: {data.version} -> {SAVE_VERSION}");
+                    // v1 -> v2: 新增 gold 字段由 JsonUtility 自动保持默认值 0，无需额外处理
+                    data.version = SAVE_VERSION;
+                }
+
+                return data;
             }
             catch (Exception e)
             {

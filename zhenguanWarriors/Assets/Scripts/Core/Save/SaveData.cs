@@ -9,6 +9,7 @@ namespace ZhenguanWarriors.Core.Save
         // ========== 元数据 ==========
         public string saveTime;
         public int version;
+        public int gold = 0;
         public string levelId;
         public int levelIndex;
         public string levelName;
@@ -47,7 +48,7 @@ namespace ZhenguanWarriors.Core.Save
         {
             return new SaveData
             {
-                version = 1,
+                version = 2,
                 saveTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                 unlockedLevels = new List<string> { "level_01" },
                 currentLevelId = "level_01",
