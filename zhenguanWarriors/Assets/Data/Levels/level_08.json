@@ -155,5 +155,8 @@
       "skills": ["fire_attack", "rock_slide", "heal"]
     }
   ],
-  "turnEvents": {}
+  "turnEvents": {
+  },
+  "rewardEquipIds": ["w011"],
+  "rewardGold": 500
 }

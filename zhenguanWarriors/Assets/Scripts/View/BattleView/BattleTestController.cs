@@ -2585,11 +2585,81 @@ namespace ZhenguanWarriors.View.BattleView
                     _resultsLog.Add("");
                     _resultsLog.Add($"🏆 已通关所有关卡！");
                 }
+
+                // 发放通关奖励
+                ApplyLevelRewards();
             }
 
             _gamePhase = GamePhase.Results;
             if (GameManager.Instance != null)
                 GameManager.Instance.TransitionTo(GamePage.Results);
+        }
+
+        /// <summary>发放关卡通关奖励（金币 + 装备自动分配）</summary>
+        private void ApplyLevelRewards()
+        {
+            if (_currentLevel == null) return;
+
+            var save = GameState.CurrentSave;
+            if (save == null)
+            {
+                save = SaveData.CreateNew();
+                GameState.CurrentSave = save;
+            }
+            if (save.inventoryEquipIds == null)
+                save.inventoryEquipIds = new List<string>();
+
+            // 金币奖励
+            if (_currentLevel.rewardGold > 0)
+            {
+                save.gold += _currentLevel.rewardGold;
+                _resultsLog.Add("");
+                _resultsLog.Add($"💰 获得金钱：{_currentLevel.rewardGold}（持有：{save.gold}）");
+            }
+
+            // 装备奖励
+            var alivePlayers = _allUnits.Where(u => u.Faction == Faction.Player && u.IsAlive).ToList();
+            foreach (var equipId in _currentLevel.rewardEquipIds)
+            {
+                var equip = EquipmentLibrary.Get(equipId);
+                if (equip == null)
+                {
+                    _resultsLog.Add($"⚠ 未知装备奖励：{equipId}");
+                    continue;
+                }
+
+                // 优先尝试装备给主角李世民
+                var target = alivePlayers.FirstOrDefault(u => u.Id == "lishimin" && CanAutoEquip(u, equip));
+                // 否则找任意可装备且对应槽位空缺的单位
+                if (target == null)
+                    target = alivePlayers.FirstOrDefault(u => CanAutoEquip(u, equip));
+
+                if (target != null)
+                {
+                    target.Equip(equipId);
+                    _resultsLog.Add($"🎁 {target.Name} 装备 {equip.name}");
+                }
+                else
+                {
+                    save.inventoryEquipIds.Add(equipId);
+                    _resultsLog.Add($"📦 获得未分配装备：{equip.name}（已存入仓库）");
+                }
+            }
+
+            // 奖励后再次存档，确保金币和装备变更被记录
+            AutoSaveGame();
+        }
+
+        private bool CanAutoEquip(BattleUnit unit, EquipmentData equip)
+        {
+            if (!equip.CanEquip(unit)) return false;
+            return equip.type switch
+            {
+                EquipmentType.Weapon => string.IsNullOrEmpty(unit.WeaponId),
+                EquipmentType.Armor => string.IsNullOrEmpty(unit.ArmorId),
+                EquipmentType.Trinket => string.IsNullOrEmpty(unit.TrinketId),
+                _ => false
+            };
         }
 
         /// <summary>自动存档</summary>

@@ -125,5 +125,8 @@
       "skills": []
     }
   ],
-  "turnEvents": {}
+  "turnEvents": {
+  },
+  "rewardEquipIds": ["a001"],
+  "rewardGold": 150
 }

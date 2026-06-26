@@ -111,7 +111,13 @@ namespace ZhenguanWarriors.Core.Level
                 sb.AppendLine();
                 teIdx++;
             }
-            sb.AppendLine("  }");
+            sb.AppendLine("  },");
+
+            // 通关奖励
+            sb.Append("  \"rewardEquipIds\": [");
+            sb.Append(string.Join(", ", level.rewardEquipIds.Select(id => $"\"{id}\"")));
+            sb.AppendLine("],");
+            sb.AppendLine($"  \"rewardGold\": {level.rewardGold}");
 
             sb.AppendLine("}");
             return sb.ToString();
@@ -281,6 +287,16 @@ namespace ZhenguanWarriors.Core.Level
                         }
                         i++;
                     }
+                }
+                // 通关奖励
+                else if (line.Contains("\"rewardEquipIds\""))
+                {
+                    var arr = ParseJsonArray(lines, ref i);
+                    level.rewardEquipIds = arr;
+                }
+                else if (line.StartsWith("\"rewardGold\""))
+                {
+                    int.TryParse(GetField(line), out level.rewardGold);
                 }
             }
 

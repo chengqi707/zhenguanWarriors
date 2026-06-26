@@ -93,5 +93,9 @@
       "isBoss": false,
       "skills": []
     }
-  ]
+  ],
+  "turnEvents": {
+  },
+  "rewardEquipIds": ["w001"],
+  "rewardGold": 100
 }

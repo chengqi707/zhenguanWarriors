@@ -21,6 +21,9 @@ namespace ZhenguanWarriors.Core.Save
         // ========== 角色状态 ==========
         public List<CharacterSaveData> characters;
 
+        // ========== 未分配装备（战利品暂存） ==========
+        public List<string> inventoryEquipIds;
+
         // ========== 游戏设置 ==========
         public bool bgmOn = true;
         public bool sfxOn = true;
@@ -56,6 +59,7 @@ namespace ZhenguanWarriors.Core.Save
                 levelIndex = 0,
                 levelName = "晋阳举义",
                 characters = new List<CharacterSaveData>(),
+                inventoryEquipIds = new List<string>(),
                 bgmOn = true, sfxOn = true
             };
         }

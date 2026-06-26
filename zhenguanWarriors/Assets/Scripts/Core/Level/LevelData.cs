@@ -81,6 +81,10 @@ namespace ZhenguanWarriors.Core.Level
         // 剧情触发点（回合 -> 事件ID）
         public Dictionary<int, string> turnEvents;
 
+        // 通关奖励
+        public List<string> rewardEquipIds;
+        public int rewardGold;
+
         public LevelData()
         {
             terrainOverrides = new Dictionary<HexCoord, TerrainType>();
@@ -89,6 +93,8 @@ namespace ZhenguanWarriors.Core.Level
             enemies = new List<EnemyConfig>();
             defeatTypes = new List<DefeatConditionType>();
             turnEvents = new Dictionary<int, string>();
+            rewardEquipIds = new List<string>();
+            rewardGold = 0;
         }
     }
 
@@ -190,6 +196,8 @@ namespace ZhenguanWarriors.Core.Level
                     position = new HexCoord(10 + i % 2, 3 + i / 2)
                 });
             }
+            level1.rewardGold = 100;
+            level1.rewardEquipIds = new List<string> { "w001" };
             _levels["level_01"] = level1;
 
             // ========== 第2关：霍邑攻坚 ==========
@@ -241,6 +249,8 @@ namespace ZhenguanWarriors.Core.Level
                     position = new HexCoord(13 + i % 3, 4 + i / 3)
                 });
             }
+            level2.rewardGold = 150;
+            level2.rewardEquipIds = new List<string> { "a001" };
             _levels["level_02"] = level2;
 
             // ========== 第3关：直取长安 ==========
@@ -295,6 +305,8 @@ namespace ZhenguanWarriors.Core.Level
                     skillIds = new List<string> { "volley" }
                 });
             }
+            level3.rewardGold = 200;
+            level3.rewardEquipIds = new List<string> { "w002" };
             _levels["level_03"] = level3;
 
             // ========== 第4关：浅水原之战 ==========
@@ -346,6 +358,8 @@ namespace ZhenguanWarriors.Core.Level
                 position = new HexCoord(15, 9),
                 skillIds = new List<string> { "fire_attack", "confuse" }
             });
+            level4.rewardGold = 250;
+            level4.rewardEquipIds = new List<string> { "t001" };
             _levels["level_04"] = level4;
 
             // ========== 第5关：柏壁之战 ==========
@@ -396,6 +410,8 @@ namespace ZhenguanWarriors.Core.Level
                     skillIds = new List<string> { "volley" }
                 });
             }
+            level5.rewardGold = 300;
+            level5.rewardEquipIds = new List<string> { "a002" };
             _levels["level_05"] = level5;
 
             // ========== 第6关：洛阳攻坚战 ==========
@@ -459,6 +475,8 @@ namespace ZhenguanWarriors.Core.Level
                 position = new HexCoord(21, 7),
                 skillIds = new List<string> { "fire_attack", "rock_slide" }
             });
+            level6.rewardGold = 350;
+            level6.rewardEquipIds = new List<string> { "w007" };
             _levels["level_06"] = level6;
 
             // ========== 第7关：虎牢关之战 ==========
@@ -526,6 +544,8 @@ namespace ZhenguanWarriors.Core.Level
                 position = new HexCoord(16, 11),
                 skillIds = new List<string> { "water_attack", "confuse" }
             });
+            level7.rewardGold = 400;
+            level7.rewardEquipIds = new List<string> { "a005" };
             _levels["level_07"] = level7;
 
             // ========== 第8关：玄武门前夜 ==========
@@ -587,6 +607,8 @@ namespace ZhenguanWarriors.Core.Level
                 position = new HexCoord(14, 6),
                 skillIds = new List<string> { "fire_attack", "rock_slide", "heal" }
             });
+            level8.rewardGold = 500;
+            level8.rewardEquipIds = new List<string> { "w011" };
             _levels["level_08"] = level8;
         }
     }

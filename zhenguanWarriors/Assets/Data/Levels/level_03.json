@@ -133,5 +133,8 @@
       "skills": ["volley"]
     }
   ],
-  "turnEvents": {}
+  "turnEvents": {
+  },
+  "rewardEquipIds": ["w002"],
+  "rewardGold": 200
 }
