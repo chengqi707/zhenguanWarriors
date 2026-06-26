@@ -2142,6 +2142,14 @@ namespace ZhenguanWarriors.View.BattleView
             try { InitHeroPool(); }
             catch (System.Exception ex) { _debugErr = "InitHeroPool: " + ex.Message; return; }
 
+            // ★ 关前剧情：如有则先播放，再进入 HeroSelect
+            string preStoryId = $"story_{levelId}_pre";
+            if (StoryLibrary.Get(preStoryId) != null && _dialogueUI != null)
+            {
+                PlayLevelStory(preStoryId);
+                return;
+            }
+
             GameManager.Instance.TransitionTo(GamePage.HeroSelect);
         }
         private string _debugErr;

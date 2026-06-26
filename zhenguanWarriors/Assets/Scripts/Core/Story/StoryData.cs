@@ -128,6 +128,22 @@ namespace ZhenguanWarriors.Core.Story
                 }
             };
 
+            // ===== 第2关·关后：霍邑大捷 =====
+            _stories["story_02_post"] = new StoryData
+            {
+                storyId = "story_02_post",
+                title = "霍邑大捷",
+                triggerType = StoryTriggerType.AfterLevel,
+                levelId = "level_02",
+                startNode = 1,
+                nodes = new Dictionary<int, StoryNode>
+                {
+                    { 1, new StoryNode { id = 1, speaker = "李世民", speakerId = "lishimin", text = "宋老生已败，霍邑城破！此乃天意助我大唐。", nextNode = 2 } },
+                    { 2, new StoryNode { id = 2, speaker = "段志玄", speakerId = "duan_zhixuan", text = "主公神机妙算，末将佩服！下一步是否直取长安？", nextNode = 3 } },
+                    { 3, new StoryNode { id = 3, speaker = "李世民", speakerId = "lishimin", text = "不错。关中乃龙兴之地，长安势在必得。整军，西进！", nextNode = -1 } }
+                }
+            };
+
             // ===== 第3关·关前：直取长安 =====
             _stories["story_03_pre"] = new StoryData
             {
@@ -141,6 +157,22 @@ namespace ZhenguanWarriors.Core.Story
                     { 1, new StoryNode { id = 1, speaker = "李世民", speakerId = "lishimin", text = "长安乃隋都，城墙坚固，护城河深阔。", nextNode = 2 } },
                     { 2, new StoryNode { id = 2, speaker = "平阳公主", speakerId = "pingyang_princess", text = "二弟放心！我已联络城内各方势力，届时里应外合，长安必破！", nextNode = 3 } },
                     { 3, new StoryNode { id = 3, speaker = "李世民", speakerId = "lishimin", text = "三姐深谋远虑，世民佩服。好，攻取长安，定鼎关中！", nextNode = -1 } }
+                }
+            };
+
+            // ===== 第3关·关后：定鼎关中 =====
+            _stories["story_03_post"] = new StoryData
+            {
+                storyId = "story_03_post",
+                title = "定鼎关中",
+                triggerType = StoryTriggerType.AfterLevel,
+                levelId = "level_03",
+                startNode = 1,
+                nodes = new Dictionary<int, StoryNode>
+                {
+                    { 1, new StoryNode { id = 1, speaker = "李世民", speakerId = "lishimin", text = "长安已下，关中平定。父亲称帝在即，我大唐基业初成。", nextNode = 2 } },
+                    { 2, new StoryNode { id = 2, speaker = "房玄龄", speakerId = "fang_xuanling", text = "主公，西秦薛举仍虎视眈眈，不可掉以轻心。", nextNode = 3 } },
+                    { 3, new StoryNode { id = 3, speaker = "李世民", speakerId = "lishimin", text = "玄龄所言甚是。传令整军，目标浅水原！", nextNode = -1 } }
                 }
             };
 
@@ -160,6 +192,22 @@ namespace ZhenguanWarriors.Core.Story
                 }
             };
 
+            // ===== 第4关·关后：西秦溃败 =====
+            _stories["story_04_post"] = new StoryData
+            {
+                storyId = "story_04_post",
+                title = "西秦溃败",
+                triggerType = StoryTriggerType.AfterLevel,
+                levelId = "level_04",
+                startNode = 1,
+                nodes = new Dictionary<int, StoryNode>
+                {
+                    { 1, new StoryNode { id = 1, speaker = "李世民", speakerId = "lishimin", text = "薛举败退，西秦再也无力东进。关中可保安稳了。", nextNode = 2 } },
+                    { 2, new StoryNode { id = 2, speaker = "秦琼", speakerId = "qin_qiong", text = "主公，北方刘武周勾结突厥，正在攻打柏壁。", nextNode = 3 } },
+                    { 3, new StoryNode { id = 3, speaker = "李世民", speakerId = "lishimin", text = "北方告急，不可迟疑。全军北上，救援柏壁！", nextNode = -1 } }
+                }
+            };
+
             // ===== 第5关·关前：柏壁 =====
             _stories["story_05_pre"] = new StoryData
             {
@@ -173,6 +221,22 @@ namespace ZhenguanWarriors.Core.Story
                     { 1, new StoryNode { id = 1, speaker = "李世民", speakerId = "lishimin", text = "刘武周勾结突厥，攻陷柏壁，形势危急。", nextNode = 2 } },
                     { 2, new StoryNode { id = 2, speaker = "尉迟敬德", speakerId = "yuchi_jingde", text = "末将愿率本部精兵，死守柏壁城！人在城在！", nextNode = 3 } },
                     { 3, new StoryNode { id = 3, speaker = "李世民", speakerId = "lishimin", text = "敬德将军勇冠三军！此战只需守住十日，援军必到！", nextNode = -1 } }
+                }
+            };
+
+            // ===== 第5关·关后：柏壁坚守 =====
+            _stories["story_05_post"] = new StoryData
+            {
+                storyId = "story_05_post",
+                title = "柏壁坚守",
+                triggerType = StoryTriggerType.AfterLevel,
+                levelId = "level_05",
+                startNode = 1,
+                nodes = new Dictionary<int, StoryNode>
+                {
+                    { 1, new StoryNode { id = 1, speaker = "李世民", speakerId = "lishimin", text = "十日坚守，刘武周终于退兵。敬德将军，此战首功非你莫属。", nextNode = 2 } },
+                    { 2, new StoryNode { id = 2, speaker = "尉迟敬德", speakerId = "yuchi_jingde", text = "末将只是尽了本分。主公，何不趁势东进，夺取洛阳？", nextNode = 3 } },
+                    { 3, new StoryNode { id = 3, speaker = "李世民", speakerId = "lishimin", text = "正合我意。洛阳王世充，该算总账了。", nextNode = -1 } }
                 }
             };
 
@@ -205,6 +269,22 @@ namespace ZhenguanWarriors.Core.Story
                     { 1, new StoryNode { id = 1, speaker = "李世民", speakerId = "lishimin", text = "洛阳乃中原腹心，王世充据城固守，此战非同小可。", nextNode = 2 } },
                     { 2, new StoryNode { id = 2, speaker = "殷开山", speakerId = "yin_kaishan", text = "末将愿率器械营破城！洛阳城墙虽厚，也挡不住我军的投石车！", nextNode = 3 } },
                     { 3, new StoryNode { id = 3, speaker = "李世民", speakerId = "lishimin", text = "好！殷将军攻城，李靖将军率骑兵截击援军，此战必胜！", nextNode = -1 } }
+                }
+            };
+
+            // ===== 第6关·关后：洛阳克复 =====
+            _stories["story_06_post"] = new StoryData
+            {
+                storyId = "story_06_post",
+                title = "洛阳克复",
+                triggerType = StoryTriggerType.AfterLevel,
+                levelId = "level_06",
+                startNode = 1,
+                nodes = new Dictionary<int, StoryNode>
+                {
+                    { 1, new StoryNode { id = 1, speaker = "李世民", speakerId = "lishimin", text = "王世充已降，洛阳归我大唐。中原大半已定。", nextNode = 2 } },
+                    { 2, new StoryNode { id = 2, speaker = "李靖", speakerId = "li_jing", text = "主公，窦建德率十万大军东进虎牢关，意图救援王世充。", nextNode = 3 } },
+                    { 3, new StoryNode { id = 3, speaker = "李世民", speakerId = "lishimin", text = "来得正好。一并击破，天下可定！全军开赴虎牢关！", nextNode = -1 } }
                 }
             };
 
