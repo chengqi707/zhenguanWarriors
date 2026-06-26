@@ -529,5 +529,9 @@ GUI.Label(new Rect(0, 0, 400, 48), "text",
 - v0.1（2026-05-31）初稿，对应 MVP 范围（12武将）
 - v0.2（2026-05-31）扩充阵容至 15 人，新增君主/谋士/女性角色定位，新增谋士兵种、羁绊系统
 - v0.3（2026-05-31）新增 4 档全局难度系统、随时存档总则；明确不设地狱级、不设不可退出长关
+- v0.4（2026-06-27）修复两个 P0 问题：
+  - **返回导航**：`PauseMenu.Close()` 调用 `ExecutePendingAction()`，解决"保存并退出""撤退"确认后不生效的问题。
+  - **单位重叠**：`PathFinder.FindPath` 新增 `occupiedCells` 重载；`AIBehaviorTree` 与 `BattleTestController.MoveUnitAnimation` 同步传入其他单位占据格，根治寻路穿过/落到其他单位的问题；同时修复 `MoveUnitAnimation` 默认按步兵寻路的 bug，改为按实际兵种寻路。
+  - 涉及文件：`PauseMenu.cs`、`PathFinder.cs`、`AIBehaviorTree.cs`、`BattleTestController.cs`。
 - v0.4（2026-05-31）更新商业化方案，明确广告播放变现策略（激励视频/Banner/插屏），加入版本规划
 - v0.5（2026-06-02）新增第6章完整用户交互流程与UX设计（导航架构/页面布局/交互规范），新增第9章UI/UX设计规范
