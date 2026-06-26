@@ -78,6 +78,21 @@ namespace ZhenguanWarriors.Core.Battle
             NextUnit();
         }
 
+        /// <summary>切换到友军回合（当前无友军AI，作为兜底避免卡死）</summary>
+        public void StartAllyTurn()
+        {
+            SetPhase(TurnPhase.AllyTurn);
+            var allyUnits = GetAliveUnits(Faction.Ally);
+            foreach (var u in allyUnits)
+                u.SetReady();
+
+            _actionQueue.Clear();
+            foreach (var u in allyUnits)
+                _actionQueue.Enqueue(u);
+
+            NextUnit();
+        }
+
         /// <summary>获取当前行动单位</summary>
         public BattleUnit CurrentUnit => _currentUnit;
 
@@ -133,6 +148,9 @@ namespace ZhenguanWarriors.Core.Battle
                     StartEnemyTurn();
                     break;
                 case TurnPhase.EnemyTurn:
+                    StartAllyTurn(); // 敌方回合后进入友军回合（当前多作为兜底）
+                    break;
+                case TurnPhase.AllyTurn:
                     TurnNumber++;
                     StartPlayerTurn();
                     break;
