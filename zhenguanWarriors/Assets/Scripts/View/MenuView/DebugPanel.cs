@@ -1,5 +1,6 @@
 using System.IO;
 using UnityEngine;
+using ZhenguanWarriors.Core.UI;
 using ZhenguanWarriors.Utils;
 
 namespace ZhenguanWarriors.View.BattleView
