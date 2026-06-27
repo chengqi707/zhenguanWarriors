@@ -580,6 +580,12 @@ GUI.Label(new Rect(0, 0, 400, 48), "text",
   - 存档迁移：`SaveData.version` 升级到 4，新增 `lastDailyAdDate`、`dailyAdWatchCount`，旧存档自动迁移。
   - 涉及文件：`AdManager.cs`、`StubAdProvider.cs`、`UnityAdsProvider.cs`、`GameManager.cs`、`BattleTestController.cs`、`MainMenuController.cs`、`SaveData.cs`、`SaveManager.cs`、`LogCategory.cs`、`GameLogger.cs`、`Packages/manifest.json`。
 
+- **v0.12（2026-06-28）Sprint 9 P0 Android 构建硬化**：
+  - `ProjectSettings.asset` 切换 Scripting Backend 为 IL2CPP、目标架构 ARM64、禁用 Unity Splash、targetSdkVersion 33。
+  - bundleVersion 设为 `0.11`，AndroidBundleVersionCode 设为 `11`；主菜单版本号同步显示 `v0.11`。
+  - 新增 `tools/build_apk.ps1`：关闭 Editor 后一键执行 headless release APK 构建，输出 `Build/zhenguanWarriors_v0.11.apk`。
+  - 涉及文件：`ProjectSettings.asset`、`MainMenuController.cs`、`BuildScript.cs`、`ProjectSettingsConfigurator.cs`、`Assembly-CSharp-Editor.csproj`、`tools/build_apk.ps1`。
+
 ## 14. Android 发布就绪度与后续规划
 
 ### 14.1 当前完成度与缺口对照
@@ -595,13 +601,13 @@ GUI.Label(new Rect(0, 0, 400, 48), "text",
 | 存档系统 | ✅ 完成 | 否 | 自动/手动、版本迁移、战斗中断存档 |
 | UI/UX | ✅ 完成 | 否 | OnGUI 全页面、返回导航、DPI 缩放、相机缩放 |
 | 音频框架 | ✅ 框架完成 | 否（但需优化） | 占位 WAV 已启用，需压缩为 Vorbis/MP3 |
-| Android 构建配置 | ⚠️ 部分完成 | **是** | 已添加自动构建设置校正脚本；仍需 keystore、自定义启动屏、真机验证 |
+| Android 构建配置 | ⚠️ 配置完成 | **是** | IL2CPP + ARM64、target API 33、禁用 Unity Splash、一键构建脚本就绪；仍需关闭 Editor 后执行构建并在真机验证 |
 | 安全区/异形屏 | ✅ 已完成 | 否 | OnGUI 主要页面已适配 `Screen.safeArea` |
 | 曹操传核心系统 | ⚠️ 部分完成 | 否（P1）| 悔棋、新手引导已完成；商店、转职、招募待补充 |
-| 商业化 | ❌ 未接入 | 否（P1） | 激励视频 SDK 未接入 |
+| 商业化 | ⚠️ 框架完成 | 否（P1） | 激励视频抽象层与 3 个点位已接入（当前 Stub 兜底，真实 SDK 需配置 game ID） |
 | 发布资产 | ❌ 未准备 | 否（P2） | 应用图标、商店截图、隐私政策、签名 keystore |
 
-**结论**：核心玩法与内容已基本就绪，安全区、悔棋、新手引导等 P0 缺口已补齐；距离 Android 可发布主要差**构建配置最终硬化**、**激励视频接入**、**商店/转职/招募等 P1 系统**和**发布资产准备**。
+**结论**：核心玩法与内容已基本就绪，安全区、悔棋、新手引导、激励视频抽象层、构建配置等 P0 缺口已补齐；距离 Android 可发布主要差**release APK 真机验证**、**签名 keystore**、**商店/转职/招募等 P1 系统**和**应用图标/商店截图/隐私政策等发布资产**。
 
 ### 14.2 平台策略
 
