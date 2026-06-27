@@ -569,6 +569,17 @@ GUI.Label(new Rect(0, 0, 400, 48), "text",
   - 实现第一关强制新手引导：选李世民 → 移动 → 攻击最近敌人 → 结束回合，完成后持久化并解锁自由操作。
   - 涉及文件：`Theme.cs`、`MainMenuController.cs`、`BattleTestController.cs`、`PauseMenu.cs`、`TurnManager.cs`、`SaveData.cs`、`SaveManager.cs`。
 
+- **v0.11（2026-06-27）Sprint 10 P0 激励视频广告接入**：
+  - 新增广告抽象层：`Core/Ads/IAdProvider.cs`、`AdPlacementType.cs`、`AdManager.cs`、`StubAdProvider.cs`、`UnityAdsProvider.cs`。
+  - 默认接入 Unity Ads（`com.unity.ads`），未配置/失败/编辑器环境自动回退 `StubAdProvider`，保证无网或 SDK 异常时不卡玩家流程。
+  - 实现 3 个激励视频点位：
+    - 战后双倍奖励：胜利结算页点击“🎬 双倍奖励”，金币翻倍并额外获得一件装备。
+    - 战败复活再战：战败结算页点击“🎬 复活再战”，阵亡玩家单位以 50% HP 复活并继续当前回合。
+    - 每日额外奖励：主菜单“🎬 每日福利”，观看后获得 500 金币，每天 1 次。
+  - 频次控制：战后双倍/战败复活每局各 1 次；每日福利每天 1 次；两次广告间全局 5 秒冷却；战斗中禁止弹广告。
+  - 存档迁移：`SaveData.version` 升级到 4，新增 `lastDailyAdDate`、`dailyAdWatchCount`，旧存档自动迁移。
+  - 涉及文件：`AdManager.cs`、`StubAdProvider.cs`、`UnityAdsProvider.cs`、`GameManager.cs`、`BattleTestController.cs`、`MainMenuController.cs`、`SaveData.cs`、`SaveManager.cs`、`LogCategory.cs`、`GameLogger.cs`、`Packages/manifest.json`。
+
 ## 14. Android 发布就绪度与后续规划
 
 ### 14.1 当前完成度与缺口对照

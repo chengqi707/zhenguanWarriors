@@ -17,7 +17,7 @@ namespace ZhenguanWarriors.Core.Save
         private const string SAVE_DIR = "saves";
         private const string AUTO_SAVE = "auto";
         private const string SAVE_EXT = ".json";
-        private const int SAVE_VERSION = 3;
+        private const int SAVE_VERSION = 4;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, SAVE_DIR);
 
@@ -225,6 +225,12 @@ namespace ZhenguanWarriors.Core.Save
                     // v2 -> v3: 新增 cameraZoom，默认 1.0（适配网格）
                     if (data.version < 3)
                         data.cameraZoom = 1f;
+                    // v3 -> v4: 新增广告每日奖励字段
+                    if (data.version < 4)
+                    {
+                        data.lastDailyAdDate = string.Empty;
+                        data.dailyAdWatchCount = 0;
+                    }
                     data.version = SAVE_VERSION;
                 }
 

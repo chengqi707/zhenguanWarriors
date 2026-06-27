@@ -70,6 +70,11 @@
     <Compile Include="Assets\Scripts\Core\Combat\BondSystem.cs" />
     <Compile Include="Assets\Scripts\Utils\LogSettings.cs" />
     <Compile Include="Assets\Scripts\Core\Save\GameState.cs" />
+    <Compile Include="Assets\Scripts\Core\Ads\IAdProvider.cs" />
+    <Compile Include="Assets\Scripts\Core\Ads\AdPlacementType.cs" />
+    <Compile Include="Assets\Scripts\Core\Ads\AdManager.cs" />
+    <Compile Include="Assets\Scripts\Core\Ads\StubAdProvider.cs" />
+    <Compile Include="Assets\Scripts\Core\Ads\UnityAdsProvider.cs" />
     <Compile Include="Assets\Scripts\View\BattleView\MainMenuController.cs" />
     <Compile Include="Assets\Scripts\Core\Save\SaveData.cs" />
     <Compile Include="Assets\Scripts\Core\Combat\SkillExecutor.cs" />

@@ -1,4 +1,5 @@
 using UnityEngine;
+using ZhenguanWarriors.Core.Ads;
 using ZhenguanWarriors.Core.Save;
 using ZhenguanWarriors.Core.UI;
 using ZhenguanWarriors.Core.Audio;
@@ -104,6 +105,31 @@ namespace ZhenguanWarriors.View.BattleView
                 _currentSubPage = SubPage.Settings;
             }
             GUI.backgroundColor = Color.white;
+
+            // 每日福利
+            if (GameState.CurrentSave != null)
+            {
+                bool canDaily = AdManager.Instance != null && AdManager.Instance.CanShowDailyExtraReward();
+                GUI.enabled = canDaily;
+                GUI.backgroundColor = canDaily ? Theme.Gold : Theme.BgCard;
+                string dailyLabel = canDaily
+                    ? $"🎬 每日福利 +{AdManager.Instance.DailyRewardGold}"
+                    : "今日已领";
+                if (GUI.Button(new Rect(cx - btnW / 2, startY + (btnH + gap) * 3, btnW, btnH),
+                    dailyLabel, Theme.MakeButton((int)(24 * s), FontStyle.Normal)))
+                {
+                    AudioManager.PlaySfx(AudioManager.SfxClips.Click);
+                    AdManager.Instance.ShowAd(AdPlacementType.DailyExtraReward,
+                        () =>
+                        {
+                            var dlg = GameManager.Instance?.GetComponent<ConfirmDialog>();
+                            dlg?.Show("每日福利", $"获得 {AdManager.Instance.DailyRewardGold} 金币", null, null, "确定");
+                        },
+                        null);
+                }
+                GUI.backgroundColor = Color.white;
+                GUI.enabled = true;
+            }
 
             // 版本（向上避开底部手势条安全区）
             float versionY = Theme.ApplySafeBottom(50 * s, 30 * s, 8 * s);

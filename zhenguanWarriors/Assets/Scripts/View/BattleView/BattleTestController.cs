@@ -1,4 +1,5 @@
 using UnityEngine;
+using ZhenguanWarriors.Core.Ads;
 using ZhenguanWarriors.Core.AI;
 using ZhenguanWarriors.Core.Audio;
 using ZhenguanWarriors.Core.Battle;
@@ -1428,6 +1429,9 @@ namespace ZhenguanWarriors.View.BattleView
             // 重置回春使用记录（新关卡）
             SkillExecutor.ResetReviveTracker();
 
+            // 重置广告每局限次
+            AdManager.Instance?.ResetBattleAvailability();
+
             _battleUI?.ShowTip("选中己方单位 → 点击移动/攻击 | 底部选择计策");
             _turnManager?.StartBattle();
 
@@ -2705,6 +2709,36 @@ namespace ZhenguanWarriors.View.BattleView
             float totalBtnW = btnW * 3 + gap2 * 2;
             float btnStartX = px + (pw - totalBtnW) / 2;
 
+            // 激励视频按钮（位于主按钮上方）
+            float adBtnY = btnY - 50 * s;
+            bool adManagerReady = AdManager.Instance != null && !GameManager.Instance.IsTransitioning;
+            if (isVictory && adManagerReady && AdManager.Instance.CanShowDoubleRewards())
+            {
+                GUI.backgroundColor = Theme.Gold;
+                if (GUI.Button(new Rect(px + (pw - btnW) / 2, adBtnY, btnW, 40 * s),
+                    "🎬 双倍奖励", Theme.MakeButton((int)(15 * s))))
+                {
+                    AudioManager.PlaySfx(AudioManager.SfxClips.Click);
+                    AdManager.Instance.ShowAd(AdPlacementType.DoubleRewards,
+                        () => ApplyDoubleRewards(),
+                        () => _resultsLog.Add("未完整观看广告，未获得双倍奖励"));
+                }
+                GUI.backgroundColor = Color.white;
+            }
+            else if (!isVictory && adManagerReady && AdManager.Instance.CanShowDefeatRevive())
+            {
+                GUI.backgroundColor = Theme.Gold;
+                if (GUI.Button(new Rect(px + (pw - btnW) / 2, adBtnY, btnW, 40 * s),
+                    "🎬 复活再战", Theme.MakeButton((int)(15 * s))))
+                {
+                    AudioManager.PlaySfx(AudioManager.SfxClips.Click);
+                    AdManager.Instance.ShowAd(AdPlacementType.DefeatRevive,
+                        () => ApplyDefeatRevive(),
+                        () => _resultsLog.Add("未完整观看广告，未复活"));
+                }
+                GUI.backgroundColor = Color.white;
+            }
+
             // 重试（朱红）
             GUI.backgroundColor = Theme.PrimaryDark;
             if (GUI.Button(new Rect(btnStartX, btnY, btnW, 40 * s), "🔄 重试",
@@ -3099,6 +3133,97 @@ namespace ZhenguanWarriors.View.BattleView
                 EquipmentType.Trinket => string.IsNullOrEmpty(unit.TrinketId),
                 _ => false
             };
+        }
+
+        /// <summary>观看广告后获得双倍关卡奖励</summary>
+        private void ApplyDoubleRewards()
+        {
+            var save = GameState.CurrentSave;
+            if (save == null)
+            {
+                save = SaveData.CreateNew();
+                GameState.CurrentSave = save;
+            }
+            if (save.inventoryEquipIds == null)
+                save.inventoryEquipIds = new List<string>();
+
+            // 双倍金币
+            if (_currentLevel != null && _currentLevel.rewardGold > 0)
+            {
+                save.gold += _currentLevel.rewardGold;
+                _resultsLog.Add($"");
+                _resultsLog.Add($"💰 双倍金币：+{_currentLevel.rewardGold}（持有：{save.gold}）");
+            }
+
+            // 额外奖励一件装备（取第一个有效奖励）
+            var alivePlayers = _allUnits.Where(u => u.Faction == Faction.Player && u.IsAlive).ToList();
+            string extraEquipId = _currentLevel?.rewardEquipIds?.FirstOrDefault(id => EquipmentLibrary.Get(id) != null);
+            if (!string.IsNullOrEmpty(extraEquipId))
+            {
+                var equip = EquipmentLibrary.Get(extraEquipId);
+                var target = alivePlayers.FirstOrDefault(u => u.Id == "lishimin" && CanAutoEquip(u, equip))
+                    ?? alivePlayers.FirstOrDefault(u => CanAutoEquip(u, equip));
+
+                if (target != null)
+                {
+                    target.Equip(extraEquipId);
+                    _resultsLog.Add($"🎁 {target.Name} 额外装备 {equip.name}");
+                }
+                else
+                {
+                    save.inventoryEquipIds.Add(extraEquipId);
+                    _resultsLog.Add($"📦 额外获得未分配装备：{equip.name}（已存入仓库）");
+                }
+            }
+
+            _resultsLog.Add("🎬 观看广告获得双倍奖励");
+            AutoSaveGame();
+        }
+
+        /// <summary>观看广告后复活所有阵亡玩家单位并继续战斗</summary>
+        private void ApplyDefeatRevive()
+        {
+            var deadPlayers = _allUnits.Where(u => u.Faction == Faction.Player && u.IsDead).ToList();
+            if (deadPlayers.Count == 0)
+            {
+                _resultsLog.Add("没有可复活的单位");
+                return;
+            }
+
+            foreach (var unit in deadPlayers)
+            {
+                int reviveHp = Mathf.Max(1, unit.MaxHp / 2);
+                unit.Heal(reviveHp);
+                if (_unitVisuals.TryGetValue(unit, out var visual) && visual != null)
+                {
+                    visual.UpdatePosition();
+                    visual.UpdateHpBar();
+                }
+                else
+                {
+                    visual = UnitVisual.Create(unit, _hexView);
+                    _unitVisuals[unit] = visual;
+                }
+            }
+
+            // 重置胜负判定状态，避免复活后立即再次判负
+            if (_turnManager != null)
+                _victoryChecker = new VictoryChecker(_currentLevel, _allUnits, _turnManager);
+
+            DeselectUnit();
+            _isAnimating = false;
+            _inDuel = false;
+            _duelSystem = null;
+            _duelEnemy = null;
+
+            _resultsLog.Add($"🎬 复活成功！{deadPlayers.Count} 名武将重返战场");
+
+            // 回到战场并继续当前回合
+            _gamePhase = GamePhase.Battle;
+            GameManager.Instance?.TransitionTo(GamePage.Battle);
+            _turnManager?.RestartPlayerTurn(_turnManager.TurnNumber);
+            _battleUI?.UpdateTurnInfo(_turnManager?.TurnNumber ?? 0, "玩家回合");
+            _battleUI?.ShowTip("复活成功，继续战斗");
         }
 
         /// <summary>自动存档</summary>

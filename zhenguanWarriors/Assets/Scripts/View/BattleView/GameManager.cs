@@ -1,4 +1,5 @@
 using UnityEngine;
+using ZhenguanWarriors.Core.Ads;
 using ZhenguanWarriors.Core.Save;
 using ZhenguanWarriors.Utils;
 
@@ -45,6 +46,7 @@ namespace ZhenguanWarriors.View.BattleView
             _dialogue = gameObject.AddComponent<DialogueUI>();
             _confirm = gameObject.AddComponent<ConfirmDialog>();
             _pauseMenu = gameObject.AddComponent<PauseMenu>();
+            gameObject.AddComponent<AdManager>();
 
             // 横屏模式
             Screen.orientation = ScreenOrientation.LandscapeLeft;

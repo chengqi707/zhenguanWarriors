@@ -42,6 +42,10 @@ namespace ZhenguanWarriors.Core.Save
         public List<BattlefieldUnitSave> battlefieldUnits;
         public List<TerrainChangeSave> terrainChanges;
 
+        // ========== 广告每日奖励 ==========
+        public string lastDailyAdDate;
+        public int dailyAdWatchCount;
+
         public int avgLevel
         {
             get
@@ -57,7 +61,7 @@ namespace ZhenguanWarriors.Core.Save
         {
             return new SaveData
             {
-                version = 3,
+                version = 4,
                 saveTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                 unlockedLevels = new List<string> { "level_01" },
                 currentLevelId = "level_01",
@@ -66,7 +70,9 @@ namespace ZhenguanWarriors.Core.Save
                 levelName = "晋阳举义",
                 characters = new List<CharacterSaveData>(),
                 inventoryEquipIds = new List<string>(),
-                bgmOn = true, sfxOn = true
+                bgmOn = true, sfxOn = true,
+                lastDailyAdDate = string.Empty,
+                dailyAdWatchCount = 0
             };
         }
     }

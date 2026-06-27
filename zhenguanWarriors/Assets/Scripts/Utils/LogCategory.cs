@@ -16,7 +16,8 @@ namespace ZhenguanWarriors.Utils
         UI = 1 << 5,        // UI 交互、缩放、页面切换
         Level = 1 << 6,     // 关卡加载、JSON 导出
         Network = 1 << 7,   // 网络请求（预留）
+        Ad = 1 << 8,        // 激励视频广告
 
-        All = System | Battle | AI | Save | Audio | UI | Level | Network
+        All = System | Battle | AI | Save | Audio | UI | Level | Network | Ad
     }
 }

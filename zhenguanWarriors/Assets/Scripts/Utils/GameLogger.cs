@@ -16,7 +16,7 @@ namespace ZhenguanWarriors.Utils
 
         private static readonly string[] _categoryNames = new string[]
         {
-            "System", "Battle", "AI", "Save", "Audio", "UI", "Level", "Network"
+            "System", "Battle", "AI", "Save", "Audio", "UI", "Level", "Network", "Ad"
         };
 
         /// <summary>当前运行配置（修改后立即生效）</summary>
