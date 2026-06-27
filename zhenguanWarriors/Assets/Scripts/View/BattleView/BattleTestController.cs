@@ -2751,6 +2751,7 @@ namespace ZhenguanWarriors.View.BattleView
                     break;
 
                 case AIActionType.Skip:
+                    Debug.LogWarning($"[EnemyAI] {enemy.Name} 跳过行动 | {action.Reason}");
                     break;
             }
 

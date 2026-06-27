@@ -96,7 +96,7 @@ namespace ZhenguanWarriors.Core.AI
                 return move;
             }
 
-            Debug.Log($"[AI-Decide] {unit.Name} 无行动");
+            Debug.LogWarning($"[AI-Decide] {unit.Name} 无行动：撤退={retreat != null} 计策={skillAction != null} 攻击={attack != null} 移动={move != null}");
             return new AIAction { Type = AIActionType.Skip, Reason = "无行动" };
         }
 
@@ -120,11 +120,12 @@ namespace ZhenguanWarriors.Core.AI
                 .ToList();
 
             HexCoord retreatTarget;
+            BattleUnit healerUnit = null;
             if (allies.Count > 0)
             {
-                var healer = allies.OrderBy(a => unit.Position.Distance(a.Position)).First();
-                retreatTarget = healer.Position;
-                Debug.Log($"[CheckRetreat] {unit.Name} HP低，向治疗者 {healer.Name}@({healer.Position.q},{healer.Position.r}) 撤退");
+                healerUnit = allies.OrderBy(a => unit.Position.Distance(a.Position)).First();
+                retreatTarget = healerUnit.Position;
+                Debug.Log($"[CheckRetreat] {unit.Name} HP低，向治疗者 {healerUnit.Name}@({healerUnit.Position.q},{healerUnit.Position.r}) 撤退");
             }
             else
             {
@@ -133,7 +134,7 @@ namespace ZhenguanWarriors.Core.AI
                 Debug.Log($"[CheckRetreat] {unit.Name} HP低，无治疗者，向阵营后方({retreatTarget.q},{retreatTarget.r})撤退");
             }
 
-            var path = FindPath(unit, retreatTarget);
+            var path = FindPath(unit, retreatTarget, healerUnit?.Position);
             if (path.Count > 1)
             {
                 var nextStep = path[1];
@@ -237,19 +238,28 @@ namespace ZhenguanWarriors.Core.AI
             var enemies = GetAliveUnits(GetEnemyFaction(unit.Faction));
             if (enemies.Count == 0) return null;
 
-            // 找威胁值最低且最近的敌人（保留1移动力撤退空间）
+            // 找威胁值最低且最近的敌人
             var target = enemies
                 .Select(e => new { unit = e, dist = unit.Position.Distance(e.Position), threat = EvaluateThreat(e, unit) })
                 .OrderBy(e => e.dist)
                 .ThenBy(e => e.threat)
                 .First().unit;
 
-            var path = FindPath(unit, target.Position);
-            if (path.Count <= 1) return null;
+            // 目标格是敌人位置，寻路时应临时排除该格，否则 FindPath 会因"目标被占据"返回空
+            var path = FindPath(unit, target.Position, target.Position);
+            if (path.Count <= 1)
+            {
+                Debug.LogWarning($"[CheckMoveTowards] {unit.Name} 到 {target.Name} 无路可通");
+                return null;
+            }
 
-            // 走到攻击范围内即可，保留1格移动力
-            int maxSteps = Math.Min(path.Count - 1, unit.MoveRange - 1);
-            if (maxSteps < 1) maxSteps = 1;
+            // 走到离敌人最近且仍在移动力范围内的格子，不踩敌人格
+            int maxSteps = Math.Min(path.Count - 2, unit.MoveRange);
+            if (maxSteps < 1)
+            {
+                Debug.Log($"[CheckMoveTowards] {unit.Name} 已贴近 {target.Name}，无需移动");
+                return null;
+            }
 
             var dest = path[maxSteps];
             // 确保目标格没有友方单位挡路
@@ -308,6 +318,16 @@ namespace ZhenguanWarriors.Core.AI
         {
             var pf = new PathFinder(_grid);
             return pf.FindPath(unit.Position, target, unit.UnitClass, GetOccupiedCells(unit));
+        }
+
+        /// <summary>寻路，但临时将 excludeCell 从占据列表中排除（用于目标格本身被占据时）</summary>
+        private List<HexCoord> FindPath(BattleUnit unit, HexCoord target, HexCoord? excludeCell)
+        {
+            var occupied = GetOccupiedCells(unit);
+            if (excludeCell.HasValue)
+                occupied.Remove(excludeCell.Value);
+            var pf = new PathFinder(_grid);
+            return pf.FindPath(unit.Position, target, unit.UnitClass, occupied);
         }
 
         private bool IsCellOccupiedByAlly(HexCoord cell, Faction faction) =>
