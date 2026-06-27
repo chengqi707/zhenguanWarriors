@@ -159,6 +159,30 @@ namespace ZhenguanWarriors.View.BattleView
             }
             GUI.backgroundColor = Color.white;
 
+            // 相机缩放
+            float zoomY = py + ph - 95 * s;
+            GUI.Label(new Rect(px + 20 * s, zoomY, pw - 40 * s, 22 * s),
+                "🔍 战场缩放",
+                Theme.MakeLabel((int)(18 * s), FontStyle.Bold, Theme.TextDim, TextAnchor.MiddleCenter));
+
+            float curZoom = GameState.CurrentSave?.cameraZoom ?? 1f;
+            float newZoom = GUI.HorizontalSlider(
+                new Rect(px + 40 * s, zoomY + 24 * s, pw - 80 * s, 18 * s),
+                curZoom, 0.5f, 1.5f);
+
+            if (!Mathf.Approximately(newZoom, curZoom))
+            {
+                newZoom = Mathf.Clamp(newZoom, 0.5f, 1.5f);
+                if (GameState.CurrentSave != null) GameState.CurrentSave.cameraZoom = newZoom;
+
+                var hexView = _battleCtrl?.GetComponent<HexGridView>();
+                hexView?.ApplyZoom(newZoom);
+            }
+
+            GUI.Label(new Rect(px + pw / 2 - 30 * s, zoomY + 42 * s, 60 * s, 18 * s),
+                $"{newZoom:F2}x",
+                Theme.MakeLabel((int)(13 * s), FontStyle.Normal, Theme.TextDim, TextAnchor.MiddleCenter));
+
             // 底部关卡信息
             var level = _battleCtrl?.CurrentLevel;
             if (level != null)

@@ -173,6 +173,29 @@ namespace ZhenguanWarriors.View.BattleView
             GUI.backgroundColor = Color.white;
             y += 70 * s;
 
+            // 相机缩放
+            y += 10 * s;
+            GUI.Label(new Rect(x, y, w, h), "🔍 战场缩放", Theme.MakeLabel((int)(22 * s), FontStyle.Bold));
+            y += 45 * s;
+
+            float zoom = GameState.CurrentSave?.cameraZoom ?? 1f;
+            GUI.Label(new Rect(x, y, 60 * s, h), "近",
+                Theme.MakeLabel((int)(16 * s), FontStyle.Normal, Theme.TextDim, TextAnchor.MiddleCenter));
+            GUI.Label(new Rect(x + w - 60 * s, y, 60 * s, h), "远",
+                Theme.MakeLabel((int)(16 * s), FontStyle.Normal, Theme.TextDim, TextAnchor.MiddleCenter));
+
+            float newZoom = GUI.HorizontalSlider(
+                new Rect(x + 70 * s, y + 8 * s, w - 140 * s, 20 * s),
+                zoom, 0.5f, 1.5f);
+
+            if (!Mathf.Approximately(newZoom, zoom) && GameState.CurrentSave != null)
+                GameState.CurrentSave.cameraZoom = Mathf.Clamp(newZoom, 0.5f, 1.5f);
+
+            GUI.Label(new Rect(x + w / 2 - 40 * s, y + 22 * s, 80 * s, 20 * s),
+                $"{newZoom:F2}x",
+                Theme.MakeLabel((int)(14 * s), FontStyle.Normal, Theme.TextDim, TextAnchor.MiddleCenter));
+            y += 50 * s;
+
             // 存档管理
             GUI.Label(new Rect(x, y, w, h), "📦 存档管理", Theme.MakeLabel((int)(22 * s), FontStyle.Bold));
             y += 8 * s;

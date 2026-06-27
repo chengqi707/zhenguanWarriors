@@ -156,6 +156,13 @@ namespace ZhenguanWarriors.View.BattleView
             // 网格未就绪时也跳过
             if (_hexView == null || _hexView.Grid == null) return;
 
+            // 双指捏合缩放（优先于单点操作）
+            if (Input.touchCount == 2)
+            {
+                HandlePinchZoom();
+                return;
+            }
+
             // 手机触摸输入
             if (Input.touchCount > 0)
             {
@@ -171,6 +178,34 @@ namespace ZhenguanWarriors.View.BattleView
 
             if (Input.GetKeyDown(KeyCode.Space))
                 EndCurrentTurn();
+        }
+
+        private float _lastPinchDist;
+
+        private void HandlePinchZoom()
+        {
+            Touch t0 = Input.GetTouch(0);
+            Touch t1 = Input.GetTouch(1);
+            float dist = (t0.position - t1.position).magnitude;
+
+            if (t0.phase == TouchPhase.Began || t1.phase == TouchPhase.Began)
+            {
+                _lastPinchDist = dist;
+                return;
+            }
+
+            if (Mathf.Abs(dist - _lastPinchDist) < 5f) return;
+
+            float delta = (dist - _lastPinchDist) / Screen.width;
+            float zoom = GameState.CurrentSave?.cameraZoom ?? 1f;
+            // 手指张开 = 画面变大（zoom 增大），手指捏合 = 画面缩小（zoom 减小）
+            zoom -= delta * 1.5f;
+            zoom = Mathf.Clamp(zoom, 0.5f, 1.5f);
+
+            if (GameState.CurrentSave != null) GameState.CurrentSave.cameraZoom = zoom;
+            _hexView?.ApplyZoom(zoom);
+
+            _lastPinchDist = dist;
         }
 
         // ========== 战前编组 ==========

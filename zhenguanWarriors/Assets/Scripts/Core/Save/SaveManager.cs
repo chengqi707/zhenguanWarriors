@@ -17,7 +17,7 @@ namespace ZhenguanWarriors.Core.Save
         private const string SAVE_DIR = "saves";
         private const string AUTO_SAVE = "auto";
         private const string SAVE_EXT = ".json";
-        private const int SAVE_VERSION = 2;
+        private const int SAVE_VERSION = 3;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, SAVE_DIR);
 
@@ -168,8 +168,9 @@ namespace ZhenguanWarriors.Core.Save
             data.currentLevelId = levelId;
             data.unlockedLevels = new List<string>(unlockedLevels);
 
-            // 保留当前日志设置
+            // 保留当前日志设置与相机缩放
             data.logSettings = GameState.CurrentSave?.logSettings?.Clone() ?? new LogSettings();
+            data.cameraZoom = GameState.CurrentSave?.cameraZoom ?? 1f;
 
             foreach (var unit in playerParty)
             {
@@ -220,6 +221,9 @@ namespace ZhenguanWarriors.Core.Save
                 {
                     GameLogger.LogWarningFormat(LogCategory.Save, "版本迁移|旧={0}|新={1}", data.version, SAVE_VERSION);
                     // v1 -> v2: 新增 gold 字段由 JsonUtility 自动保持默认值 0，无需额外处理
+                    // v2 -> v3: 新增 cameraZoom，默认 1.0（适配网格）
+                    if (data.version < 3)
+                        data.cameraZoom = 1f;
                     data.version = SAVE_VERSION;
                 }
 

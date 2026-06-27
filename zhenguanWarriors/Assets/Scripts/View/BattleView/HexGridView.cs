@@ -2,6 +2,7 @@ using UnityEngine;
 using ZhenguanWarriors.Core.Battle;
 using ZhenguanWarriors.Core.Character;
 using ZhenguanWarriors.Core.Level;
+using ZhenguanWarriors.Core.Save;
 using ZhenguanWarriors.Utils;
 using System.Collections.Generic;
 using System.Linq;
@@ -216,6 +217,8 @@ namespace ZhenguanWarriors.View.BattleView
                 go.GetComponent<MeshRenderer>().material.color = GetTerrainColor(_grid.GetTerrain(cell));
         }
 
+        public float BaseOrthographicSize { get; private set; }
+
         void SetupCamera()
         {
             var cam = Camera.main;
@@ -228,7 +231,27 @@ namespace ZhenguanWarriors.View.BattleView
             float cx = gridWidth * hexSize * 0.75f;
             float cy = gridHeight * hexSize * 0.5f;
             cam.transform.position = new Vector3(cx, cy, -10);
-            cam.orthographicSize = Mathf.Max(gridWidth, gridHeight) * hexSize * 0.6f;
+            BaseOrthographicSize = Mathf.Max(gridWidth, gridHeight) * hexSize * 0.6f;
+            ApplyZoom();
+        }
+
+        public float GetSavedZoom()
+        {
+            float z = GameState.CurrentSave?.cameraZoom ?? 1f;
+            return Mathf.Clamp(z, 0.5f, 1.5f);
+        }
+
+        public void ApplyZoom(float? zoomOverride = null)
+        {
+            var cam = Camera.main;
+            if (cam == null) return;
+
+            float zoom = zoomOverride ?? GetSavedZoom();
+            zoom = Mathf.Clamp(zoom, 0.5f, 1.5f);
+            cam.orthographicSize = BaseOrthographicSize * zoom;
+
+            GameLogger.LogInfoFormat(LogCategory.UI, "相机缩放|base={0:F2}|zoom={1:F2}|size={2:F2}",
+                BaseOrthographicSize, zoom, cam.orthographicSize);
         }
     }
 }

@@ -29,6 +29,7 @@ namespace ZhenguanWarriors.Core.Save
         public bool bgmOn = true;
         public bool sfxOn = true;
         public LogSettings logSettings = new LogSettings();
+        public float cameraZoom = 1f;   // 战场相机缩放倍率，1.0=适配网格，越小画面越大
 
         // ========== 战场状态（战斗中存档时保存） ==========
         public bool isInBattle;
@@ -53,7 +54,7 @@ namespace ZhenguanWarriors.Core.Save
         {
             return new SaveData
             {
-                version = 2,
+                version = 3,
                 saveTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                 unlockedLevels = new List<string> { "level_01" },
                 currentLevelId = "level_01",

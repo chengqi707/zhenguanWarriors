@@ -552,5 +552,10 @@ GUI.Label(new Rect(0, 0, 400, 48), "text",
   - 问题：敌方回合内移动、攻击、计策在单帧完成，玩家看不到敌方棋子动作，体验缺失。
   - 修复：`BattleTestController.EnemyAI` 改为协程，行动前高亮当前单位、延迟 0.5s；移动复用 `MoveUnitAnimation`；`ExecuteAIAttack` / `ExecuteAISkill` 协程化并加入 0.3~0.4s 前后停顿；受击时白闪效果逐格/逐次可见。
   - 涉及文件：`BattleTestController.cs`。
+- **v0.8（2026-06-27）新增战场相机缩放/可见范围调整**：
+  - 问题：默认相机把整个网格刚好塞进屏幕，棋子、血条、名字太小，玩家看不清。
+  - 方案：`SaveData` 新增 `cameraZoom`，`HexGridView.SetupCamera` 按倍率调整 `orthographicSize`；设置页与战斗暂停菜单增加 "🔍 战场缩放" 滑杆；战斗中支持双指捏合缩放。
+  - 范围：`0.5x`（放大棋子）~ `1.5x`（看到更大范围），默认 `1.0x` 保持原适配网格行为；`SAVE_VERSION` 升级到 3，旧存档自动迁移。
+  - 涉及文件：`SaveData.cs`、`SaveManager.cs`、`HexGridView.cs`、`MainMenuController.cs`、`PauseMenu.cs`、`BattleTestController.cs`。
 - v0.4（2026-05-31）更新商业化方案，明确广告播放变现策略（激励视频/Banner/插屏），加入版本规划
 - v0.5（2026-06-02）新增第6章完整用户交互流程与UX设计（导航架构/页面布局/交互规范），新增第9章UI/UX设计规范
