@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using ZhenguanWarriors.Core.Battle;
+using ZhenguanWarriors.Utils;
 
 namespace ZhenguanWarriors.Core.Save
 {
@@ -38,12 +39,12 @@ namespace ZhenguanWarriors.Core.Save
                 data.version = SAVE_VERSION;
                 string json = JsonUtility.ToJson(data, true);
                 File.WriteAllText(GetSlotPath(slot), json);
-                Debug.Log($"[存档] 已保存到槽位 {slot + 1}: {data.levelName} Lv{data.avgLevel}");
+                GameLogger.LogInfoFormat(LogCategory.Save, "存档成功|槽位={0}|关卡={1}|平均等级={2}", slot + 1, data.levelName, data.avgLevel);
                 return true;
             }
             catch (Exception e)
             {
-                Debug.LogError($"[存档] 保存失败: {e.Message}");
+                GameLogger.LogErrorFormat(LogCategory.Save, "存档失败|原因={0}", e.Message);
                 return false;
             }
         }
@@ -57,12 +58,12 @@ namespace ZhenguanWarriors.Core.Save
                 data.version = SAVE_VERSION;
                 string json = JsonUtility.ToJson(data, true);
                 File.WriteAllText(GetAutoSavePath(), json);
-                Debug.Log($"[存档] 自动存档: {data.levelName}");
+                GameLogger.LogInfoFormat(LogCategory.Save, "自动存档|关卡={0}", data.levelName);
                 return true;
             }
             catch (Exception e)
             {
-                Debug.LogError($"[存档] 自动存档失败: {e.Message}");
+                GameLogger.LogErrorFormat(LogCategory.Save, "自动存档失败|原因={0}", e.Message);
                 return false;
             }
         }
@@ -137,11 +138,11 @@ namespace ZhenguanWarriors.Core.Save
                 if (Directory.Exists(SavePath))
                     Directory.Delete(SavePath, true);
                 Directory.CreateDirectory(SavePath);
-                Debug.Log("[存档] 所有存档已清空");
+                GameLogger.LogInfo(LogCategory.Save, "所有存档已清空");
             }
             catch (Exception e)
             {
-                Debug.LogError($"[存档] 清空失败: {e.Message}");
+                GameLogger.LogErrorFormat(LogCategory.Save, "清空存档失败|原因={0}", e.Message);
             }
         }
 
@@ -166,6 +167,9 @@ namespace ZhenguanWarriors.Core.Save
             data.levelName = levelName;
             data.currentLevelId = levelId;
             data.unlockedLevels = new List<string>(unlockedLevels);
+
+            // 保留当前日志设置
+            data.logSettings = GameState.CurrentSave?.logSettings?.Clone() ?? new LogSettings();
 
             foreach (var unit in playerParty)
             {
@@ -214,16 +218,19 @@ namespace ZhenguanWarriors.Core.Save
 
                 if (data.version < SAVE_VERSION)
                 {
-                    Debug.LogWarning($"[存档] 版本迁移: {data.version} -> {SAVE_VERSION}");
+                    GameLogger.LogWarningFormat(LogCategory.Save, "版本迁移|旧={0}|新={1}", data.version, SAVE_VERSION);
                     // v1 -> v2: 新增 gold 字段由 JsonUtility 自动保持默认值 0，无需额外处理
                     data.version = SAVE_VERSION;
                 }
+
+                // 用存档中的日志设置重新配置 GameLogger
+                GameLogger.Reconfigure(data.logSettings);
 
                 return data;
             }
             catch (Exception e)
             {
-                Debug.LogError($"[存档] 读档失败: {e.Message}");
+                GameLogger.LogErrorFormat(LogCategory.Save, "读档失败|原因={0}", e.Message);
                 return null;
             }
         }

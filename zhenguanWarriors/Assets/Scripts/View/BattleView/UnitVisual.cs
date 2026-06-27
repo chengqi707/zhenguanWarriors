@@ -1,6 +1,7 @@
 using UnityEngine;
 using ZhenguanWarriors.Core.Battle;
 using ZhenguanWarriors.Core.Character;
+using ZhenguanWarriors.Utils;
 
 namespace ZhenguanWarriors.View.BattleView
 {
@@ -39,7 +40,7 @@ namespace ZhenguanWarriors.View.BattleView
             visual._hexView = hexView;
             visual._mainCam = Camera.main;
             if (visual._mainCam == null)
-                Debug.LogWarning($"[UnitVisual] Camera.main 为空，单位 {unit.Name} 的屏幕坐标更新可能异常。");
+                GameLogger.LogWarningFormat(LogCategory.UI, "Camera.main为空|单位={0}", unit.Name);
             visual.BuildVisuals();
             visual.UpdatePosition();
             visual.UpdateHpBar();

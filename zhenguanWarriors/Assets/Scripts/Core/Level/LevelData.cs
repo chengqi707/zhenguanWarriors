@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using ZhenguanWarriors.Core.Battle;
 using ZhenguanWarriors.Core.Character;
+using ZhenguanWarriors.Utils;
 
 namespace ZhenguanWarriors.Core.Level
 {
@@ -123,13 +124,13 @@ namespace ZhenguanWarriors.Core.Level
             }
             catch (System.Exception e)
             {
-                UnityEngine.Debug.LogWarning($"[关卡] JSON加载失败，使用硬编码: {id} — {e.Message}");
+                GameLogger.LogWarningFormat(LogCategory.Level, "JSON加载失败，使用硬编码|关卡={0}|原因={1}", id, e.Message);
             }
 
             if (_levels.TryGetValue(id, out var l)) return l;
 
             // 兜底：硬编码库也没有，再次 Build
-            UnityEngine.Debug.LogWarning($"[关卡] {id} 不在缓存中，重新 Build");
+            GameLogger.LogWarningFormat(LogCategory.Level, "关卡不在缓存中，重新Build|关卡={0}", id);
             Build();
             return _levels.TryGetValue(id, out var l2) ? l2 : null;
         }
@@ -150,9 +151,9 @@ namespace ZhenguanWarriors.Core.Level
             {
                 string path = $"{outputDir}/{kv3.Key}.json";
                 LevelJsonLoader.SaveToFile(kv3.Value, path);
-                UnityEngine.Debug.Log($"导出关卡 {kv3.Key} -> {path}");
+                GameLogger.LogInfoFormat(LogCategory.Level, "导出关卡|关卡={0}|路径={1}", kv3.Key, path);
             }
-            UnityEngine.Debug.Log($"全部 {_levels.Count} 个关卡已导出到 {outputDir}");
+            GameLogger.LogInfoFormat(LogCategory.Level, "全部关卡已导出|数量={0}|目录={1}", _levels.Count, outputDir);
 #endif
         }
 

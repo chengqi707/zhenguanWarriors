@@ -3,6 +3,7 @@ using UnityEngine;
 using ZhenguanWarriors.Core.Story;
 using ZhenguanWarriors.Core.Character;
 using ZhenguanWarriors.Core.UI;
+using ZhenguanWarriors.Utils;
 
 namespace ZhenguanWarriors.View.BattleView
 {
@@ -33,7 +34,7 @@ namespace ZhenguanWarriors.View.BattleView
             var story = StoryLibrary.Get(storyId);
             if (story == null)
             {
-                Debug.LogWarning($"[对话] 剧情不存在: {storyId}");
+                GameLogger.LogWarningFormat(LogCategory.UI, "剧情不存在|storyId={0}", storyId);
                 onFinish?.Invoke();
                 return;
             }
@@ -54,7 +55,7 @@ namespace ZhenguanWarriors.View.BattleView
             }
             else
             {
-                Debug.LogWarning($"[对话] 剧情 {story.storyId} 无起始节点");
+                GameLogger.LogWarningFormat(LogCategory.UI, "剧情无起始节点|storyId={0}", story.storyId);
                 FinishDialogue();
             }
         }

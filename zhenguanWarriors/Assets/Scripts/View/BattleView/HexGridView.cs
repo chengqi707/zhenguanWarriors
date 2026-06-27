@@ -2,6 +2,7 @@ using UnityEngine;
 using ZhenguanWarriors.Core.Battle;
 using ZhenguanWarriors.Core.Character;
 using ZhenguanWarriors.Core.Level;
+using ZhenguanWarriors.Utils;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -220,7 +221,7 @@ namespace ZhenguanWarriors.View.BattleView
             var cam = Camera.main;
             if (cam == null)
             {
-                Debug.LogError("[HexGridView] Camera.main 为空，无法自动设置相机。");
+                GameLogger.LogError(LogCategory.System, "Camera.main 为空，无法自动设置相机。");
                 return;
             }
             cam.orthographic = true;

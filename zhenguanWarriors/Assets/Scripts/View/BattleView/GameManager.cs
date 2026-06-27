@@ -51,7 +51,7 @@ namespace ZhenguanWarriors.View.BattleView
 
             SetAllEnabled(false);
             _splash.enabled = true;
-            Debug.Log("[GameManager] 初始化完成");
+            GameLogger.LogInfo(LogCategory.System, "GameManager 初始化完成");
         }
 
         void Update()
@@ -78,6 +78,11 @@ namespace ZhenguanWarriors.View.BattleView
             // Android 返回键
             if (Input.GetKeyDown(KeyCode.Escape))
                 HandleBackButton();
+        }
+
+        void OnApplicationQuit()
+        {
+            GameLogger.Shutdown();
         }
 
         void HandleBackButton()

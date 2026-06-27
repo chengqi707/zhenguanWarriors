@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using ZhenguanWarriors.Core.Character;
+using ZhenguanWarriors.Utils;
 
 namespace ZhenguanWarriors.Core.Battle
 {
@@ -36,14 +37,14 @@ namespace ZhenguanWarriors.Core.Battle
         {
             if (!_grid.IsWalkable(end, unitClass))
             {
-                UnityEngine.Debug.LogWarning($"[PathFinder] 目标格({end.q},{end.r})不可通行！");
+                GameLogger.LogWarningFormat(LogCategory.AI, "寻路目标不可通行|目标=({0},{1})", end.q, end.r);
                 return new List<HexCoord>();
             }
 
             // 目标格被占据则不可达
             if (occupiedCells != null && occupiedCells.Contains(end))
             {
-                UnityEngine.Debug.LogWarning($"[PathFinder] 目标格({end.q},{end.r})被其他单位占据！");
+                GameLogger.LogWarningFormat(LogCategory.AI, "寻路目标被占据|目标=({0},{1})", end.q, end.r);
                 return new List<HexCoord>();
             }
 
@@ -89,7 +90,7 @@ namespace ZhenguanWarriors.Core.Battle
 
             if (!cameFrom.ContainsKey(end) && start != end)
             {
-                UnityEngine.Debug.LogWarning($"[PathFinder] 从({start.q},{start.r})到({end.q},{end.r})不可达！");
+                GameLogger.LogWarningFormat(LogCategory.AI, "寻路不可达|起点=({0},{1})|终点=({2},{3})", start.q, start.r, end.q, end.r);
                 return new List<HexCoord>();
             }
 

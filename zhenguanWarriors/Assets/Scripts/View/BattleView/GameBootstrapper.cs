@@ -1,4 +1,5 @@
 using UnityEngine;
+using ZhenguanWarriors.Utils;
 
 namespace ZhenguanWarriors.View.BattleView
 {
@@ -13,7 +14,7 @@ namespace ZhenguanWarriors.View.BattleView
         {
             GameObject go = new GameObject("GameRoot");
             go.AddComponent<GameManager>();
-            Debug.Log("[贞观勇士] GameRoot 创建完成");
+            GameLogger.LogInfo(LogCategory.System, "GameRoot 创建完成");
         }
     }
 }

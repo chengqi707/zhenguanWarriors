@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using ZhenguanWarriors.Core.Battle;
 using ZhenguanWarriors.Core.Character;
+using ZhenguanWarriors.Utils;
 
 namespace ZhenguanWarriors.Core.Level
 {
@@ -322,7 +323,7 @@ namespace ZhenguanWarriors.Core.Level
             }
             catch (System.Exception e)
             {
-                UnityEngine.Debug.LogWarning($"[LevelJsonLoader] 加载 {levelId} 失败: {e.Message}");
+                GameLogger.LogWarningFormat(LogCategory.Level, "关卡JSON加载失败|关卡={0}|原因={1}", levelId, e.Message);
             }
             return null;
         }

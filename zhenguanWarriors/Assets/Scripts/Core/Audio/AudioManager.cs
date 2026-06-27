@@ -1,4 +1,5 @@
 using UnityEngine;
+using ZhenguanWarriors.Utils;
 
 namespace ZhenguanWarriors.Core.Audio
 {
@@ -52,7 +53,7 @@ namespace ZhenguanWarriors.Core.Audio
             _sfxSource.loop = false;
             _sfxSource.volume = 0.7f;
 
-            Debug.Log("[音频] 音频管理器初始化完成（占位模式）");
+            GameLogger.LogInfo(LogCategory.Audio, "音频管理器初始化完成（占位模式）");
         }
 
         public static AudioManager Instance
@@ -88,7 +89,7 @@ namespace ZhenguanWarriors.Core.Audio
             }
             else
             {
-                Debug.LogWarning($"[音频] BGM资源缺失: {clipPath}");
+                GameLogger.LogWarningFormat(LogCategory.Audio, "BGM资源缺失|路径={0}", clipPath);
             }
         }
 
@@ -115,7 +116,7 @@ namespace ZhenguanWarriors.Core.Audio
             }
             else
             {
-                Debug.LogWarning($"[音频] SFX资源缺失: {clipPath}");
+                GameLogger.LogWarningFormat(LogCategory.Audio, "SFX资源缺失|路径={0}", clipPath);
             }
         }
 
