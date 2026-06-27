@@ -2461,7 +2461,7 @@ namespace ZhenguanWarriors.View.BattleView
                     unit.Heal(heal);
                 }
                 _battleUI?.ShowTip($"敌方 {unit.Name} 行动...");
-                EnemyAI(unit);
+                StartCoroutine(EnemyAI(unit));
             }
         }
 
@@ -2680,15 +2680,26 @@ namespace ZhenguanWarriors.View.BattleView
             GameState.CurrentSave = saveData;
         }
 
+        private void HighlightActingUnit(BattleUnit unit, bool selected)
+        {
+            if (_unitVisuals.TryGetValue(unit, out var vis))
+                vis.SetSelected(selected);
+        }
+
         // ========== AI行为树驱动 ==========
 
-        private void EnemyAI(BattleUnit enemy)
+        private IEnumerator EnemyAI(BattleUnit enemy)
         {
             if (!enemy.IsAlive)
             {
                 _turnManager.EndUnitAction();
-                return;
+                yield break;
             }
+
+            // 锁定输入并高亮当前行动单位，让玩家看清是谁在行动
+            _isAnimating = true;
+            HighlightActingUnit(enemy, true);
+            yield return new WaitForSeconds(0.5f);
 
             CheckOverlapAt($"EnemyAI-{enemy.Name}行动前");
             var action = _aiTree.Decide(enemy);
@@ -2697,11 +2708,11 @@ namespace ZhenguanWarriors.View.BattleView
             switch (action.Type)
             {
                 case AIActionType.Attack:
-                    ExecuteAIAttack(enemy, action.TargetUnit);
+                    yield return StartCoroutine(ExecuteAIAttack(enemy, action.TargetUnit));
                     break;
 
                 case AIActionType.UseSkill:
-                    ExecuteAISkill(enemy, action);
+                    yield return StartCoroutine(ExecuteAISkill(enemy, action));
                     break;
 
                 case AIActionType.Move:
@@ -2713,29 +2724,30 @@ namespace ZhenguanWarriors.View.BattleView
                         GameLogger.LogWarningFormat(LogCategory.AI, "AI移动被阻挡|单位={0}|目标=({1},{2})|阻挡={3}[{4}]",
                             enemy.Name, action.TargetCell.q, action.TargetCell.r, blocker.Name, blocker.Faction);
                         _battleUI?.ShowTip($"{enemy.Name} 目标被占据，原地待命");
+                        yield return new WaitForSeconds(0.4f);
                         break;
                     }
-                    enemy.Position = action.TargetCell;
-                    enemy.HasMovedThisTurn = true;
-                    if (_unitVisuals.TryGetValue(enemy, out var vis))
-                        vis.UpdatePosition();
-                    GameLogger.LogInfoFormat(LogCategory.AI, "AI移动|单位={0}|位置=({1},{2})|原因={3}",
-                        enemy.Name, action.TargetCell.q, action.TargetCell.r, action.Reason);
+                    yield return StartCoroutine(MoveUnitAnimation(enemy, action.TargetCell));
                     _battleUI?.ShowTip($"{enemy.Name} {action.Reason}");
                     break;
 
                 case AIActionType.Skip:
                     GameLogger.LogWarningFormat(LogCategory.AI, "AI跳过|单位={0}|原因={1}", enemy.Name, action.Reason);
+                    yield return new WaitForSeconds(0.5f);
                     break;
             }
 
+            HighlightActingUnit(enemy, false);
             CheckOverlapAt($"EnemyAI-{enemy.Name}行动后");
             _turnManager.EndUnitAction();
+            _isAnimating = false;
         }
 
-        private void ExecuteAIAttack(BattleUnit attacker, BattleUnit defender)
+        private IEnumerator ExecuteAIAttack(BattleUnit attacker, BattleUnit defender)
         {
-            if (defender == null || defender.IsDead) return;
+            if (defender == null || defender.IsDead) yield break;
+
+            yield return new WaitForSeconds(0.3f);
 
             CheckOverlapAt($"ExecuteAIAttack-{attacker.Name}攻击前");
             GameLogger.LogInfoFormat(LogCategory.Battle, "AI攻击发起|攻={0}@({1},{2})|防={3}@({4},{5})",
@@ -2763,7 +2775,7 @@ namespace ZhenguanWarriors.View.BattleView
             if (_unitVisuals.TryGetValue(defender, out var defVis))
             {
                 defVis.UpdateHpBar();
-                StartCoroutine(FlashEffect(defVis));
+                yield return StartCoroutine(FlashEffect(defVis));
             }
 
             // ★ 器械AOE溅射（AI方也用）
@@ -2771,6 +2783,8 @@ namespace ZhenguanWarriors.View.BattleView
             {
                 ApplySiegeSplash(attacker, defender.Position, result.damage);
             }
+
+            yield return new WaitForSeconds(0.3f);
 
             if (defender.IsDead)
             {
@@ -2806,15 +2820,17 @@ namespace ZhenguanWarriors.View.BattleView
                     {
                         _turnManager.SetPhase(_victoryChecker.IsVictory
                             ? TurnManager.TurnPhase.Victory : TurnManager.TurnPhase.Defeat);
-                        return;
+                        yield break;
                     }
                 }
             }
         }
 
-        private void ExecuteAISkill(BattleUnit caster, AIAction action)
+        private IEnumerator ExecuteAISkill(BattleUnit caster, AIAction action)
         {
-            if (action.Skill == null) return;
+            if (action.Skill == null) yield break;
+
+            yield return new WaitForSeconds(0.3f);
 
             string log = _skillExecutor.Execute(action.Skill, caster, action.TargetCell);
             GameLogger.LogInfoFormat(LogCategory.Battle, "AI计策|单位={0}|计策={1}|结果={2}", caster.Name, action.Skill.name, log);
@@ -2833,6 +2849,8 @@ namespace ZhenguanWarriors.View.BattleView
             foreach (var kv in _unitVisuals)
                 kv.Value.UpdateHpBar();
 
+            yield return new WaitForSeconds(0.4f);
+
             // 检查阵亡
             var deadUnits = _allUnits.Where(u => u.IsDead).ToList();
             foreach (var du in deadUnits)
@@ -2847,11 +2865,11 @@ namespace ZhenguanWarriors.View.BattleView
             if (deadUnits.Count > 0 && _victoryChecker != null && !_victoryChecker.IsVictory && !_victoryChecker.IsDefeat)
             {
                 _victoryChecker.Check();
-                if (_victoryChecker.IsDefeat || _victoryChecker.IsVictory)
+                if (_victoryChecker.IsVictory || _victoryChecker.IsDefeat)
                 {
                     _turnManager.SetPhase(_victoryChecker.IsVictory
                         ? TurnManager.TurnPhase.Victory : TurnManager.TurnPhase.Defeat);
-                    return;
+                    yield break;
                 }
             }
         }

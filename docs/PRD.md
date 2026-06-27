@@ -548,5 +548,9 @@ GUI.Label(new Rect(0, 0, 400, 48), "text",
   - 协程安全：`MoveUnitAnimation` 使用 `try-finally` 确保 `_isAnimating` 重置，移动中增加单位/视觉空引用检查。
   - 存档兼容性：`SAVE_VERSION` 升级到 2；`LoadFromPath` 增加版本迁移与字段缺失兜底。
   - 涉及文件：`LevelData.cs`、`LevelJsonLoader.cs`、`StoryData.cs`、`TurnManager.cs`、`AudioManager.cs`、`SaveManager.cs`、`SaveData.cs`、`BattleTestController.cs`、`UnitVisual.cs`、`HexGridView.cs`、`MainMenuController.cs`。
+- **v0.7（2026-06-27）修复敌方 AI 行动过快不可见**：
+  - 问题：敌方回合内移动、攻击、计策在单帧完成，玩家看不到敌方棋子动作，体验缺失。
+  - 修复：`BattleTestController.EnemyAI` 改为协程，行动前高亮当前单位、延迟 0.5s；移动复用 `MoveUnitAnimation`；`ExecuteAIAttack` / `ExecuteAISkill` 协程化并加入 0.3~0.4s 前后停顿；受击时白闪效果逐格/逐次可见。
+  - 涉及文件：`BattleTestController.cs`。
 - v0.4（2026-05-31）更新商业化方案，明确广告播放变现策略（激励视频/Banner/插屏），加入版本规划
 - v0.5（2026-06-02）新增第6章完整用户交互流程与UX设计（导航架构/页面布局/交互规范），新增第9章UI/UX设计规范
