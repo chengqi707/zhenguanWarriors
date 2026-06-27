@@ -29,6 +29,12 @@ namespace ZhenguanWarriors.Utils
         /// <summary>日志文件完整路径，便于调试面板显示</summary>
         public static string LogFilePath { get; private set; }
 
+        private const int MAX_RECENT_LOGS = 100;
+        private static readonly List<string> _recentLogs = new List<string>();
+
+        /// <summary>最近日志（用于调试面板实时显示）</summary>
+        public static IReadOnlyList<string> RecentLogs => _recentLogs;
+
         /// <summary>初始化日志系统</summary>
         public static void Initialize(LogSettings settings = null)
         {
@@ -186,6 +192,15 @@ namespace ZhenguanWarriors.Utils
             if (!_initialized) Initialize();
 
             string name = CategoryToName(category);
+            string timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+            string recentLine = $"[{timestamp}] [{level}] [{name}] {message}";
+            lock (_recentLogs)
+            {
+                _recentLogs.Add(recentLine);
+                if (_recentLogs.Count > MAX_RECENT_LOGS)
+                    _recentLogs.RemoveAt(0);
+            }
+
             foreach (var output in _outputs)
             {
                 try

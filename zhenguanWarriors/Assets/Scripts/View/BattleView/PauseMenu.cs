@@ -14,11 +14,15 @@ namespace ZhenguanWarriors.View.BattleView
         private float _scale;
         private ConfirmDialog _confirm;
         private BattleTestController _battleCtrl;
+        private DebugPanel _debugPanel;
         private bool _pendingSaveAndExit;  // 标记保存退出后需要回到主菜单
         private bool _pendingRetreat;      // 标记需要触发失败结算
 
         public bool IsOpen => _isOpen;
         public bool HasPendingAction => _pendingSaveAndExit || _pendingRetreat;
+        public bool IsDebugPanelOpen => _debugPanel?.IsOpen ?? false;
+
+        public void CloseDebugPanel() => _debugPanel?.Hide();
 
         void Start()
         {
@@ -26,6 +30,9 @@ namespace ZhenguanWarriors.View.BattleView
             if (_confirm == null)
                 _confirm = gameObject.AddComponent<ConfirmDialog>();
             _battleCtrl = GetComponent<BattleTestController>();
+            _debugPanel = GetComponent<DebugPanel>();
+            if (_debugPanel == null)
+                _debugPanel = gameObject.AddComponent<DebugPanel>();
             _scale = Mathf.Min(Screen.width / 1920f, Screen.height / 1080f);
             if (_scale < 0.5f) _scale = 0.5f;
             if (_scale > 2.0f) _scale = 2.0f;
@@ -64,6 +71,9 @@ namespace ZhenguanWarriors.View.BattleView
 
         void OnGUI()
         {
+            if (_debugPanel.IsOpen)
+                return;
+
             if (!_isOpen || _confirm.IsOpen) return;
             float s = _scale;
 
@@ -71,7 +81,7 @@ namespace ZhenguanWarriors.View.BattleView
             GUI.Box(new Rect(0, 0, Screen.width, Screen.height), "");
 
             // 暂停菜单面板
-            float pw = 360 * s, ph = 340 * s;
+            float pw = 360 * s, ph = 400 * s;
             float px = (Screen.width - pw) / 2, py = (Screen.height - ph) / 2;
 
             GUI.backgroundColor = Theme.BgPanel;
@@ -138,6 +148,14 @@ namespace ZhenguanWarriors.View.BattleView
                         Close();
                         GameManager.Instance.TransitionTo(GamePage.MainMenu);
                     }, null, "不保存返回", "取消");
+            }
+
+            // 调试日志
+            GUI.backgroundColor = Theme.BgCard;
+            if (GUI.Button(new Rect(startX, startY + (btnH + gap) * 4, btnW, btnH),
+                "🐛 调试日志", Theme.MakeButton((int)(18 * s))))
+            {
+                _debugPanel.Show();
             }
             GUI.backgroundColor = Color.white;
 

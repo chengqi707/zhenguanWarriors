@@ -68,7 +68,12 @@ namespace ZhenguanWarriors.View.BattleView
             if (_pauseMenu.IsOpen)
             {
                 if (Input.GetKeyDown(KeyCode.Escape))
-                    _pauseMenu.Close();
+                {
+                    if (_pauseMenu.IsDebugPanelOpen)
+                        _pauseMenu.CloseDebugPanel();
+                    else
+                        _pauseMenu.Close();
+                }
                 return;
             }
 
