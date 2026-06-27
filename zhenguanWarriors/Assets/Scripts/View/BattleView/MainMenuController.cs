@@ -134,7 +134,7 @@ namespace ZhenguanWarriors.View.BattleView
             // 版本（向上避开底部手势条安全区）
             float versionY = Theme.ApplySafeBottom(50 * s, 30 * s, 8 * s);
             GUI.Label(new Rect(20 * s, SH - versionY, 200 * s, 30 * s),
-                "v1.0", Theme.MakeLabel((int)(16 * s), FontStyle.Normal, Theme.TextDim));
+                "v0.11", Theme.MakeLabel((int)(16 * s), FontStyle.Normal, Theme.TextDim));
 
             GUI.backgroundColor = Theme.Primary;
             GUI.Box(new Rect(0, SH - 6 * s, SW, 6 * s), "");

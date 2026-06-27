@@ -15,8 +15,12 @@ public class BuildScript
 
     public static void BuildAPK()
     {
+        string outputDir = "Build";
+        if (!System.IO.Directory.Exists(outputDir))
+            System.IO.Directory.CreateDirectory(outputDir);
+
         string[] scenes = new string[] { "Assets/Scenes/SampleScene.scene" };
-        string outputPath = "zhenguanWarriors_v0.2.apk";
+        string outputPath = System.IO.Path.Combine(outputDir, "zhenguanWarriors_v0.11.apk");
 
         BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions();
         buildPlayerOptions.scenes = scenes;
