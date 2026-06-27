@@ -31,6 +31,9 @@ namespace ZhenguanWarriors.Core.Save
         public LogSettings logSettings = new LogSettings();
         public float cameraZoom = 1f;   // 战场相机缩放倍率，1.0=适配网格，越小画面越大
 
+        // ========== 新手引导 ==========
+        public bool hasCompletedTutorial = false;
+
         // ========== 战场状态（战斗中存档时保存） ==========
         public bool isInBattle;
         public int turnNumber;

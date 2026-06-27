@@ -171,6 +171,7 @@ namespace ZhenguanWarriors.Core.Save
             // 保留当前日志设置与相机缩放
             data.logSettings = GameState.CurrentSave?.logSettings?.Clone() ?? new LogSettings();
             data.cameraZoom = GameState.CurrentSave?.cameraZoom ?? 1f;
+            data.hasCompletedTutorial = GameState.CurrentSave?.hasCompletedTutorial ?? false;
 
             foreach (var unit in playerParty)
             {

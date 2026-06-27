@@ -48,6 +48,26 @@ namespace ZhenguanWarriors.View.BattleView
         private bool _inDuel = false;
         private BattleUnit _duelEnemy;
 
+        // ========== 悔棋快照 ==========
+        private class TurnSnapshot
+        {
+            public int TurnNumber;
+            public List<BattlefieldUnitSave> Units = new();
+            public List<TerrainChangeSave> Terrains = new();
+            public WeatherType Weather;
+            public WindDirection Wind;
+        }
+        private readonly Stack<TurnSnapshot> _turnSnapshotStack = new();
+        private const int MAX_REWIND = 3;
+        private bool _isRestoringSnapshot; // 防止恢复时再次捕获快照
+
+        // ========== 新手引导 ==========
+        private enum TutorialStep { None, SelectUnit, Move, Attack, EndTurn }
+        private TutorialStep _tutorialStep = TutorialStep.None;
+        private bool _tutorialActive => _tutorialStep != TutorialStep.None;
+        private BattleUnit _tutorialHero;       // 引导主控单位（李世民）
+        private BattleUnit _tutorialEnemy;      // 引导攻击目标
+
         // ========== 战前编组 ==========
         private List<BattleUnit> _playerParty = new();
         private int _selectedPartyIndex;         // 当前选中的角色索引
@@ -310,14 +330,15 @@ namespace ZhenguanWarriors.View.BattleView
             GUI.Box(new Rect(0, 0, SW, 8 * s), "");
             GUI.backgroundColor = Color.white;
 
-            // 标题
-            Theme.DrawTitle(new Rect(0, 20 * s, SW, 50 * s), $"👥 选择出战武将   {selected}/8", (int)(36 * s));
+            // 标题（向下避开刘海/挖孔安全区）
+            float titleY = Theme.ApplySafeTop(20 * s, 8 * s);
+            Theme.DrawTitle(new Rect(0, titleY, SW, 50 * s), $"👥 选择出战武将   {selected}/8", (int)(36 * s));
 
             // 角色卡片列表（带粗滚动条，支持触控滑动）
             float cardH = 165 * s;
             float gap = 12 * s;
-            float startY = 80 * s;
-            float svH = SH - startY - 145 * s; // 滚动区域高度
+            float startY = titleY + 60 * s;
+            float svH = Theme.ApplySafeBottom(145 * s, 55 * s, 10 * s) - startY; // 滚动区域高度
             float contentH = _heroPool.Count * (cardH + gap);
 
             // 自定义垂直滚动条样式（加宽到30px，方便触控）
@@ -401,7 +422,8 @@ namespace ZhenguanWarriors.View.BattleView
             // ---- 羁绊实时预览 ----
             var previewParty = _heroPool.Where((_, idx) => _heroSelected[idx]).ToList();
             var previewBonds = BondSystem.CheckBonds(previewParty);
-            float bondY = SH - 115 * s;
+            float btnY2 = Theme.ApplySafeBottom(65 * s, 55 * s, 10 * s);
+            float bondY = btnY2 - 50 * s;
             if (previewBonds.Count > 0)
             {
                 GUI.Label(new Rect(24 * s, bondY, SW - 48 * s, 24 * s),
@@ -418,7 +440,6 @@ namespace ZhenguanWarriors.View.BattleView
             }
 
             // ---- 底部按钮 ----
-            float btnY2 = SH - 65 * s;
             GUI.backgroundColor = Theme.BgCard;
             if (GUI.Button(new Rect(24 * s, btnY2, 200 * s, 55 * s),
                 "← 返回选关", Theme.MakeButton((int)(22 * s))))
@@ -480,12 +501,12 @@ namespace ZhenguanWarriors.View.BattleView
             var unit = _selectedPartyIndex >= 0 && _selectedPartyIndex < _playerParty.Count
                 ? _playerParty[_selectedPartyIndex] : null;
 
-            // 标题
-            Theme.DrawTitle(new Rect(0, 15 * s, SW, 40 * s),
+            // 标题（向下避开刘海/挖孔安全区）
+            Theme.DrawTitle(new Rect(0, Theme.ApplySafeTop(15 * s, 8 * s), SW, 40 * s),
                 $"⚔ 装备调整   {(unit != null ? unit.Name : "")}", (int)(32 * s));
 
-            float panelY = 65 * s;
-            float panelH = SH - 135 * s;
+            float panelY = Theme.ApplySafeTop(65 * s, 8 * s);
+            float panelH = Theme.ApplySafeBottom(135 * s, 55 * s, 10 * s) - panelY;
 
             // ---- 左面板：已选角色列表 ----
             float leftW = SW * 0.28f;
@@ -593,7 +614,7 @@ namespace ZhenguanWarriors.View.BattleView
             }
 
             // ---- 底部按钮 ----
-            float bY = SH - 60 * s;
+            float bY = Theme.ApplySafeBottom(60 * s, 55 * s, 10 * s);
             GUI.backgroundColor = Theme.Primary;
             if (GUI.Button(new Rect(SW / 2 - 150 * s, bY, 300 * s, 55 * s),
                 "⚔  开 始 战 斗", Theme.MakeButton((int)(22 * s))))
@@ -970,6 +991,304 @@ namespace ZhenguanWarriors.View.BattleView
             }
         }
 
+        // ========== 悔棋/回退 ==========
+
+        /// <summary>捕获玩家回合开始时的战场快照</summary>
+        private void CaptureTurnSnapshot()
+        {
+            if (_turnManager == null || _hexView?.Grid == null) return;
+            if (_isRestoringSnapshot) return;
+
+            var snapshot = new TurnSnapshot
+            {
+                TurnNumber = _turnManager.TurnNumber,
+                Weather = _weather?.CurrentWeather ?? WeatherType.Sunny,
+                Wind = _weather?.Wind ?? WindDirection.None
+            };
+
+            foreach (var u in _allUnits)
+            {
+                snapshot.Units.Add(new BattlefieldUnitSave
+                {
+                    id = u.Id,
+                    posQ = u.Position.q,
+                    posR = u.Position.r,
+                    currentHp = u.CurrentHp,
+                    currentMp = u.CurrentMp,
+                    hasActed = u.HasActed,
+                    hasMovedThisTurn = u.HasMovedThisTurn,
+                    unitState = u.State.ToString(),
+                    tempStrBuff = u.TempStrBuff
+                });
+            }
+
+            foreach (var c in _hexView.Grid.AllCells())
+            {
+                snapshot.Terrains.Add(new TerrainChangeSave
+                {
+                    q = c.q,
+                    r = c.r,
+                    terrainType = _hexView.Grid.GetTerrain(c).ToString()
+                });
+            }
+
+            if (_turnSnapshotStack.Count >= MAX_REWIND)
+            {
+                // 丢弃最旧快照
+                var oldest = _turnSnapshotStack.ToArray();
+                _turnSnapshotStack.Clear();
+                for (int i = oldest.Length - 2; i >= 0; i--)
+                    _turnSnapshotStack.Push(oldest[i]);
+            }
+            _turnSnapshotStack.Push(snapshot);
+            GameLogger.LogInfoFormat(LogCategory.Battle, "悔棋快照|回合={0}|栈深度={1}", snapshot.TurnNumber, _turnSnapshotStack.Count);
+        }
+
+        /// <summary>恢复到最近一次快照（悔棋）</summary>
+        private void RestoreTurnSnapshot()
+        {
+            if (_turnSnapshotStack.Count == 0) return;
+            if (_turnManager == null || _hexView?.Grid == null) return;
+
+            _isRestoringSnapshot = true;
+            try
+            {
+                var snapshot = _turnSnapshotStack.Pop();
+                GameLogger.LogInfoFormat(LogCategory.Battle, "悔棋恢复|目标回合={0}|剩余栈={1}", snapshot.TurnNumber, _turnSnapshotStack.Count);
+
+                // 1. 恢复地形
+                foreach (var t in snapshot.Terrains)
+                {
+                    if (System.Enum.TryParse<TerrainType>(t.terrainType, out var tt))
+                    {
+                        var c = new HexCoord(t.q, t.r);
+                        _hexView.Grid.SetTerrain(c, tt);
+                        _hexView.RefreshCellColor(c);
+                    }
+                }
+
+                // 2. 恢复单位状态
+                foreach (var saved in snapshot.Units)
+                {
+                    var unit = _allUnits.FirstOrDefault(u => u.Id == saved.id);
+                    if (unit == null) continue;
+
+                    unit.Position = new HexCoord(saved.posQ, saved.posR);
+                    unit.CurrentHp = saved.currentHp;
+                    unit.CurrentMp = saved.currentMp;
+                    unit.HasActed = saved.hasActed;
+                    unit.HasMovedThisTurn = saved.hasMovedThisTurn;
+                    unit.TempStrBuff = saved.tempStrBuff;
+                    if (System.Enum.TryParse<UnitState>(saved.unitState, out var st))
+                        unit.State = st;
+                    else
+                        unit.State = unit.IsAlive ? UnitState.Idle : UnitState.Dead;
+
+                    // 确保阵亡单位状态一致
+                    if (unit.IsDead) unit.State = UnitState.Dead;
+
+                    // 更新/重建可视化
+                    if (_unitVisuals.TryGetValue(unit, out var visual) && visual != null)
+                    {
+                        visual.UpdatePosition();
+                        visual.UpdateHpBar();
+                    }
+                    else if (unit.IsAlive)
+                    {
+                        visual = UnitVisual.Create(unit, _hexView);
+                        _unitVisuals[unit] = visual;
+                    }
+                }
+
+                // 3. 清理已阵亡单位但残留的可视化
+                var deadUnits = _allUnits.Where(u => u.IsDead).ToList();
+                foreach (var du in deadUnits)
+                {
+                    if (_unitVisuals.TryGetValue(du, out var vis) && vis != null)
+                    {
+                        Destroy(vis.gameObject);
+                        _unitVisuals.Remove(du);
+                    }
+                }
+
+                // 4. 清除选择与高亮
+                DeselectUnit();
+                _isAnimating = false;
+                _inDuel = false;
+                _duelSystem = null;
+                _duelEnemy = null;
+
+                // 5. 恢复天气（直接修改现有对象，保持 SkillExecutor/AI 引用不变）
+                _weather?.SetWeather(snapshot.Weather);
+                _weather?.SetWind(snapshot.Wind);
+
+                // 6. 回到玩家回合开始
+                _turnManager.RestartPlayerTurn(snapshot.TurnNumber);
+                _battleUI?.ShowTip($"已悔棋至第 {snapshot.TurnNumber} 回合开始");
+            }
+            finally
+            {
+                _isRestoringSnapshot = false;
+            }
+        }
+
+        /// <summary>外部入口：尝试悔棋</summary>
+        public bool TryRewind()
+        {
+            if (_turnSnapshotStack.Count == 0)
+            {
+                _battleUI?.ShowTip("没有可悔棋的记录");
+                return false;
+            }
+            if (_turnManager?.CurrentPhase != TurnManager.TurnPhase.PlayerTurn)
+            {
+                _battleUI?.ShowTip("只能在玩家回合悔棋");
+                return false;
+            }
+            if (_isAnimating)
+            {
+                _battleUI?.ShowTip("动画播放中，无法悔棋");
+                return false;
+            }
+            if (_inDuel)
+            {
+                _battleUI?.ShowTip("单挑中无法悔棋");
+                return false;
+            }
+
+            RestoreTurnSnapshot();
+            return true;
+        }
+
+        /// <summary>暂停菜单用：当前是否可以悔棋</summary>
+        public bool CanRewind()
+        {
+            return _turnSnapshotStack.Count > 0
+                && _turnManager?.CurrentPhase == TurnManager.TurnPhase.PlayerTurn
+                && !_isAnimating && !_inDuel;
+        }
+
+        // ========== 新手引导 ==========
+
+        /// <summary>尝试开启第一关强制引导</summary>
+        private void TryStartTutorial()
+        {
+            if (_currentLevel?.levelId != "level_01") return;
+            if (GameState.CurrentSave?.hasCompletedTutorial == true) return;
+
+            _tutorialStep = TutorialStep.SelectUnit;
+            _tutorialHero = _allUnits.FirstOrDefault(u => u.Faction == Faction.Player && u.Id == "lishimin");
+            _tutorialEnemy = null;
+
+            if (_tutorialHero != null)
+            {
+                if (_unitVisuals.TryGetValue(_tutorialHero, out var vis))
+                    vis.SetSelected(true);
+                _battleUI?.ShowTip("【新手引导】点击你的单位李世民，选中它");
+            }
+        }
+
+        /// <summary>进入下一步引导</summary>
+        private void AdvanceTutorial()
+        {
+            if (!_tutorialActive) return;
+            switch (_tutorialStep)
+            {
+                case TutorialStep.SelectUnit:
+                    _tutorialStep = TutorialStep.Move;
+                    // 显示李世民的移动范围
+                    if (_tutorialHero != null)
+                    {
+                        var occ = new HashSet<HexCoord>(_allUnits.Where(u => u != _tutorialHero && u.IsAlive).Select(u => u.Position));
+                        _hexView.ShowMoveRange(_tutorialHero.Position, _tutorialHero.MoveRange, _tutorialHero.UnitClass, occ);
+                        _battleUI?.ShowTip("【新手引导】点击蓝色格子，移动李世民");
+                    }
+                    break;
+
+                case TutorialStep.Move:
+                    _tutorialStep = TutorialStep.Attack;
+                    // 高亮最近的敌人
+                    _tutorialEnemy = FindNearestEnemy(_tutorialHero?.Position ?? new HexCoord(0, 0));
+                    if (_tutorialEnemy != null && _tutorialHero != null)
+                    {
+                        var enemyCells = new List<HexCoord> { _tutorialEnemy.Position };
+                        _hexView.ShowAttackRange(_tutorialHero.Position, _tutorialHero.AttackRange, enemyCells);
+                        _battleUI?.ShowTip($"【新手引导】点击敌人 {_tutorialEnemy.Name} 进行攻击");
+                    }
+                    break;
+
+                case TutorialStep.Attack:
+                    _tutorialStep = TutorialStep.EndTurn;
+                    _battleUI?.ShowTip("【新手引导】所有单位行动完毕后，点击“结束回合”按钮或按空格");
+                    break;
+
+                case TutorialStep.EndTurn:
+                    CompleteTutorial();
+                    break;
+            }
+        }
+
+        private BattleUnit FindNearestEnemy(HexCoord from)
+        {
+            return _allUnits.Where(u => u.Faction == Faction.Enemy && u.IsAlive)
+                .OrderBy(u => u.Position.Distance(from))
+                .FirstOrDefault();
+        }
+
+        /// <summary>完成引导并持久化</summary>
+        private void CompleteTutorial()
+        {
+            if (!_tutorialActive) return;
+            _tutorialStep = TutorialStep.None;
+            _tutorialHero = null;
+            _tutorialEnemy = null;
+            if (GameState.CurrentSave != null)
+            {
+                GameState.CurrentSave.hasCompletedTutorial = true;
+                AutoSaveGame();
+            }
+            _battleUI?.ShowTip("新手引导完成，祝您征战顺利！");
+            GameLogger.LogInfo(LogCategory.Battle, "新手引导完成");
+        }
+
+        /// <summary>检查当前点击是否符合引导要求，不符合则拦截</summary>
+        /// <returns>true = 允许继续处理，false = 已被引导拦截</returns>
+        private bool TutorialFilterClick(BattleUnit clickedUnit, HexCoord cell)
+        {
+            if (!_tutorialActive) return true;
+            if (_tutorialHero == null) return true;
+
+            switch (_tutorialStep)
+            {
+                case TutorialStep.SelectUnit:
+                    if (clickedUnit == _tutorialHero)
+                        return true;
+                    _battleUI?.ShowTip("【新手引导】请点击李世民");
+                    return false;
+
+                case TutorialStep.Move:
+                    if (clickedUnit != null && clickedUnit == _tutorialHero)
+                        return true; // 再次点击自己，允许重选
+                    // 只允许点击移动范围内的空格
+                    var occ = new HashSet<HexCoord>(_allUnits.Where(u => u != _tutorialHero && u.IsAlive).Select(u => u.Position));
+                    var range = _hexView.PathFinder.GetMoveRange(_tutorialHero.Position, _tutorialHero.MoveRange, _tutorialHero.UnitClass, occ);
+                    if (range.ContainsKey(cell))
+                        return true;
+                    _battleUI?.ShowTip("【新手引导】请点击蓝色格子移动");
+                    return false;
+
+                case TutorialStep.Attack:
+                    if (clickedUnit == _tutorialEnemy)
+                        return true;
+                    _battleUI?.ShowTip($"【新手引导】请点击敌人 {_tutorialEnemy?.Name} 攻击");
+                    return false;
+
+                case TutorialStep.EndTurn:
+                    return true;
+            }
+            return true;
+        }
+
         /// <summary>修复所有单位位置重叠：将重叠单位推到最近的空格</summary>
         private void ResolveUnitOverlaps()
         {
@@ -1097,6 +1416,9 @@ namespace ZhenguanWarriors.View.BattleView
             _turnManager.OnUnitTurnEnd += OnUnitTurnEnd;
             _turnManager.OnPhaseChanged += OnPhaseChanged;
 
+            // 新战斗清空悔棋栈
+            _turnSnapshotStack.Clear();
+
             // 应用羁绊加成
             ApplyBondBonuses();
 
@@ -1115,6 +1437,9 @@ namespace ZhenguanWarriors.View.BattleView
 
             // ★ 所有初始化完成后再设为 Battle 阶段（防止 Update 提前处理点击）
             _gamePhase = GamePhase.Battle;
+
+            // ★ 第一关强制新手引导
+            TryStartTutorial();
 
             // ★ 通知 GameManager 切换到战斗阶段（否则 EquipSetup UI 不会消失）
             if (GameManager.Instance != null)
@@ -1349,11 +1674,17 @@ namespace ZhenguanWarriors.View.BattleView
             HexCoord cell = clickedCell.Value;
             BattleUnit unitAtCell = _turnManager?.GetUnitAt(cell);
 
+            // 新手引导输入过滤
+            if (!TutorialFilterClick(unitAtCell, cell)) return;
+
             // 如果点击的是自己的单位——选中它（只针对未行动的单位）
             if (unitAtCell != null && unitAtCell.Faction == Faction.Player
                 && unitAtCell.State == UnitState.Ready && !unitAtCell.HasActed)
             {
                 SelectUnit(unitAtCell);
+                // 引导：选中李世民后进入移动步骤
+                if (_tutorialActive && _tutorialStep == TutorialStep.SelectUnit)
+                    AdvanceTutorial();
                 return;
             }
 
@@ -1549,6 +1880,17 @@ namespace ZhenguanWarriors.View.BattleView
                 CheckOverlapAt($"MoveUnitAnimation-{unit.Name}移动后");
                 _battleUI?.ShowTip($"{unit.Name} 移动到 ({target.q},{target.r})");
 
+                // ★ 新手引导：李世民移动后进入攻击步骤
+                if (_tutorialActive && _tutorialStep == TutorialStep.Move && unit == _tutorialHero)
+                {
+                    AdvanceTutorial();
+                    // 保持李世民被选中，使玩家可以点击敌人攻击
+                    _selectedUnit = unit;
+                    if (_unitVisuals.TryGetValue(unit, out var heroVis))
+                        heroVis.SetSelected(true);
+                    yield break;
+                }
+
                 // ★ 检查攻击范围内是否有敌人 → 保持选中让玩家选择攻击或待机
                 bool hasTarget = _allUnits.Any(u => u.Faction == Faction.Enemy && u.IsAlive
                     && target.Distance(u.Position) <= unit.AttackRange);
@@ -1679,6 +2021,11 @@ namespace ZhenguanWarriors.View.BattleView
 
             _hexView.ClearHighlights();
             _selectedUnit = null;
+
+            // ★ 新手引导：攻击后进入结束回合步骤
+            if (_tutorialActive && _tutorialStep == TutorialStep.Attack)
+                AdvanceTutorial();
+
             EndUnitAction();
         }
 
@@ -1835,9 +2182,44 @@ namespace ZhenguanWarriors.View.BattleView
             // 过渡保护 — 页面切换时禁止绘制
             if (GameManager.Instance != null && GameManager.Instance.IsTransitioning) return;
 
+            // 战斗阶段：悔棋按钮（右上角，仅在玩家回合可用）
+            if (_gamePhase == GamePhase.Battle
+                && _turnManager?.CurrentPhase == TurnManager.TurnPhase.PlayerTurn
+                && !_isAnimating && !_inDuel
+                && _turnSnapshotStack.Count > 0)
+            {
+                float rs = _uiScale;
+                float rw = 80 * rs;
+                float rh = 40 * rs;
+                float rx = Screen.width - Theme.SafeRight - rw - 10 * rs;
+                float ry = Theme.ApplySafeTop(10 * rs, 4 * rs);
+                GUI.backgroundColor = new Color(0.2f, 0.35f, 0.6f);
+                if (GUI.Button(new Rect(rx, ry, rw, rh), "↩ 悔棋", Theme.MakeButton((int)(14 * rs))))
+                    TryRewind();
+                GUI.backgroundColor = Color.white;
+            }
+
             // 对话期间不显示战斗UI（DialogueUI独立绘制）
             if (_waitingForDialogue || (GameManager.Instance != null &&
                 GameManager.Instance.CurrentPage == GamePage.Story)) return;
+
+            // 结束回合按钮（玩家回合常驻，左上角）
+            if (_gamePhase == GamePhase.Battle
+                && _turnManager?.CurrentPhase == TurnManager.TurnPhase.PlayerTurn)
+            {
+                float es = _uiScale;
+                float ew = 110 * es;
+                float eh = 40 * es;
+                float ex = Theme.SafeLeft + 10 * es;
+                float ey = Theme.ApplySafeTop(10 * es, 4 * es);
+                bool canEndTurn = !_tutorialActive || _tutorialStep == TutorialStep.EndTurn;
+                GUI.enabled = canEndTurn;
+                GUI.backgroundColor = canEndTurn ? Theme.Primary : Theme.BgCard;
+                if (GUI.Button(new Rect(ex, ey, ew, eh), "结束回合", Theme.MakeButton((int)(14 * es))))
+                    EndCurrentTurn();
+                GUI.backgroundColor = Color.white;
+                GUI.enabled = true;
+            }
 
             // 关卡选择
             if (_gamePhase == GamePhase.LevelSelect)
@@ -1879,12 +2261,16 @@ namespace ZhenguanWarriors.View.BattleView
                 || _selectedUnit.State != UnitState.Ready)
                 return;
 
+            // 新手引导期间（除最后一步外）隐藏技能/单挑/攻击按钮，避免干扰
+            if (_tutorialActive && _tutorialStep != TutorialStep.EndTurn)
+                return;
+
             float s = _uiScale;
             float btnW = 100 * s;
             float btnH = 55 * s;
             float pad = 8 * s;
             float startX = 10 * s;
-            float startY = SH - 70 * s;
+            float startY = Theme.ApplySafeBottom(70 * s, btnH, 10 * s);
 
             // 收集所有按钮：攻击 + 计策 + 单挑
             int btnCount = 1 + _selectedUnit.SkillIds.Count;
@@ -1985,6 +2371,9 @@ namespace ZhenguanWarriors.View.BattleView
             float h = 300;
             float x = (Screen.width - w) / 2;
             float y = (Screen.height - h) / 2;
+            Rect panelRect = Theme.ClampToSafeArea(new Rect(x, y, w, h));
+            x = panelRect.x;
+            y = panelRect.y;
 
             GUI.Box(new Rect(x, y, w, h), "单挑对决");
 
@@ -2082,8 +2471,8 @@ namespace ZhenguanWarriors.View.BattleView
             GUI.Box(new Rect(0, 0, SW, 8 * s), "");
             GUI.backgroundColor = Color.white;
 
-            // 标题
-            Theme.DrawTitle(new Rect(0, 20 * s, SW, 55 * s), "🏯 征战天下", (int)(42 * s));
+            // 标题（向下避开刘海/挖孔安全区）
+            Theme.DrawTitle(new Rect(0, Theme.ApplySafeTop(20 * s, 8 * s), SW, 55 * s), "🏯 征战天下", (int)(42 * s));
 
             // 卡片
             float cardX = 40 * s;
@@ -2263,11 +2652,14 @@ namespace ZhenguanWarriors.View.BattleView
             GUI.Box(new Rect(0, 0, SW, SH), "");
             GUI.backgroundColor = Color.white;
 
-            // 结算面板 — 按缩放适配尺寸
+            // 结算面板 — 按缩放适配尺寸（限制在安全区）
             float pw = Mathf.Min(480 * s, SW - 40 * s);
             float ph = Mathf.Min(400 * s, SH - 40 * s);
             float px = (SW - pw) / 2;
             float py = (SH - ph) / 2;
+            Rect resultRect = Theme.ClampToSafeArea(new Rect(px, py, pw, ph));
+            px = resultRect.x;
+            py = resultRect.y;
 
             Theme.DrawPanel(new Rect(px, py, pw, ph));
 
@@ -2455,6 +2847,17 @@ namespace ZhenguanWarriors.View.BattleView
         {
             if (_turnManager.CurrentPhase == TurnManager.TurnPhase.PlayerTurn)
             {
+                // 新手引导阶段：未到最后一步时禁止结束回合
+                if (_tutorialActive && _tutorialStep != TutorialStep.EndTurn)
+                {
+                    _battleUI?.ShowTip("【新手引导】请按提示完成当前步骤");
+                    return;
+                }
+
+                // 完成引导
+                if (_tutorialActive && _tutorialStep == TutorialStep.EndTurn)
+                    CompleteTutorial();
+
                 DeselectUnit();
                 _battleUI?.ShowTip("结束玩家回合...");
                 while (_turnManager.CurrentUnit != null)
@@ -2528,6 +2931,8 @@ namespace ZhenguanWarriors.View.BattleView
                     foreach (var kv in _unitVisuals)
                         kv.Value.UpdatePosition();
                     _battleUI?.UpdateTurnInfo(_turnManager.TurnNumber, "玩家回合");
+                    // 玩家回合开始时捕获快照（悔棋用）
+                    CaptureTurnSnapshot();
                     // 回合开始时自动存档
                     if (_turnManager.TurnNumber == 1 || _turnManager.TurnNumber % 3 == 0)
                         AutoSaveGame();

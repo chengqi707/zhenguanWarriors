@@ -81,7 +81,7 @@ namespace ZhenguanWarriors.View.BattleView
             float w = Screen.width * 0.8f;
             float h = 240;
             float x = (Screen.width - w) / 2;
-            float y = Screen.height - h - 20;
+            float y = Theme.ApplySafeBottom(Screen.height - h - 20, h, 12);
 
             // 对话背景（唐风面板）
             Theme.DrawPanel(new Rect(x, y, w, h));

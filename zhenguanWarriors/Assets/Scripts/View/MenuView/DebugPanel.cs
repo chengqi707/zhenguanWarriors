@@ -36,9 +36,12 @@ namespace ZhenguanWarriors.View.BattleView
             // 半透明遮罩
             GUI.Box(new Rect(0, 0, Screen.width, Screen.height), "");
 
-            // 面板
+            // 面板（限制在安全区）
             float pw = 720 * s, ph = 640 * s;
             float px = (Screen.width - pw) / 2, py = (Screen.height - ph) / 2;
+            Rect panelRect = Theme.ClampToSafeArea(new Rect(px, py, pw, ph));
+            px = panelRect.x;
+            py = panelRect.y;
 
             GUI.backgroundColor = Theme.BgPanel;
             GUI.Box(new Rect(px, py, pw, ph), "");

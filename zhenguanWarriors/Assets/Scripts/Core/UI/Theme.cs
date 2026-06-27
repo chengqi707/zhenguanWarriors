@@ -106,5 +106,81 @@ namespace ZhenguanWarriors.Core.UI
             h = UnityEngine.Mathf.Max(h, 10); // 最小高度
             return new Rect(x, y, w, h);
         }
+
+        // ===== 安全区适配（刘海/挖孔/底部手势条） =====
+
+        private static float _safeTop, _safeBottom, _safeLeft, _safeRight;
+        private static int _lastSafeFrame = -1;
+
+        private static void RefreshSafeArea()
+        {
+            if (_lastSafeFrame == Time.frameCount) return;
+            _lastSafeFrame = Time.frameCount;
+
+            Rect safe = Screen.safeArea;
+            _safeTop = safe.y;
+            _safeBottom = Screen.height - (safe.y + safe.height);
+            _safeLeft = safe.x;
+            _safeRight = Screen.width - (safe.x + safe.width);
+        }
+
+        public static float SafeTop
+        {
+            get { RefreshSafeArea(); return _safeTop; }
+        }
+
+        public static float SafeBottom
+        {
+            get { RefreshSafeArea(); return _safeBottom; }
+        }
+
+        public static float SafeLeft
+        {
+            get { RefreshSafeArea(); return _safeLeft; }
+        }
+
+        public static float SafeRight
+        {
+            get { RefreshSafeArea(); return _safeRight; }
+        }
+
+        /// <summary>获取安全内容区域（背景可继续全屏，UI 内容建议限制在此区域）</summary>
+        public static Rect GetSafeArea()
+        {
+            RefreshSafeArea();
+            return new Rect(_safeLeft, _safeTop,
+                            Screen.width - _safeLeft - _safeRight,
+                            Screen.height - _safeTop - _safeBottom);
+        }
+
+        /// <summary>将 Rect 移动到安全区内（优先保持尺寸，必要时压缩）</summary>
+        public static Rect ClampToSafeArea(Rect r)
+        {
+            RefreshSafeArea();
+            float x = UnityEngine.Mathf.Max(r.x, _safeLeft);
+            float y = UnityEngine.Mathf.Max(r.y, _safeTop);
+            float maxW = Screen.width - _safeLeft - _safeRight - (x - _safeLeft);
+            float maxH = Screen.height - _safeTop - _safeBottom - (y - _safeTop);
+            float w = UnityEngine.Mathf.Min(r.width, maxW);
+            float h = UnityEngine.Mathf.Min(r.height, maxH);
+            w = UnityEngine.Mathf.Max(w, 10);
+            h = UnityEngine.Mathf.Max(h, 10);
+            return new Rect(x, y, w, h);
+        }
+
+        /// <summary>把 y 坐标推到安全区顶部以下</summary>
+        public static float ApplySafeTop(float y, float margin = 0f)
+        {
+            RefreshSafeArea();
+            return UnityEngine.Mathf.Max(y, _safeTop + margin);
+        }
+
+        /// <summary>把 y 坐标推到安全区底部以上（给定控件高度）</summary>
+        public static float ApplySafeBottom(float y, float height, float margin = 0f)
+        {
+            RefreshSafeArea();
+            float maxY = Screen.height - _safeBottom - height - margin;
+            return UnityEngine.Mathf.Min(y, maxY);
+        }
     }
 }

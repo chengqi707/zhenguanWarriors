@@ -80,9 +80,12 @@ namespace ZhenguanWarriors.View.BattleView
             // 半透明遮罩
             GUI.Box(new Rect(0, 0, Screen.width, Screen.height), "");
 
-            // 暂停菜单面板
+            // 暂停菜单面板（限制在安全区）
             float pw = 360 * s, ph = 400 * s;
             float px = (Screen.width - pw) / 2, py = (Screen.height - ph) / 2;
+            Rect panelRect = Theme.ClampToSafeArea(new Rect(px, py, pw, ph));
+            px = panelRect.x;
+            py = panelRect.y;
 
             GUI.backgroundColor = Theme.BgPanel;
             GUI.Box(new Rect(px, py, pw, ph), "");
@@ -107,9 +110,22 @@ namespace ZhenguanWarriors.View.BattleView
                 "▶ 继续战斗", Theme.MakeButton((int)(18 * s))))
                 Close();
 
+            // 悔棋（仅在玩家回合且可悔棋时可用）
+            bool canRewind = _battleCtrl?.CanRewind() ?? false;
+            GUI.enabled = canRewind;
+            GUI.backgroundColor = canRewind ? new Color(0.2f, 0.35f, 0.6f) : Theme.BgCard;
+            if (GUI.Button(new Rect(startX, startY + (btnH + gap), btnW, btnH),
+                "↩ 悔棋", Theme.MakeButton((int)(18 * s))))
+            {
+                if (_battleCtrl?.TryRewind() == true)
+                    Close();
+            }
+            GUI.enabled = true;
+            GUI.backgroundColor = Color.white;
+
             // 保存并退出
             GUI.backgroundColor = Theme.PrimaryDark;
-            if (GUI.Button(new Rect(startX, startY + (btnH + gap), btnW, btnH),
+            if (GUI.Button(new Rect(startX, startY + (btnH + gap) * 2, btnW, btnH),
                 "💾 保存并退出", Theme.MakeButton((int)(18 * s))))
             {
                 _confirm.Show("保存并退出",

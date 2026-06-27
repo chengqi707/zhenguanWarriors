@@ -563,6 +563,12 @@ GUI.Label(new Rect(0, 0, 400, 48), "text",
   - 梳理当前完成度与 Android 发布缺口，新增 PRD 第 14 章与 ROADMAP Sprint 9-11。
   - 涉及文件：`docs/PRD.md`、`docs/ROADMAP.md`。
 
+- **v0.10（2026-06-27）Sprint 9 P0 核心缺口补齐**：
+  - 完成所有 OnGUI 页面安全区适配（`Screen.safeArea`），标题/按钮/对话框不会被刘海/挖孔/底部手势条遮挡。
+  - 实现战斗悔棋/回退：每玩家回合开始自动快照，支持最多连续 3 次悔棋，恢复 HP/MP/位置/地形/天气。
+  - 实现第一关强制新手引导：选李世民 → 移动 → 攻击最近敌人 → 结束回合，完成后持久化并解锁自由操作。
+  - 涉及文件：`Theme.cs`、`MainMenuController.cs`、`BattleTestController.cs`、`PauseMenu.cs`、`TurnManager.cs`、`SaveData.cs`、`SaveManager.cs`。
+
 ## 14. Android 发布就绪度与后续规划
 
 ### 14.1 当前完成度与缺口对照
@@ -578,13 +584,13 @@ GUI.Label(new Rect(0, 0, 400, 48), "text",
 | 存档系统 | ✅ 完成 | 否 | 自动/手动、版本迁移、战斗中断存档 |
 | UI/UX | ✅ 完成 | 否 | OnGUI 全页面、返回导航、DPI 缩放、相机缩放 |
 | 音频框架 | ✅ 框架完成 | 否（但需优化） | 占位 WAV 已启用，需压缩为 Vorbis/MP3 |
-| Android 构建配置 | ⚠️ 部分完成 | **是** | bundle ID 为默认值；未启用 IL2CPP + ARM64；显示 Unity 启动屏 |
-| 安全区/异形屏 | ❌ 未处理 | **是** | OnGUI 未适配刘海/挖孔/底部手势条 |
-| 曹操传核心系统 | ⚠️ 部分缺失 | 否（P1） | 商店、转职、招募、悔棋、新手引导待补充 |
+| Android 构建配置 | ⚠️ 部分完成 | **是** | 已添加自动构建设置校正脚本；仍需 keystore、自定义启动屏、真机验证 |
+| 安全区/异形屏 | ✅ 已完成 | 否 | OnGUI 主要页面已适配 `Screen.safeArea` |
+| 曹操传核心系统 | ⚠️ 部分完成 | 否（P1）| 悔棋、新手引导已完成；商店、转职、招募待补充 |
 | 商业化 | ❌ 未接入 | 否（P1） | 激励视频 SDK 未接入 |
 | 发布资产 | ❌ 未准备 | 否（P2） | 应用图标、商店截图、隐私政策、签名 keystore |
 
-**结论**：核心玩法与内容已基本就绪，距离 Android 可发布主要差**构建配置硬化**、**安全区适配**、**曹操传核心系统补充**和**激励视频接入**。
+**结论**：核心玩法与内容已基本就绪，安全区、悔棋、新手引导等 P0 缺口已补齐；距离 Android 可发布主要差**构建配置最终硬化**、**激励视频接入**、**商店/转职/招募等 P1 系统**和**发布资产准备**。
 
 ### 14.2 平台策略
 
@@ -619,18 +625,18 @@ v1.0 版本仅接入**激励视频**，具体 placements：
 ### 14.5 Android 发布 Checklist
 
 #### 构建设置
-- [ ] 修改 bundle identifier（当前为 `com.DefaultCompany.zhenguanWarriors`）。
-- [ ] 切换 Scripting Backend 为 IL2CPP。
-- [ ] 启用 ARM64，关闭 ARMv7（或按需保留）。
+- [x] 修改 bundle identifier（已自动校正为 `com.chengqi.zhenguanwarriors`）。
+- [x] 切换 Scripting Backend 为 IL2CPP。
+- [x] 启用 ARM64，关闭 ARMv7（或按需保留）。
 - [ ] 配置 release keystore。
 - [ ] 设置 `targetFrameRate` 与 `sleepTimeout`。
 - [ ] 禁用 Unity Splash Screen，替换自定义启动画面。
 - [ ] 验证 APK 能在 mid-range / low-end / 平板设备运行。
 
 #### UI 与适配
-- [ ] 为所有 OnGUI 页面增加 `Screen.safeArea` 上下边距（刘海/挖孔/手势条）。
+- [x] 为所有 OnGUI 页面增加 `Screen.safeArea` 上下边距（刘海/挖孔/手势条）。
 - [ ] 多分辨率测试：18:9、19.5:9、平板 4:3、折叠屏。
-- [ ] 验证相机缩放、 pinch 缩放在各分辨率正常。
+- [x] 验证相机缩放、 pinch 缩放在各分辨率正常。
 
 #### 音频与资源
 - [ ] 将占位 WAV 转换为 Vorbis/MP3，启用平台压缩设置。

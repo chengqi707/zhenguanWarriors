@@ -50,6 +50,13 @@ namespace ZhenguanWarriors.Core.Battle
             StartPlayerTurn();
         }
 
+        /// <summary>悔棋用：回到指定回合的玩家回合开始（不递增回合数）</summary>
+        public void RestartPlayerTurn(int turnNumber)
+        {
+            TurnNumber = turnNumber;
+            StartPlayerTurn();
+        }
+
         /// <summary>开始玩家回合</summary>
         public void StartPlayerTurn()
         {

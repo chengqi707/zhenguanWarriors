@@ -51,22 +51,24 @@ namespace ZhenguanWarriors.View.BattleView
 
             float cx = SW / 2f;
 
-            // 标题
-            Theme.DrawTitle(new Rect(0, 60 * s, SW, 100 * s),
+            // 标题（向下避开刘海/挖孔安全区）
+            float titleY = Theme.ApplySafeTop(60 * s, 12 * s);
+            Theme.DrawTitle(new Rect(0, titleY, SW, 100 * s),
                 "🏯 贞观勇士", (int)(56 * s));
 
             // 副标题
-            GUI.Label(new Rect(0, 150 * s, SW, 40 * s),
+            GUI.Label(new Rect(0, titleY + 90 * s, SW, 40 * s),
                 "—— 李世民战棋录 ——",
                 Theme.MakeLabel((int)(22 * s), FontStyle.Normal, Theme.Gold, TextAnchor.MiddleCenter));
 
             // 分隔
+            float startY = Mathf.Max(240 * s, titleY + 170 * s);
             GUI.backgroundColor = Theme.Gold;
-            GUI.Box(new Rect(cx - 60 * s, 200 * s, 120 * s, 2 * s), "");
+            GUI.Box(new Rect(cx - 60 * s, startY - 40 * s, 120 * s, 2 * s), "");
             GUI.backgroundColor = Color.white;
 
             // 按钮
-            float btnW = 280 * s, btnH = 70 * s, gap = 24 * s, startY = 240 * s;
+            float btnW = 280 * s, btnH = 70 * s, gap = 24 * s;
 
             GUI.backgroundColor = Theme.Primary;
             if (GUI.Button(new Rect(cx - btnW / 2, startY, btnW, btnH),
@@ -103,8 +105,9 @@ namespace ZhenguanWarriors.View.BattleView
             }
             GUI.backgroundColor = Color.white;
 
-            // 版本
-            GUI.Label(new Rect(20 * s, SH - 50 * s, 200 * s, 30 * s),
+            // 版本（向上避开底部手势条安全区）
+            float versionY = Theme.ApplySafeBottom(50 * s, 30 * s, 8 * s);
+            GUI.Label(new Rect(20 * s, SH - versionY, 200 * s, 30 * s),
                 "v1.0", Theme.MakeLabel((int)(16 * s), FontStyle.Normal, Theme.TextDim));
 
             GUI.backgroundColor = Theme.Primary;
@@ -119,9 +122,9 @@ namespace ZhenguanWarriors.View.BattleView
             GUI.Box(new Rect(0, 0, SW, SH), "");
             GUI.backgroundColor = Color.white;
 
-            Theme.DrawTitle(new Rect(0, 40 * s, SW, 60 * s), "⚙ 设置", (int)(32 * s));
+            Theme.DrawTitle(new Rect(0, Theme.ApplySafeTop(40 * s, 12 * s), SW, 60 * s), "⚙ 设置", (int)(32 * s));
 
-            float x = SW / 2f - 160 * s, y = 120 * s, w = 320 * s, h = 40 * s;
+            float x = SW / 2f - 160 * s, y = Theme.ApplySafeTop(120 * s, 12 * s), w = 320 * s, h = 40 * s;
 
             // 难度
             GUI.Label(new Rect(x, y, w, h), "🎯 游戏难度", Theme.MakeLabel((int)(22 * s), FontStyle.Bold));
@@ -224,7 +227,8 @@ namespace ZhenguanWarriors.View.BattleView
 
             // 返回
             GUI.backgroundColor = Theme.BgCard;
-            if (GUI.Button(new Rect(SW / 2f - 120 * s, SH - 90 * s, 240 * s, 60 * s),
+            float backY = Theme.ApplySafeBottom(90 * s, 60 * s, 12 * s);
+            if (GUI.Button(new Rect(SW / 2f - 120 * s, SH - backY, 240 * s, 60 * s),
                 "← 返回", Theme.MakeButton((int)(20 * s))))
             {
                 AudioManager.PlaySfx(AudioManager.SfxClips.Click);
