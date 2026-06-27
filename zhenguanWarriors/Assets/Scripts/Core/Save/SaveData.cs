@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ZhenguanWarriors.Utils;
 
 namespace ZhenguanWarriors.Core.Save
 {
@@ -27,6 +28,7 @@ namespace ZhenguanWarriors.Core.Save
         // ========== 游戏设置 ==========
         public bool bgmOn = true;
         public bool sfxOn = true;
+        public LogSettings logSettings = new LogSettings();
 
         // ========== 战场状态（战斗中存档时保存） ==========
         public bool isInBattle;

@@ -1,5 +1,6 @@
 using UnityEngine;
 using ZhenguanWarriors.Core.Save;
+using ZhenguanWarriors.Utils;
 
 namespace ZhenguanWarriors.View.BattleView
 {
@@ -32,6 +33,9 @@ namespace ZhenguanWarriors.View.BattleView
             if (Instance != null) { Destroy(gameObject); return; }
             Instance = this;
             DontDestroyOnLoad(gameObject);
+
+            // 日志系统最先初始化，确保后续所有组件都能使用
+            GameLogger.Initialize();
 
             _splash = gameObject.AddComponent<SplashScreen>();
             _mainMenu = gameObject.AddComponent<MainMenuController>();
