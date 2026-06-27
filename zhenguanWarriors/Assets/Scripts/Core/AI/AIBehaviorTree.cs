@@ -5,6 +5,7 @@ using UnityEngine;
 using ZhenguanWarriors.Core.Battle;
 using ZhenguanWarriors.Core.Character;
 using ZhenguanWarriors.Core.Combat;
+using ZhenguanWarriors.Utils;
 
 namespace ZhenguanWarriors.Core.AI
 {
@@ -57,16 +58,28 @@ namespace ZhenguanWarriors.Core.AI
         /// <summary>为指定敌方单位做决策</summary>
         public AIAction Decide(BattleUnit unit)
         {
+            var action = DecideInternal(unit);
+
+            string targetDesc = action.Type == AIActionType.Attack && action.TargetUnit != null
+                ? $"{action.TargetUnit.Name}@({action.TargetUnit.Position.q},{action.TargetUnit.Position.r})"
+                : $"({action.TargetCell.q},{action.TargetCell.r})";
+
+            GameLogger.LogInfoFormat(LogCategory.AI,
+                "AI决策|单位={0}|阵营={1}|行动={2}|目标={3}|原因={4}",
+                unit.Name, unit.Faction, action.Type, targetDesc, action.Reason);
+
+            return action;
+        }
+
+        private AIAction DecideInternal(BattleUnit unit)
+        {
             if (!unit.IsAlive)
                 return new AIAction { Type = AIActionType.Skip, Reason = "已阵亡" };
 
             // === 1. 撤退判断 ===
             var retreat = CheckRetreat(unit);
             if (retreat != null)
-            {
-                Debug.Log($"[AI-Decide] {unit.Name} 选择撤退 → 目标格({retreat.TargetCell.q},{retreat.TargetCell.r}) | {retreat.Reason}");
                 return retreat;
-            }
 
             // 极简难度：只用集火+移动，不用计策不撤退
             if (_difficulty == "easy")
@@ -75,28 +88,18 @@ namespace ZhenguanWarriors.Core.AI
             // === 2. 高价值计策 ===
             var skillAction = CheckSkillUsage(unit);
             if (skillAction != null)
-            {
-                Debug.Log($"[AI-Decide] {unit.Name} 选择计策 → 目标格({skillAction.TargetCell.q},{skillAction.TargetCell.r}) | {skillAction.Reason}");
                 return skillAction;
-            }
 
             // === 3. 集火攻击 ===
             var attack = CheckAttack(unit);
             if (attack != null)
-            {
-                Debug.Log($"[AI-Decide] {unit.Name} 选择攻击 → 目标{attack.TargetUnit?.Name}@({attack.TargetUnit?.Position.q},{attack.TargetUnit?.Position.r}) | {attack.Reason}");
                 return attack;
-            }
 
             // === 4. 移动逼近 ===
             var move = CheckMoveTowards(unit);
             if (move != null)
-            {
-                Debug.Log($"[AI-Decide] {unit.Name} 选择移动 → 目标格({move.TargetCell.q},{move.TargetCell.r}) | {move.Reason}");
                 return move;
-            }
 
-            Debug.LogWarning($"[AI-Decide] {unit.Name} 无行动：撤退={retreat != null} 计策={skillAction != null} 攻击={attack != null} 移动={move != null}");
             return new AIAction { Type = AIActionType.Skip, Reason = "无行动" };
         }
 
@@ -125,13 +128,13 @@ namespace ZhenguanWarriors.Core.AI
             {
                 healerUnit = allies.OrderBy(a => unit.Position.Distance(a.Position)).First();
                 retreatTarget = healerUnit.Position;
-                Debug.Log($"[CheckRetreat] {unit.Name} HP低，向治疗者 {healerUnit.Name}@({healerUnit.Position.q},{healerUnit.Position.r}) 撤退");
+                GameLogger.LogDebugFormat(LogCategory.AI, "{0} HP低，向治疗者 {1}@({2},{3}) 撤退", unit.Name, healerUnit.Name, healerUnit.Position.q, healerUnit.Position.r);
             }
             else
             {
                 // 向阵营后方撤退（假设敌方在右侧，向左退）
                 retreatTarget = new HexCoord(Math.Max(0, unit.Position.q - 3), unit.Position.r);
-                Debug.Log($"[CheckRetreat] {unit.Name} HP低，无治疗者，向阵营后方({retreatTarget.q},{retreatTarget.r})撤退");
+                GameLogger.LogDebugFormat(LogCategory.AI, "{0} HP低，无治疗者，向阵营后方({1},{2})撤退", unit.Name, retreatTarget.q, retreatTarget.r);
             }
 
             var path = FindPath(unit, retreatTarget, healerUnit?.Position);
@@ -142,7 +145,8 @@ namespace ZhenguanWarriors.Core.AI
                 var blocker = _allUnits.FirstOrDefault(u => u.IsAlive && u != unit && u.Position == nextStep);
                 if (blocker != null)
                 {
-                    Debug.Log($"[CheckRetreat] {unit.Name} 撤退路径第一格({nextStep.q},{nextStep.r})仍被 {blocker.Name}[{blocker.Faction}] 占据，将尝试移动到该格。");
+                    GameLogger.LogDebugFormat(LogCategory.AI, "{0} 撤退路径第一格({1},{2})仍被 {3}[{4}] 占据，将尝试移动到该格",
+                        unit.Name, nextStep.q, nextStep.r, blocker.Name, blocker.Faction);
                 }
                 return new AIAction
                 {
@@ -228,6 +232,7 @@ namespace ZhenguanWarriors.Core.AI
             {
                 Type = AIActionType.Attack,
                 TargetUnit = target,
+                TargetCell = target.Position,
                 Reason = $"攻击目标 {target.Name}（威胁值{scored[0].score:F0}）"
             };
         }
@@ -249,7 +254,7 @@ namespace ZhenguanWarriors.Core.AI
             var path = FindPath(unit, target.Position, target.Position);
             if (path.Count <= 1)
             {
-                Debug.LogWarning($"[CheckMoveTowards] {unit.Name} 到 {target.Name} 无路可通");
+                GameLogger.LogWarningFormat(LogCategory.AI, "{0} 到 {1} 无路可通", unit.Name, target.Name);
                 return null;
             }
 
@@ -257,7 +262,7 @@ namespace ZhenguanWarriors.Core.AI
             int maxSteps = Math.Min(path.Count - 2, unit.MoveRange);
             if (maxSteps < 1)
             {
-                Debug.Log($"[CheckMoveTowards] {unit.Name} 已贴近 {target.Name}，无需移动");
+                GameLogger.LogDebugFormat(LogCategory.AI, "{0} 已贴近 {1}，无需移动", unit.Name, target.Name);
                 return null;
             }
 
@@ -276,7 +281,8 @@ namespace ZhenguanWarriors.Core.AI
                 }
             }
 
-            Debug.Log($"[CheckMoveTowards] {unit.Name} 当前@({unit.Position.q},{unit.Position.r}) → 目标{target.Name}@({target.Position.q},{target.Position.r}) 路径{path.Count}格 dest=({dest.q},{dest.r})");
+            GameLogger.LogDebugFormat(LogCategory.AI, "{0} 当前@({1},{2}) → 目标{3}@({4},{5}) 路径{6}格 dest=({7},{8})",
+                unit.Name, unit.Position.q, unit.Position.r, target.Name, target.Position.q, target.Position.r, path.Count, dest.q, dest.r);
 
             if (dest == unit.Position) return null;
 

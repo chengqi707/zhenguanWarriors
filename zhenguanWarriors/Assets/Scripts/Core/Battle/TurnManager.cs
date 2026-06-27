@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ZhenguanWarriors.Utils;
 
 namespace ZhenguanWarriors.Core.Battle
 {
@@ -45,6 +46,7 @@ namespace ZhenguanWarriors.Core.Battle
         public void StartBattle()
         {
             TurnNumber = 1;
+            GameLogger.LogInfoFormat(LogCategory.Battle, "战斗开始|回合={0}", TurnNumber);
             StartPlayerTurn();
         }
 
@@ -101,6 +103,7 @@ namespace ZhenguanWarriors.Core.Battle
         {
             if (_currentUnit != null)
             {
+                GameLogger.LogDebugFormat(LogCategory.Battle, "单位回合结束|单位={0}|阵营={1}", _currentUnit.Name, _currentUnit.Faction);
                 _currentUnit.State = UnitState.Done;
                 _currentUnit.HasActed = true;
                 OnUnitTurnEnd?.Invoke(_currentUnit);
@@ -116,6 +119,7 @@ namespace ZhenguanWarriors.Core.Battle
             {
                 _currentUnit = _actionQueue.Dequeue();
                 _currentUnit.State = UnitState.Ready;
+                GameLogger.LogDebugFormat(LogCategory.Battle, "单位回合开始|单位={0}|阵营={1}|回合={2}", _currentUnit.Name, _currentUnit.Faction, TurnNumber);
                 OnUnitTurnStart?.Invoke(_currentUnit);
             }
             else
@@ -141,6 +145,9 @@ namespace ZhenguanWarriors.Core.Battle
                 if (CheckVictory() || CheckDefeat())
                     return;
             }
+
+            GameLogger.LogDebugFormat(LogCategory.Battle, "回合结束检查|阶段={0}|剩余玩家={1}|剩余敌方={2}",
+                CurrentPhase, GetAliveUnits(Faction.Player).Count, GetAliveUnits(Faction.Enemy).Count);
 
             switch (CurrentPhase)
             {
@@ -189,7 +196,9 @@ namespace ZhenguanWarriors.Core.Battle
         /// <summary>设置当前阶段（公开供VictoryChecker使用）</summary>
         public void SetPhase(TurnPhase phase)
         {
+            var oldPhase = CurrentPhase;
             CurrentPhase = phase;
+            GameLogger.LogInfoFormat(LogCategory.Battle, "阶段切换|旧={0}|新={1}", oldPhase, phase);
             OnPhaseChanged?.Invoke(phase);
         }
 
