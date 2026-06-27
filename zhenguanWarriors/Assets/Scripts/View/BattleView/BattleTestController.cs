@@ -1,15 +1,16 @@
 using UnityEngine;
-using ZhenguanWarriors.Core.Battle;
-using ZhenguanWarriors.Core.Combat;
-using ZhenguanWarriors.Core.Character;
-using ZhenguanWarriors.Core.Level;
 using ZhenguanWarriors.Core.AI;
-using ZhenguanWarriors.Core.UI;
+using ZhenguanWarriors.Core.Audio;
+using ZhenguanWarriors.Core.Battle;
+using ZhenguanWarriors.Core.Character;
+using ZhenguanWarriors.Core.Combat;
+using ZhenguanWarriors.Core.Level;
 using ZhenguanWarriors.Core.Save;
 using ZhenguanWarriors.Core.Story;
-using ZhenguanWarriors.Core.Audio;
-using System.Collections.Generic;
+using ZhenguanWarriors.Core.UI;
+using ZhenguanWarriors.Utils;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace ZhenguanWarriors.View.BattleView
@@ -84,9 +85,6 @@ namespace ZhenguanWarriors.View.BattleView
         private List<string> _resultsLog = new();
         private Vector2 _resultsScroll;
 
-        // ========== 文件日志（解决adb logcat被设备加密的问题） ==========
-        private string _logFilePath;
-
         void Start()
         {
             _hexView = GetComponent<HexGridView>();
@@ -96,19 +94,19 @@ namespace ZhenguanWarriors.View.BattleView
             // 防御性校验：核心组件缺失时禁用自身，避免后续空引用崩溃
             if (_hexView == null)
             {
-                Debug.LogError("[战斗] 缺少 HexGridView 组件，战斗控制器将禁用。");
+                GameLogger.LogError(LogCategory.Battle, "缺少 HexGridView 组件，战斗控制器将禁用。");
                 enabled = false;
                 return;
             }
             if (_battleUI == null)
             {
-                Debug.LogError("[战斗] 缺少 BattleUI 组件，战斗控制器将禁用。");
+                GameLogger.LogError(LogCategory.Battle, "缺少 BattleUI 组件，战斗控制器将禁用。");
                 enabled = false;
                 return;
             }
             if (_dialogueUI == null)
             {
-                Debug.LogWarning("[战斗] 缺少 DialogueUI 组件，剧情功能不可用。");
+                GameLogger.LogWarning(LogCategory.Battle, "缺少 DialogueUI 组件，剧情功能不可用。");
             }
 
             // DPI自适应缩放（竖屏基准：1080x1920）
@@ -117,12 +115,9 @@ namespace ZhenguanWarriors.View.BattleView
             _uiScale = Mathf.Min(wScale, hScale);
             if (_uiScale < 0.6f) _uiScale = 0.6f;
             if (_uiScale > 2.5f) _uiScale = 2.5f;
-            Debug.Log($"[缩放] SW={SW} SH={SH} wS={wScale:F2} hS={hScale:F2} scale={_uiScale:F2}");
+            GameLogger.LogInfoFormat(LogCategory.UI, "战斗UI缩放|SW={0}|SH={1}|wScale={2:F2}|hScale={3:F2}|scale={4:F2}", SW, SH, wScale, hScale, _uiScale);
 
-            // 初始化文件日志路径
-            _logFilePath = System.IO.Path.Combine(Application.persistentDataPath, "overlap_log.txt");
-            FileLog($"=== 日志启动 @ {System.DateTime.Now:yyyy-MM-dd HH:mm:ss} ===");
-            FileLog($"日志文件路径: {_logFilePath}");
+            GameLogger.LogInfoFormat(LogCategory.Battle, "战斗控制器启动|日志文件={0}", GameLogger.LogFilePath);
         }
 
         /// <summary>GameManager 调用，设置当前页面</summary>
@@ -889,21 +884,6 @@ namespace ZhenguanWarriors.View.BattleView
 
         // ========== 重叠诊断工具 ==========
 
-        /// <summary>写入文件日志（绕过 adb logcat 加密限制）</summary>
-        private void FileLog(string message)
-        {
-            if (string.IsNullOrEmpty(_logFilePath)) return;
-            try
-            {
-                var line = $"[{System.DateTime.Now:HH:mm:ss.fff}] {message}\n";
-                System.IO.File.AppendAllText(_logFilePath, line);
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogWarning($"[FileLog] 写入失败: {e.Message}");
-            }
-        }
-
         /// <summary>检测所有单位位置重叠，返回重叠详情</summary>
         private List<string> DetectOverlaps()
         {
@@ -935,9 +915,7 @@ namespace ZhenguanWarriors.View.BattleView
             {
                 sb.AppendLine($"  [{u.Faction}] {u.Name} @({u.Position.q},{u.Position.r}) HP={u.CurrentHp}/{u.MaxHp} State={u.State} Moved={u.HasMovedThisTurn} Acted={u.HasActed}");
             }
-            var result = sb.ToString();
-            FileLog(result); // 同时写入文件
-            return result;
+            return sb.ToString();
         }
 
         /// <summary>在关键位置调用的重叠检查器——检测到重叠就输出详细日志</summary>
@@ -946,21 +924,14 @@ namespace ZhenguanWarriors.View.BattleView
             var overlaps = DetectOverlaps();
             if (overlaps.Count > 0)
             {
-                string msg = $"[重叠检测] 检查点: {checkpoint} — 发现 {overlaps.Count} 处重叠!";
-                Debug.LogError(msg);
-                FileLog(msg);
+                GameLogger.LogErrorFormat(LogCategory.Battle, "重叠检测|检查点={0}|数量={1}", checkpoint, overlaps.Count);
                 foreach (var o in overlaps)
-                {
-                    Debug.LogError(o);
-                    FileLog(o);
-                }
-                Debug.LogError(DumpUnitPositions($"重叠现场@{checkpoint}"));
+                    GameLogger.LogError(LogCategory.Battle, o);
+                GameLogger.LogError(LogCategory.Battle, DumpUnitPositions($"重叠现场@{checkpoint}"));
             }
             else
             {
-                string msg = $"[重叠检测] 检查点: {checkpoint} — 无重叠 ✓";
-                Debug.Log(msg);
-                FileLog(msg);
+                GameLogger.LogInfoFormat(LogCategory.Battle, "重叠检测|检查点={0}|结果=无重叠", checkpoint);
             }
         }
 
@@ -970,15 +941,10 @@ namespace ZhenguanWarriors.View.BattleView
             var overlaps = DetectOverlaps();
             if (overlaps.Count > 0)
             {
-                string msg1 = $"[ResolveUnitOverlaps] 发现 {overlaps.Count} 处重叠，开始修复:";
-                Debug.LogWarning(msg1);
-                FileLog(msg1);
+                GameLogger.LogWarningFormat(LogCategory.Battle, "ResolveUnitOverlaps|发现重叠={0}", overlaps.Count);
                 foreach (var o in overlaps)
-                {
-                    Debug.LogWarning(o);
-                    FileLog(o);
-                }
-                Debug.Log(DumpUnitPositions("修复前"));
+                    GameLogger.LogWarning(LogCategory.Battle, o);
+                GameLogger.LogError(LogCategory.Battle, DumpUnitPositions("修复前"));
             }
 
             var occupied = new HashSet<HexCoord>();
@@ -999,18 +965,16 @@ namespace ZhenguanWarriors.View.BattleView
                                 unit.Position = cell;
                                 found = true;
                                 fixedCount++;
-                                string msg2 = $"[重叠修复] {unit.Name} 从 ({oldPos.q},{oldPos.r}) → ({cell.q},{cell.r}) 距离={d}";
-                                Debug.Log(msg2);
-                                FileLog(msg2);
+                                GameLogger.LogInfoFormat(LogCategory.Battle, "重叠修复|单位={0}|旧=({1},{2})|新=({3},{4})|距离={5}",
+                                    unit.Name, oldPos.q, oldPos.r, cell.q, cell.r, d);
                                 break;
                             }
                         }
                     }
                     if (!found)
                     {
-                        string msg3 = $"[重叠] 无法为 {unit.Name} 找到空位！当前位置({oldPos.q},{oldPos.r})保留，仍与其他单位重叠！";
-                        Debug.LogError(msg3);
-                        FileLog(msg3);
+                        GameLogger.LogErrorFormat(LogCategory.Battle, "重叠修复|单位={0}|位置=({1},{2})|结果=无法找到空位",
+                            unit.Name, oldPos.q, oldPos.r);
                     }
                 }
                 occupied.Add(unit.Position);
@@ -1018,18 +982,18 @@ namespace ZhenguanWarriors.View.BattleView
 
             if (fixedCount > 0)
             {
-                Debug.Log(DumpUnitPositions($"修复后（修复了{fixedCount}个）"));
+                GameLogger.LogError(LogCategory.Battle, DumpUnitPositions($"修复后（修复了{fixedCount}个）"));
                 // 修复后再次检查
                 var after = DetectOverlaps();
                 if (after.Count > 0)
                 {
-                    Debug.LogError($"[ResolveUnitOverlaps] 修复后仍有 {after.Count} 处重叠未解决！");
+                    GameLogger.LogErrorFormat(LogCategory.Battle, "ResolveUnitOverlaps|修复后仍有重叠={0}", after.Count);
                     foreach (var o in after)
-                        Debug.LogError(o);
+                        GameLogger.LogError(LogCategory.Battle, o);
                 }
                 else
                 {
-                    Debug.Log($"[ResolveUnitOverlaps] 所有重叠已修复 ✓");
+                    GameLogger.LogInfo(LogCategory.Battle, "ResolveUnitOverlaps|所有重叠已修复");
                 }
             }
         }
@@ -1043,7 +1007,7 @@ namespace ZhenguanWarriors.View.BattleView
             // 将玩家队伍设置为战斗单位
             _allUnits.Clear();
             _allUnits.AddRange(_playerParty);
-            Debug.Log($"[StartBattle] 玩家队伍 { _playerParty.Count} 人，位置分布：{string.Join(", ", _playerParty.Select(u => $"{u.Name}@({u.Position.q},{u.Position.r})"))}");
+            GameLogger.LegacyLog($"[StartBattle] 玩家队伍 {_playerParty.Count} 人，位置分布：{string.Join(", ", _playerParty.Select(u => $"{u.Name}@({u.Position.q},{u.Position.r})"))}");
 
             // 敌方单位
             CreateEnemyUnits();
@@ -1057,7 +1021,7 @@ namespace ZhenguanWarriors.View.BattleView
                 _playerParty[i].Position = new HexCoord((int)(startX + i % 2), (int)(startY + i / 2));
                 _playerParty[i].NewTurn();
             }
-            Debug.Log($"[StartBattle] 玩家重新布置到起始区域：{string.Join(", ", _playerParty.Select(u => $"{u.Name}@({u.Position.q},{u.Position.r})"))}");
+            GameLogger.LegacyLog($"[StartBattle] 玩家重新布置到起始区域：{string.Join(", ", _playerParty.Select(u => $"{u.Name}@({u.Position.q},{u.Position.r})"))}");
             CheckOverlapAt("玩家位置设置后");
 
             // 天气系统（从关卡数据读取）
@@ -1067,7 +1031,7 @@ namespace ZhenguanWarriors.View.BattleView
 
             if (_hexView?.Grid == null)
             {
-                Debug.LogError("[StartBattle] _hexView.Grid 为空，无法创建 SkillExecutor 与 AI。");
+                GameLogger.LogError(LogCategory.Battle, "_hexView.Grid 为空，无法创建 SkillExecutor 与 AI。");
                 return;
             }
             _skillExecutor = new SkillExecutor(_allUnits, _hexView.Grid, _weather);
@@ -1179,7 +1143,7 @@ namespace ZhenguanWarriors.View.BattleView
             }
 
             if (bonds.Count > 0)
-                Debug.Log($"[羁绊] 已应用 {bonds.Count} 组羁绊加成");
+                GameLogger.LogInfoFormat(LogCategory.Battle, "羁绊加成|数量={0}", bonds.Count);
         }
 
         /// <summary>根据难度缩放敌方属性</summary>
@@ -1229,7 +1193,7 @@ namespace ZhenguanWarriors.View.BattleView
         {
             if (_currentLevel == null)
             {
-                Debug.LogError("没有关卡数据，无法创建敌人");
+                GameLogger.LogError(LogCategory.Battle, "没有关卡数据，无法创建敌人");
                 return;
             }
 
@@ -1259,7 +1223,7 @@ namespace ZhenguanWarriors.View.BattleView
             // Camera.main 安全检测
             if (Camera.main == null)
             {
-                Debug.LogError("Camera.main 为空");
+                GameLogger.LogError(LogCategory.System, "Camera.main 为空");
                 return;
             }
 
@@ -1269,7 +1233,7 @@ namespace ZhenguanWarriors.View.BattleView
                 // 非战斗阶段点击忽略（如结算后/切换中）
                 if (_gamePhase != GamePhase.Battle)
                     return;
-                Debug.LogError($"HexGridView 未初始化 (phase={_gamePhase} page={GameManager.Instance?.CurrentPage})");
+                GameLogger.LogErrorFormat(LogCategory.System, "HexGridView 未初始化|phase={0}|page={1}", _gamePhase, GameManager.Instance?.CurrentPage);
                 return;
             }
 
@@ -1415,7 +1379,7 @@ namespace ZhenguanWarriors.View.BattleView
                     .Select(u => u.Position));
                 if (_hexView?.PathFinder == null)
                 {
-                    Debug.LogError("[ProcessClick] _hexView.PathFinder 为空，无法计算移动范围。");
+                    GameLogger.LogError(LogCategory.Battle, "_hexView.PathFinder 为空，无法计算移动范围。");
                     return;
                 }
                 var range = _hexView.PathFinder.GetMoveRange(
@@ -1508,12 +1472,14 @@ namespace ZhenguanWarriors.View.BattleView
                 var blockingUnit = _allUnits.FirstOrDefault(u => u != unit && u.IsAlive && u.Position == target);
                 if (blockingUnit != null)
                 {
-                    Debug.LogWarning($"[MoveUnitAnimation] {unit.Name} 目标格({target.q},{target.r})被 {blockingUnit.Name}[{blockingUnit.Faction}] 占据，无法移动！");
+                    GameLogger.LogWarningFormat(LogCategory.Battle, "移动目标被占据|单位={0}|目标=({1},{2})|阻挡={3}[{4}]",
+                        unit.Name, target.q, target.r, blockingUnit.Name, blockingUnit.Faction);
                     _battleUI?.ShowTip($"目标格子被 {blockingUnit.Name} 占据！无法移动");
                     yield break;
                 }
 
-                Debug.Log($"[MoveUnitAnimation] {unit.Name} 从({unit.Position.q},{unit.Position.r}) → ({target.q},{target.r}) 路径共{path.Count}格");
+                GameLogger.LogInfoFormat(LogCategory.Battle, "单位移动|单位={0}|起点=({1},{2})|终点=({3},{4})|路径格={5}",
+                    unit.Name, unit.Position.q, unit.Position.r, target.q, target.r, path.Count);
                 CheckOverlapAt($"MoveUnitAnimation-{unit.Name}移动前");
 
                 // 沿路径逐格移动
@@ -1544,7 +1510,7 @@ namespace ZhenguanWarriors.View.BattleView
                     unit.HasMovedThisTurn = true;
                     unit.Position = target;
                 }
-                Debug.Log($"[MoveUnitAnimation] {unit.Name} 已到达 ({target.q},{target.r})");
+                GameLogger.LogInfoFormat(LogCategory.Battle, "单位到达|单位={0}|位置=({1},{2})", unit.Name, target.q, target.r);
                 CheckOverlapAt($"MoveUnitAnimation-{unit.Name}移动后");
                 _battleUI?.ShowTip($"{unit.Name} 移动到 ({target.q},{target.r})");
 
@@ -1581,11 +1547,14 @@ namespace ZhenguanWarriors.View.BattleView
         private void AttackUnit(BattleUnit attacker, BattleUnit defender)
         {
             CheckOverlapAt($"AttackUnit-{attacker.Name}攻击前");
-            Debug.Log($"[AttackUnit] {attacker.Name}@({attacker.Position.q},{attacker.Position.r}) 攻击 {defender.Name}@({defender.Position.q},{defender.Position.r})");
+            GameLogger.LogInfoFormat(LogCategory.Battle, "攻击发起|攻={0}@({1},{2})|防={3}@({4},{5})",
+                attacker.Name, attacker.Position.q, attacker.Position.r,
+                defender.Name, defender.Position.q, defender.Position.r);
             // 检查攻击者和被攻击者是否在同一位置
             if (attacker.Position == defender.Position)
             {
-                Debug.LogError($"[AttackUnit] ⚠ {attacker.Name} 和 {defender.Name} 在同一位置({attacker.Position.q},{attacker.Position.r})！攻击发起时两者重叠！");
+                GameLogger.LogErrorFormat(LogCategory.Battle, "攻击发起时重叠|攻={0}|防={1}|位置=({2},{3})",
+                    attacker.Name, defender.Name, attacker.Position.q, attacker.Position.r);
             }
 
             var attackerTerrain = _hexView.Grid.GetTerrain(attacker.Position);
@@ -1604,7 +1573,10 @@ namespace ZhenguanWarriors.View.BattleView
             string log = $"{attacker.Name} 攻击 {defender.Name}：{hitText}{critText}";
 
             _battleUI?.ShowTip(log);
-            Debug.Log(log);
+            GameLogger.LogInfoFormat(LogCategory.Battle,
+                "战斗结果|攻={0}|防={1}|伤害={2}|命中={3}|暴击={4}|防御者HP={5}/{6}",
+                attacker.Name, defender.Name, result.damage, result.isHit, result.isCrit,
+                defender.CurrentHp, defender.MaxHp);
 
             // 更新血条
             if (_unitVisuals.TryGetValue(defender, out var defVis))
@@ -1624,7 +1596,7 @@ namespace ZhenguanWarriors.View.BattleView
             // 检查阵亡
             if (defender.IsDead)
             {
-                Debug.Log($"{defender.Name} 阵亡！");
+                GameLogger.LogInfoFormat(LogCategory.Battle, "单位阵亡|单位={0}|阵营={1}", defender.Name, defender.Faction);
                 AudioManager.PlaySfx(AudioManager.SfxClips.Death);
                 if (_unitVisuals.TryGetValue(defender, out var deadVis))
                 {
@@ -1653,7 +1625,7 @@ namespace ZhenguanWarriors.View.BattleView
                     }
                 }
                 _battleUI?.ShowTip(expLog);
-                Debug.Log(expLog);
+                GameLogger.LogInfo(LogCategory.Battle, expLog);
 
                 // ★ 阵亡后立即检查胜负（不需要等全队行动完毕）
                 if (_victoryChecker != null && !_victoryChecker.IsVictory && !_victoryChecker.IsDefeat)
@@ -1754,7 +1726,7 @@ namespace ZhenguanWarriors.View.BattleView
             string log = _skillExecutor.Execute(skill, caster, targetCell);
             AudioManager.PlaySfx(skill.type == SkillType.Heal ? AudioManager.SfxClips.Heal : AudioManager.SfxClips.Skill);
             _battleUI?.ShowTip(log);
-            Debug.Log(log);
+            GameLogger.LogInfo(LogCategory.Battle, log);
 
             // 水攻后刷新地形颜色
             if (skill.type == SkillType.WaterAttack)
@@ -2040,7 +2012,7 @@ namespace ZhenguanWarriors.View.BattleView
             {
                 string resultLog = _duelSystem.ApplyResult();
                 _battleUI?.ShowTip(resultLog);
-                Debug.Log(resultLog);
+                GameLogger.LogInfo(LogCategory.Battle, resultLog);
 
                 // 更新血条和检查阵亡
                 foreach (var kv in _unitVisuals)
@@ -2416,7 +2388,7 @@ namespace ZhenguanWarriors.View.BattleView
                 splashTarget.TakeDamage(splashDmg);
 
                 string splashLog = $"{attacker.Name} 的【破阵】溅射 {splashTarget.Name}，造成 {splashDmg} 点伤害！";
-                Debug.Log(splashLog);
+                GameLogger.LogInfo(LogCategory.Battle, splashLog);
                 _battleUI?.ShowTip(splashLog);
 
                 if (_unitVisuals.TryGetValue(splashTarget, out var vis))
@@ -2720,7 +2692,7 @@ namespace ZhenguanWarriors.View.BattleView
 
             CheckOverlapAt($"EnemyAI-{enemy.Name}行动前");
             var action = _aiTree.Decide(enemy);
-            Debug.Log($"AI {enemy.Name} 决策: {action.Reason} | 类型={action.Type} | 目标格=({action.TargetCell.q},{action.TargetCell.r})");
+            // 结构化 AI 决策日志已在 AIBehaviorTree.Decide 中统一输出
 
             switch (action.Type)
             {
@@ -2738,7 +2710,8 @@ namespace ZhenguanWarriors.View.BattleView
                     var blocker = _allUnits.FirstOrDefault(u => u != enemy && u.IsAlive && u.Position == action.TargetCell);
                     if (blocker != null)
                     {
-                        Debug.LogWarning($"[EnemyAI] {enemy.Name} 目标格({action.TargetCell.q},{action.TargetCell.r})被 {blocker.Name}[{blocker.Faction}] 占据，原地待命");
+                        GameLogger.LogWarningFormat(LogCategory.AI, "AI移动被阻挡|单位={0}|目标=({1},{2})|阻挡={3}[{4}]",
+                            enemy.Name, action.TargetCell.q, action.TargetCell.r, blocker.Name, blocker.Faction);
                         _battleUI?.ShowTip($"{enemy.Name} 目标被占据，原地待命");
                         break;
                     }
@@ -2746,12 +2719,13 @@ namespace ZhenguanWarriors.View.BattleView
                     enemy.HasMovedThisTurn = true;
                     if (_unitVisuals.TryGetValue(enemy, out var vis))
                         vis.UpdatePosition();
-                    Debug.Log($"[EnemyAI] {enemy.Name} 移动到 ({action.TargetCell.q},{action.TargetCell.r}) | {action.Reason}");
+                    GameLogger.LogInfoFormat(LogCategory.AI, "AI移动|单位={0}|位置=({1},{2})|原因={3}",
+                        enemy.Name, action.TargetCell.q, action.TargetCell.r, action.Reason);
                     _battleUI?.ShowTip($"{enemy.Name} {action.Reason}");
                     break;
 
                 case AIActionType.Skip:
-                    Debug.LogWarning($"[EnemyAI] {enemy.Name} 跳过行动 | {action.Reason}");
+                    GameLogger.LogWarningFormat(LogCategory.AI, "AI跳过|单位={0}|原因={1}", enemy.Name, action.Reason);
                     break;
             }
 
@@ -2764,11 +2738,14 @@ namespace ZhenguanWarriors.View.BattleView
             if (defender == null || defender.IsDead) return;
 
             CheckOverlapAt($"ExecuteAIAttack-{attacker.Name}攻击前");
-            Debug.Log($"[ExecuteAIAttack] {attacker.Name}@({attacker.Position.q},{attacker.Position.r}) 攻击 {defender.Name}@({defender.Position.q},{defender.Position.r})");
+            GameLogger.LogInfoFormat(LogCategory.Battle, "AI攻击发起|攻={0}@({1},{2})|防={3}@({4},{5})",
+                attacker.Name, attacker.Position.q, attacker.Position.r,
+                defender.Name, defender.Position.q, defender.Position.r);
             // 检查攻击者和被攻击者是否在同一位置
             if (attacker.Position == defender.Position)
             {
-                Debug.LogError($"[ExecuteAIAttack] ⚠ {attacker.Name} 和 {defender.Name} 在同一位置({attacker.Position.q},{attacker.Position.r})！攻击发起时两者重叠！");
+                GameLogger.LogErrorFormat(LogCategory.Battle, "AI攻击发起时重叠|攻={0}|防={1}|位置=({2},{3})",
+                    attacker.Name, defender.Name, attacker.Position.q, attacker.Position.r);
             }
 
             var attackerTerrain = _hexView.Grid.GetTerrain(attacker.Position);
@@ -2777,7 +2754,10 @@ namespace ZhenguanWarriors.View.BattleView
 
             string log = $"AI {attacker.Name} 攻击 {defender.Name}：{(result.isHit ? $"造成{result.damage}伤害" : "未命中")}";
             if (result.isCrit) log += "【暴击】";
-            Debug.Log(log);
+            GameLogger.LogInfoFormat(LogCategory.Battle,
+                "AI战斗结果|攻={0}|防={1}|伤害={2}|命中={3}|暴击={4}|防御者HP={5}/{6}",
+                attacker.Name, defender.Name, result.damage, result.isHit, result.isCrit,
+                defender.CurrentHp, defender.MaxHp);
             _battleUI?.ShowTip(log);
 
             if (_unitVisuals.TryGetValue(defender, out var defVis))
@@ -2794,7 +2774,7 @@ namespace ZhenguanWarriors.View.BattleView
 
             if (defender.IsDead)
             {
-                Debug.Log($"{defender.Name} 阵亡！");
+                GameLogger.LogInfoFormat(LogCategory.Battle, "单位阵亡|单位={0}|阵营={1}", defender.Name, defender.Faction);
                 if (_unitVisuals.TryGetValue(defender, out var deadVis))
                     StartCoroutine(DeathAnimation(deadVis, defender));
 
@@ -2816,7 +2796,7 @@ namespace ZhenguanWarriors.View.BattleView
                         }
                     }
                 }
-                Debug.Log(expLog);
+                GameLogger.LogInfo(LogCategory.Battle, expLog);
 
                 // ★ AI击杀后立即检查胜负
                 if (_victoryChecker != null && !_victoryChecker.IsVictory && !_victoryChecker.IsDefeat)
@@ -2837,7 +2817,7 @@ namespace ZhenguanWarriors.View.BattleView
             if (action.Skill == null) return;
 
             string log = _skillExecutor.Execute(action.Skill, caster, action.TargetCell);
-            Debug.Log($"AI {caster.Name} 释放{action.Skill.name}：{log}");
+            GameLogger.LogInfoFormat(LogCategory.Battle, "AI计策|单位={0}|计策={1}|结果={2}", caster.Name, action.Skill.name, log);
             _battleUI?.ShowTip(log);
 
             // 水攻后刷新地形颜色
