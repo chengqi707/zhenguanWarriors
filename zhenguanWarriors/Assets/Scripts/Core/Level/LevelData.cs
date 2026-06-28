@@ -86,6 +86,9 @@ namespace ZhenguanWarriors.Core.Level
         public List<string> rewardEquipIds;
         public int rewardGold;
 
+        // 战后招募（可选）
+        public string recruitCharacterId;
+
         public LevelData()
         {
             terrainOverrides = new Dictionary<HexCoord, TerrainType>();
@@ -308,6 +311,7 @@ namespace ZhenguanWarriors.Core.Level
             }
             level3.rewardGold = 200;
             level3.rewardEquipIds = new List<string> { "w002" };
+            level3.recruitCharacterId = "cheng_yaojin";
             _levels["level_03"] = level3;
 
             // ========== 第4关：浅水原之战 ==========

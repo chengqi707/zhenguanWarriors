@@ -46,6 +46,9 @@ namespace ZhenguanWarriors.Core.Save
         public string lastDailyAdDate;
         public int dailyAdWatchCount;
 
+        // ========== 已招募角色 ==========
+        public List<string> recruitedCharacterIds;
+
         public int avgLevel
         {
             get
@@ -61,7 +64,7 @@ namespace ZhenguanWarriors.Core.Save
         {
             return new SaveData
             {
-                version = 4,
+                version = 5,
                 saveTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                 unlockedLevels = new List<string> { "level_01" },
                 currentLevelId = "level_01",
@@ -70,6 +73,7 @@ namespace ZhenguanWarriors.Core.Save
                 levelName = "晋阳举义",
                 characters = new List<CharacterSaveData>(),
                 inventoryEquipIds = new List<string>(),
+                recruitedCharacterIds = new List<string>(),
                 bgmOn = true, sfxOn = true,
                 lastDailyAdDate = string.Empty,
                 dailyAdWatchCount = 0

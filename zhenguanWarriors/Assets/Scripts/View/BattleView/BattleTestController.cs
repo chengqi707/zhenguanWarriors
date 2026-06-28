@@ -2640,6 +2640,18 @@ namespace ZhenguanWarriors.View.BattleView
 
             var db = CharacterDatabase.GetAll();
 
+            // 合并关卡可用角色与已招募角色
+            var availableIds = new List<string>(_currentLevel.availableCharacters);
+            var recruited = GameState.CurrentSave?.recruitedCharacterIds;
+            if (recruited != null)
+            {
+                foreach (var rid in recruited)
+                {
+                    if (!availableIds.Contains(rid))
+                        availableIds.Add(rid);
+                }
+            }
+
             // 先加必出角色
             foreach (var charId in _currentLevel.requiredCharacters)
             {
@@ -2657,7 +2669,7 @@ namespace ZhenguanWarriors.View.BattleView
             }
 
             // 再加可选角色
-            foreach (var charId in _currentLevel.availableCharacters)
+            foreach (var charId in availableIds)
             {
                 if (_heroPool.Any(u => u.Id == charId)) continue;
                 if (db.ContainsKey(charId))
@@ -3118,6 +3130,7 @@ namespace ZhenguanWarriors.View.BattleView
 
                 // 发放通关奖励
                 ApplyLevelRewards();
+                ApplyRecruit();
             }
 
             _gamePhase = GamePhase.Results;
@@ -3190,6 +3203,58 @@ namespace ZhenguanWarriors.View.BattleView
                 EquipmentType.Trinket => string.IsNullOrEmpty(unit.TrinketId),
                 _ => false
             };
+        }
+
+        /// <summary>战后招募：将关卡配置的招募角色加入阵营</summary>
+        private void ApplyRecruit()
+        {
+            if (_currentLevel == null) return;
+            string charId = _currentLevel.recruitCharacterId;
+            if (string.IsNullOrEmpty(charId)) return;
+
+            var save = GameState.CurrentSave;
+            if (save == null) return;
+            if (save.recruitedCharacterIds == null)
+                save.recruitedCharacterIds = new List<string>();
+            if (save.recruitedCharacterIds.Contains(charId)) return;
+
+            var template = CharacterDatabase.Get(charId);
+            if (template == null)
+            {
+                _resultsLog.Add($"⚠ 招募失败：找不到角色 {charId}");
+                return;
+            }
+
+            var saved = new CharacterSaveData
+            {
+                id = charId,
+                name = template.Name,
+                level = template.Level,
+                experience = template.Experience,
+                baseStr = template.BaseStrength,
+                baseCmd = template.BaseCommand,
+                baseInt = template.BaseIntelligence,
+                baseAgi = template.BaseAgility,
+                baseLuk = template.BaseLuck,
+                strGrowth = template.StrGrowth,
+                cmdGrowth = template.CmdGrowth,
+                intGrowth = template.IntGrowth,
+                agiGrowth = template.AgiGrowth,
+                lukGrowth = template.LukGrowth,
+                skillIds = template.SkillIds != null ? new List<string>(template.SkillIds) : new List<string>(),
+                weaponId = template.WeaponId ?? string.Empty,
+                armorId = template.ArmorId ?? string.Empty,
+                trinketId = template.TrinketId ?? string.Empty
+            };
+
+            save.recruitedCharacterIds.Add(charId);
+            if (save.characters == null) save.characters = new List<CharacterSaveData>();
+            if (!save.characters.Any(c => c.id == charId))
+                save.characters.Add(saved);
+
+            SaveManager.AutoSave(save);
+            _resultsLog.Add("");
+            _resultsLog.Add($"🤝 {template.Name} 加入阵营");
         }
 
         /// <summary>观看广告后获得双倍关卡奖励</summary>
