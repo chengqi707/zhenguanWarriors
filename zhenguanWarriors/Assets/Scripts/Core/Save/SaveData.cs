@@ -28,6 +28,7 @@ namespace ZhenguanWarriors.Core.Save
         // ========== 游戏设置 ==========
         public bool bgmOn = true;
         public bool sfxOn = true;
+        public bool vibrationOn = true;
         public LogSettings logSettings = new LogSettings();
         public float cameraZoom = 1f;   // 战场相机缩放倍率，1.0=适配网格，越小画面越大
 
@@ -67,7 +68,7 @@ namespace ZhenguanWarriors.Core.Save
         {
             return new SaveData
             {
-                version = 7,
+                version = 8,
                 saveTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                 unlockedLevels = new List<string> { "level_01" },
                 currentLevelId = "level_01",
@@ -77,7 +78,7 @@ namespace ZhenguanWarriors.Core.Save
                 characters = new List<CharacterSaveData>(),
                 inventoryEquipIds = new List<string>(),
                 recruitedCharacterIds = new List<string>(),
-                bgmOn = true, sfxOn = true,
+                bgmOn = true, sfxOn = true, vibrationOn = true,
                 lastDailyAdDate = string.Empty,
                 dailyAdWatchCount = 0,
                 hasShownRatingPrompt = false

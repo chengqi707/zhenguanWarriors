@@ -13,6 +13,7 @@ namespace ZhenguanWarriors.Core.Audio
         private AudioSource _sfxSource;
         private bool _bgmEnabled = true;
         private bool _sfxEnabled = true;
+        private bool _vibrationEnabled = true;
 
         // ===== 音频资源路径（占位） =====
         // 正式资源放在 Assets/Resources/Audio/BGM/ 和 Assets/Resources/Audio/SFX/ 下
@@ -52,6 +53,9 @@ namespace ZhenguanWarriors.Core.Audio
             _sfxSource = gameObject.AddComponent<AudioSource>();
             _sfxSource.loop = false;
             _sfxSource.volume = 0.7f;
+
+            var save = ZhenguanWarriors.Core.Save.GameState.CurrentSave;
+            _vibrationEnabled = save?.vibrationOn ?? true;
 
             GameLogger.LogInfo(LogCategory.Audio, "音频管理器初始化完成（占位模式）");
         }
@@ -113,6 +117,12 @@ namespace ZhenguanWarriors.Core.Audio
             if (clip != null)
             {
                 _sfxSource.PlayOneShot(clip);
+                if (_vibrationEnabled && clipPath != null && clipPath.EndsWith("Click"))
+                {
+#if UNITY_ANDROID && !UNITY_EDITOR
+                    Handheld.Vibrate();
+#endif
+                }
             }
             else
             {
@@ -123,6 +133,11 @@ namespace ZhenguanWarriors.Core.Audio
         public void SetSFXEnabled(bool enabled)
         {
             _sfxEnabled = enabled;
+        }
+
+        public void SetVibrationEnabled(bool enabled)
+        {
+            _vibrationEnabled = enabled;
         }
 
         // ===== 快捷方法 =====

@@ -184,6 +184,7 @@ namespace ZhenguanWarriors.View.BattleView
 
             bool bgmOn = GameState.CurrentSave?.bgmOn ?? true;
             bool sfxOn = GameState.CurrentSave?.sfxOn ?? true;
+            bool vibrationOn = GameState.CurrentSave?.vibrationOn ?? true;
 
             GUI.backgroundColor = bgmOn ? Theme.Primary : Theme.BgCard;
             if (GUI.Button(new Rect(x, y, 150 * s, 45 * s), $"BGM: {(bgmOn ? "开" : "关")}",
@@ -202,6 +203,19 @@ namespace ZhenguanWarriors.View.BattleView
                 sfxOn = !sfxOn;
                 AudioManager.Instance.SetSFXEnabled(sfxOn);
                 if (GameState.CurrentSave != null) GameState.CurrentSave.sfxOn = sfxOn;
+            }
+            GUI.backgroundColor = Color.white;
+            y += 70 * s;
+
+            // 震动开关
+            GUI.backgroundColor = vibrationOn ? Theme.Primary : Theme.BgCard;
+            if (GUI.Button(new Rect(x, y, 320 * s, 45 * s), $"震动反馈: {(vibrationOn ? "开" : "关")}",
+                Theme.MakeButton((int)(18 * s))))
+            {
+                AudioManager.PlaySfx(AudioManager.SfxClips.Click);
+                vibrationOn = !vibrationOn;
+                AudioManager.Instance.SetVibrationEnabled(vibrationOn);
+                if (GameState.CurrentSave != null) GameState.CurrentSave.vibrationOn = vibrationOn;
             }
             GUI.backgroundColor = Color.white;
             y += 70 * s;
