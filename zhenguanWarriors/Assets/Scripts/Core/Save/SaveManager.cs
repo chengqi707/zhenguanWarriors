@@ -17,7 +17,7 @@ namespace ZhenguanWarriors.Core.Save
         private const string SAVE_DIR = "saves";
         private const string AUTO_SAVE = "auto";
         private const string SAVE_EXT = ".json";
-        private const int SAVE_VERSION = 6;
+        private const int SAVE_VERSION = 7;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, SAVE_DIR);
 
@@ -242,6 +242,9 @@ namespace ZhenguanWarriors.Core.Save
                             foreach (var c in data.characters)
                                 c.promotionCount = 0;
                     }
+                    // v6 -> v7: 新增评分提示标记
+                    if (data.version < 7)
+                        data.hasShownRatingPrompt = false;
                     data.version = SAVE_VERSION;
                 }
 

@@ -49,6 +49,9 @@ namespace ZhenguanWarriors.Core.Save
         // ========== 已招募角色 ==========
         public List<string> recruitedCharacterIds;
 
+        // ========== 评分提示（仅触发一次）==========
+        public bool hasShownRatingPrompt;
+
         public int avgLevel
         {
             get
@@ -64,7 +67,7 @@ namespace ZhenguanWarriors.Core.Save
         {
             return new SaveData
             {
-                version = 6,
+                version = 7,
                 saveTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                 unlockedLevels = new List<string> { "level_01" },
                 currentLevelId = "level_01",
@@ -76,7 +79,8 @@ namespace ZhenguanWarriors.Core.Save
                 recruitedCharacterIds = new List<string>(),
                 bgmOn = true, sfxOn = true,
                 lastDailyAdDate = string.Empty,
-                dailyAdWatchCount = 0
+                dailyAdWatchCount = 0,
+                hasShownRatingPrompt = false
             };
         }
     }

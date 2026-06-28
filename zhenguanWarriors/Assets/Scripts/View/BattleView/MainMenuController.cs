@@ -15,6 +15,10 @@ namespace ZhenguanWarriors.View.BattleView
         private float SW => Screen.width;
         private float SH => Screen.height;
 
+        private const string FEEDBACK_URL = "mailto:chengqi707@example.com?subject=贞观勇士玩家反馈";
+        private const string PRIVACY_URL = "https://github.com/chengqi707/zhenguanWarriors/blob/main/PRIVACY.md";
+        private const string STORE_URL = "https://github.com/chengqi707/zhenguanWarriors";
+
         void OnEnable()
         {
             _hasSaveData = SaveManager.HasAnySave();
@@ -250,6 +254,27 @@ namespace ZhenguanWarriors.View.BattleView
                     y += 36 * s;
                 }
             }
+
+            // 其他链接
+            y += 20 * s;
+            GUI.Label(new Rect(x, y, w, h), "📬 帮助与反馈", Theme.MakeLabel((int)(22 * s), FontStyle.Bold));
+            y += 45 * s;
+
+            GUI.backgroundColor = Theme.BgCard;
+            if (GUI.Button(new Rect(x, y, 150 * s, 45 * s), "反馈",
+                Theme.MakeButton((int)(18 * s))))
+            {
+                AudioManager.PlaySfx(AudioManager.SfxClips.Click);
+                Application.OpenURL(FEEDBACK_URL);
+            }
+            GUI.backgroundColor = Theme.PrimaryDark;
+            if (GUI.Button(new Rect(x + 170 * s, y, 150 * s, 45 * s), "隐私政策",
+                Theme.MakeButton((int)(18 * s))))
+            {
+                AudioManager.PlaySfx(AudioManager.SfxClips.Click);
+                Application.OpenURL(PRIVACY_URL);
+            }
+            GUI.backgroundColor = Color.white;
 
             // 返回
             GUI.backgroundColor = Theme.BgCard;

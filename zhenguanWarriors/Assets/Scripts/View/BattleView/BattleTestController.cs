@@ -60,6 +60,7 @@ namespace ZhenguanWarriors.View.BattleView
         }
         private readonly Stack<TurnSnapshot> _turnSnapshotStack = new();
         private const int MAX_REWIND = 3;
+        private const string STORE_URL = "https://github.com/chengqi707/zhenguanWarriors";
         private bool _isRestoringSnapshot; // 防止恢复时再次捕获快照
 
         // ========== 新手引导 ==========
@@ -3160,6 +3161,7 @@ namespace ZhenguanWarriors.View.BattleView
                 // 发放通关奖励
                 ApplyLevelRewards();
                 ApplyRecruit();
+                TryShowRatingPrompt();
             }
 
             _gamePhase = GamePhase.Results;
@@ -3285,6 +3287,24 @@ namespace ZhenguanWarriors.View.BattleView
             _resultsLog.Add("");
             _resultsLog.Add($"🤝 {template.Name} 加入阵营");
             ScreenFx.Instance?.Flash(new Color(0.5f, 0.9f, 1f), 0.25f);
+        }
+
+        /// <summary>通关第3关后弹出一次性评分提示</summary>
+        private void TryShowRatingPrompt()
+        {
+            var save = GameState.CurrentSave;
+            if (save == null) return;
+            if (save.hasShownRatingPrompt) return;
+            if (_currentLevelIndex < 2) return;
+
+            save.hasShownRatingPrompt = true;
+            SaveManager.AutoSave(save);
+
+            var confirm = GameManager.Instance?.GetComponent<ConfirmDialog>();
+            confirm?.Show("喜欢《贞观勇士》吗？",
+                "如果游戏带给你乐趣，欢迎给我们好评支持！",
+                () => Application.OpenURL(STORE_URL),
+                null, "去好评", "下次再说");
         }
 
         /// <summary>观看广告后获得双倍关卡奖励</summary>
