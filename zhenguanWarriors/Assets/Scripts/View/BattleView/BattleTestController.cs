@@ -1948,6 +1948,9 @@ namespace ZhenguanWarriors.View.BattleView
                 AudioManager.PlaySfx(result.isCrit ? AudioManager.SfxClips.Crit : AudioManager.SfxClips.Attack);
             AudioManager.PlaySfx(AudioManager.SfxClips.Hit);
 
+            if (result.isCrit)
+                ScreenFx.Instance?.FlashWhite(0.12f);
+
             string critText = result.isCrit ? "【暴击】" : "";
             string hitText = result.isHit ?
                 $"造成 {result.damage} 点伤害" : "未命中";
@@ -1991,6 +1994,7 @@ namespace ZhenguanWarriors.View.BattleView
                 if (leveled)
                 {
                     expLog += $" 🎉 升级至 Lv{attacker.Level}！";
+                    ScreenFx.Instance?.Flash(new Color(1f, 0.85f, 0.3f), 0.2f);
                     var newSkills = attacker.GetLearnableSkills();
                     if (newSkills.Count > 0)
                     {
@@ -3255,6 +3259,7 @@ namespace ZhenguanWarriors.View.BattleView
             SaveManager.AutoSave(save);
             _resultsLog.Add("");
             _resultsLog.Add($"🤝 {template.Name} 加入阵营");
+            ScreenFx.Instance?.Flash(new Color(0.5f, 0.9f, 1f), 0.25f);
         }
 
         /// <summary>观看广告后获得双倍关卡奖励</summary>
@@ -3486,6 +3491,7 @@ namespace ZhenguanWarriors.View.BattleView
                 if (leveled)
                 {
                     expLog += $" 🎉 升级至 Lv{attacker.Level}！";
+                    ScreenFx.Instance?.Flash(new Color(1f, 0.85f, 0.3f), 0.2f);
                     var newSkills = attacker.GetLearnableSkills();
                     foreach (var sid in newSkills)
                     {

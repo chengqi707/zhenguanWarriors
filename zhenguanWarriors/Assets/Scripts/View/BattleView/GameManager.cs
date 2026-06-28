@@ -49,6 +49,7 @@ namespace ZhenguanWarriors.View.BattleView
             gameObject.AddComponent<AdManager>();
             gameObject.AddComponent<ShopController>();
             gameObject.AddComponent<LoadingScreen>();
+            gameObject.AddComponent<ScreenFx>();
 
             // 横屏模式
             Screen.orientation = ScreenOrientation.LandscapeLeft;

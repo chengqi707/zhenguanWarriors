@@ -77,6 +77,7 @@
     <Compile Include="Assets\Scripts\Core\Ads\UnityAdsProvider.cs" />
     <Compile Include="Assets\Scripts\View\BattleView\MainMenuController.cs" />
     <Compile Include="Assets\Scripts\View\BattleView\LoadingScreen.cs" />
+    <Compile Include="Assets\Scripts\View\BattleView\ScreenFx.cs" />
     <Compile Include="Assets\Scripts\Core\Save\SaveData.cs" />
     <Compile Include="Assets\Scripts\Core\Combat\SkillExecutor.cs" />
     <Compile Include="Assets\Scripts\Utils\LogLevel.cs" />
