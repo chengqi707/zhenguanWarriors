@@ -271,6 +271,7 @@ namespace ZhenguanWarriors.View.BattleView
             {
                 Level = saved.level,
                 Experience = saved.experience,
+                PromotionCount = saved.promotionCount,
                 StrGrowth = saved.strGrowth,
                 CmdGrowth = saved.cmdGrowth,
                 IntGrowth = saved.intGrowth,
@@ -383,7 +384,7 @@ namespace ZhenguanWarriors.View.BattleView
 
                 // 等级 + 兵种
                 GUI.Label(new Rect(24 * s, iy + 62 * s, cardW - 100 * s, 36 * s),
-                    $"Lv.{unit.Level}  {ClassData.GetName(unit.UnitClass)}",
+                    $"Lv.{unit.Level}  {ClassChangeLibrary.GetPromotionTitle(unit)}{ClassData.GetName(unit.UnitClass)}",
                     Theme.MakeLabel((int)(28 * s), FontStyle.Normal, Theme.TextDim, TextAnchor.MiddleLeft));
 
                 // 五维
@@ -537,7 +538,7 @@ namespace ZhenguanWarriors.View.BattleView
                     u.Name, Theme.MakeLabel((int)(44 * s), FontStyle.Bold,
                         sel ? Theme.Gold : Theme.TextLight));
                 GUI.Label(new Rect(12 * s, iy + 56 * s, leftW - 40 * s, 22 * s),
-                    $"{ClassData.GetName(u.UnitClass)} Lv.{u.Level}",
+                    $"{ClassChangeLibrary.GetPromotionTitle(u)}{ClassData.GetName(u.UnitClass)} Lv.{u.Level}",
                     Theme.MakeLabel((int)(20 * s), FontStyle.Normal, Theme.TextDim));
                 GUI.Label(new Rect(12 * s, iy + 78 * s, leftW - 40 * s, 20 * s),
                     $"HP {u.CurrentHp}/{u.MaxHp}  MP {u.CurrentMp}/{u.MaxMp}",
@@ -563,7 +564,7 @@ namespace ZhenguanWarriors.View.BattleView
                 GUI.Label(new Rect(rightX, ry, rightW, 30 * s),
                     unit.Name, Theme.MakeLabel((int)(24 * s), FontStyle.Bold, Theme.Gold));
                 GUI.Label(new Rect(rightX + 160 * s, ry + 4 * s, rightW - 160 * s, 24 * s),
-                    $"Lv.{unit.Level}  {ClassData.GetName(unit.UnitClass)}",
+                    $"Lv.{unit.Level}  {ClassChangeLibrary.GetPromotionTitle(unit)}{ClassData.GetName(unit.UnitClass)}",
                     Theme.MakeLabel((int)(18 * s), FontStyle.Normal, Theme.TextDim));
                 ry += 30 * s;
 
@@ -611,6 +612,30 @@ namespace ZhenguanWarriors.View.BattleView
                     GUI.Label(new Rect(rightX, ry, rightW, 22 * s),
                         $"攻击范围: {unit.AttackRange}  移动力: {unit.MoveRange}",
                         Theme.MakeLabel((int)(17 * s), FontStyle.Normal, Theme.HpGreen));
+                    ry += 26 * s;
+
+                    // 转职按钮
+                    if (ClassChangeLibrary.CanPromote(unit))
+                    {
+                        GUI.backgroundColor = Theme.Gold;
+                        string btnLabel = $"★ 转职 (需 Lv.{ClassChangeLibrary.GetRequiredLevel(unit)})";
+                        if (GUI.Button(new Rect(rightX, ry, rightW, 40 * s), btnLabel, Theme.MakeButton((int)(18 * s))))
+                        {
+                            AudioManager.PlaySfx(AudioManager.SfxClips.Click);
+                            if (ClassChangeLibrary.Promote(unit))
+                            {
+                                ScreenFx.Instance?.Flash(new Color(1f, 0.85f, 0.3f), 0.25f);
+                                _battleUI?.ShowTip($"{unit.Name} 转职成功！");
+                            }
+                        }
+                        GUI.backgroundColor = Color.white;
+                    }
+                    else if (unit.PromotionCount > 0)
+                    {
+                        GUI.Label(new Rect(rightX, ry, rightW, 22 * s),
+                            $"已转职 {ClassChangeLibrary.GetPromotionTitle(unit)}",
+                            Theme.MakeLabel((int)(17 * s), FontStyle.Bold, Theme.Gold, TextAnchor.MiddleCenter));
+                    }
                 }
             }
 

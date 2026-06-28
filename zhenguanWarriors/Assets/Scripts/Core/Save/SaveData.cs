@@ -64,7 +64,7 @@ namespace ZhenguanWarriors.Core.Save
         {
             return new SaveData
             {
-                version = 5,
+                version = 6,
                 saveTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                 unlockedLevels = new List<string> { "level_01" },
                 currentLevelId = "level_01",
@@ -86,6 +86,7 @@ namespace ZhenguanWarriors.Core.Save
     {
         public string id, name;
         public int level, experience;
+        public int promotionCount;
         public int baseStr, baseCmd, baseInt, baseAgi, baseLuk;
         public int strGrowth, cmdGrowth, intGrowth, agiGrowth, lukGrowth;
         public List<string> skillIds;

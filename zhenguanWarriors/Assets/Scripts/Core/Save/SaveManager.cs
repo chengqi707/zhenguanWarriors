@@ -17,7 +17,7 @@ namespace ZhenguanWarriors.Core.Save
         private const string SAVE_DIR = "saves";
         private const string AUTO_SAVE = "auto";
         private const string SAVE_EXT = ".json";
-        private const int SAVE_VERSION = 5;
+        private const int SAVE_VERSION = 6;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, SAVE_DIR);
 
@@ -181,6 +181,7 @@ namespace ZhenguanWarriors.Core.Save
                     name = unit.Name,
                     level = unit.Level,
                     experience = unit.Experience,
+                    promotionCount = unit.PromotionCount,
                     baseStr = unit.BaseStrength,
                     baseCmd = unit.BaseCommand,
                     baseInt = unit.BaseIntelligence,
@@ -234,6 +235,13 @@ namespace ZhenguanWarriors.Core.Save
                     // v4 -> v5: 新增已招募角色列表
                     if (data.version < 5)
                         data.recruitedCharacterIds = new List<string>();
+                    // v5 -> v6: 新增角色转职次数（默认 0）
+                    if (data.version < 6)
+                    {
+                        if (data.characters != null)
+                            foreach (var c in data.characters)
+                                c.promotionCount = 0;
+                    }
                     data.version = SAVE_VERSION;
                 }
 

@@ -43,6 +43,7 @@ namespace ZhenguanWarriors.Core.Battle
         public Gender Gender { get; set; }        // 性别
         public int Level { get; set; }
         public int Experience { get; set; }       // 当前经验值
+        public int PromotionCount { get; set; }   // 转职/进阶次数
 
         // ========== 成长率（每级增长）==========
         public int StrGrowth { get; set; }

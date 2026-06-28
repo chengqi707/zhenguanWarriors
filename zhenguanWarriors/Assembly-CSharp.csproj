@@ -91,6 +91,7 @@
     <Compile Include="Assets\Scripts\View\BattleView\BattleUI.cs" />
     <Compile Include="Assets\Scripts\Core\Level\VictoryChecker.cs" />
     <Compile Include="Assets\Scripts\Core\Character\ClassType.cs" />
+    <Compile Include="Assets\Scripts\Core\Character\ClassChangeLibrary.cs" />
     <Compile Include="Assets\Scripts\Core\Level\LevelJsonLoader.cs" />
     <Compile Include="Assets\Scripts\Core\Story\StoryData.cs" />
     <Compile Include="Assets\Scripts\View\BattleView\SplashScreen.cs" />
