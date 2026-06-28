@@ -59,6 +59,9 @@ namespace ZhenguanWarriors.Core.Combat
         public bool femaleOnly;                   // 仅限女性
         public bool maleOnly;                     // 仅限男性
 
+        // 商店价格（0 表示未定价，由 ShopCatalog 自动计算）
+        public int basePrice;
+
         public EquipmentData(string id, string name, EquipmentType type, EquipmentRarity rarity)
         {
             this.id = id;

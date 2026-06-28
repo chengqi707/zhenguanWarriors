@@ -109,6 +109,8 @@
     <Compile Include="Assets\Scripts\View\BattleView\GameManager.cs" />
     <Compile Include="Assets\Scripts\Core\Battle\TerrainType.cs" />
     <Compile Include="Assets\Scripts\Core\Combat\EquipmentData.cs" />
+    <Compile Include="Assets\Scripts\Core\Shop\ShopCatalog.cs" />
+    <Compile Include="Assets\Scripts\Core\Shop\ShopController.cs" />
     <Compile Include="Assets\Scripts\View\BattleView\UnitVisual.cs" />
     <Compile Include="Assets\Scripts\View\BattleView\DialogueUI.cs" />
     <Compile Include="Assets\Scripts\Core\Character\PortraitGenerator.cs" />

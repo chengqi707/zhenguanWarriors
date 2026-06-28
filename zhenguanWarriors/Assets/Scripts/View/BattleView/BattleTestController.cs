@@ -2709,23 +2709,41 @@ namespace ZhenguanWarriors.View.BattleView
             float totalBtnW = btnW * 3 + gap2 * 2;
             float btnStartX = px + (pw - totalBtnW) / 2;
 
-            // 激励视频按钮（位于主按钮上方）
+            // 激励视频 / 战后商店按钮（位于主按钮上方）
             float adBtnY = btnY - 50 * s;
             bool adManagerReady = AdManager.Instance != null && !GameManager.Instance.IsTransitioning;
-            if (isVictory && adManagerReady && AdManager.Instance.CanShowDoubleRewards())
+
+            if (isVictory)
             {
-                GUI.backgroundColor = Theme.Gold;
-                if (GUI.Button(new Rect(px + (pw - btnW) / 2, adBtnY, btnW, 40 * s),
-                    "🎬 双倍奖励", Theme.MakeButton((int)(15 * s))))
+                // 左侧：双倍奖励（若可用）
+                if (adManagerReady && AdManager.Instance.CanShowDoubleRewards())
+                {
+                    GUI.backgroundColor = Theme.Gold;
+                    if (GUI.Button(new Rect(px + (pw - btnW * 2 - 10 * s) / 2, adBtnY, btnW, 40 * s),
+                        "🎬 双倍奖励", Theme.MakeButton((int)(15 * s))))
+                    {
+                        AudioManager.PlaySfx(AudioManager.SfxClips.Click);
+                        AdManager.Instance.ShowAd(AdPlacementType.DoubleRewards,
+                            () => ApplyDoubleRewards(),
+                            () => _resultsLog.Add("未完整观看广告，未获得双倍奖励"));
+                    }
+                    GUI.backgroundColor = Color.white;
+                }
+
+                // 右侧：战后商店
+                GUI.backgroundColor = Theme.BgCard;
+                float shopBtnX = adManagerReady && AdManager.Instance.CanShowDoubleRewards()
+                    ? px + (pw - btnW * 2 - 10 * s) / 2 + btnW + 10 * s
+                    : px + (pw - btnW) / 2;
+                if (GUI.Button(new Rect(shopBtnX, adBtnY, btnW, 40 * s),
+                    "🏪 商店", Theme.MakeButton((int)(15 * s))))
                 {
                     AudioManager.PlaySfx(AudioManager.SfxClips.Click);
-                    AdManager.Instance.ShowAd(AdPlacementType.DoubleRewards,
-                        () => ApplyDoubleRewards(),
-                        () => _resultsLog.Add("未完整观看广告，未获得双倍奖励"));
+                    ShopController.Instance?.Open();
                 }
                 GUI.backgroundColor = Color.white;
             }
-            else if (!isVictory && adManagerReady && AdManager.Instance.CanShowDefeatRevive())
+            else if (adManagerReady && AdManager.Instance.CanShowDefeatRevive())
             {
                 GUI.backgroundColor = Theme.Gold;
                 if (GUI.Button(new Rect(px + (pw - btnW) / 2, adBtnY, btnW, 40 * s),

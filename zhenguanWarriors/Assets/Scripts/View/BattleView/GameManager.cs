@@ -47,6 +47,7 @@ namespace ZhenguanWarriors.View.BattleView
             _confirm = gameObject.AddComponent<ConfirmDialog>();
             _pauseMenu = gameObject.AddComponent<PauseMenu>();
             gameObject.AddComponent<AdManager>();
+            gameObject.AddComponent<ShopController>();
 
             // 横屏模式
             Screen.orientation = ScreenOrientation.LandscapeLeft;
