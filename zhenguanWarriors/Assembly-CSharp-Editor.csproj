@@ -62,6 +62,7 @@
   <ItemGroup>
     <Compile Include="Assets\Editor\BuildScript.cs" />
     <Compile Include="Assets\Editor\ProjectSettingsConfigurator.cs" />
+    <Compile Include="Assets\Editor\AudioImportPostprocessor.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
