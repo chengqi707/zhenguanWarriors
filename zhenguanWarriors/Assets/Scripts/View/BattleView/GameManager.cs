@@ -48,6 +48,7 @@ namespace ZhenguanWarriors.View.BattleView
             _pauseMenu = gameObject.AddComponent<PauseMenu>();
             gameObject.AddComponent<AdManager>();
             gameObject.AddComponent<ShopController>();
+            gameObject.AddComponent<LoadingScreen>();
 
             // 横屏模式
             Screen.orientation = ScreenOrientation.LandscapeLeft;
@@ -207,6 +208,11 @@ namespace ZhenguanWarriors.View.BattleView
         public void SetPaused(bool paused)
         {
             IsPaused = paused;
+        }
+
+        public void SetTransitioning(bool transitioning)
+        {
+            IsTransitioning = transitioning;
         }
     }
 }

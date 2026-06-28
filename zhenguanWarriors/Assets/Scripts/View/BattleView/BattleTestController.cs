@@ -23,7 +23,7 @@ namespace ZhenguanWarriors.View.BattleView
     public class BattleTestController : MonoBehaviour
     {
         // ========== 游戏阶段 ==========
-        private enum GamePhase { LevelSelect, HeroSelect, EquipSetup, Battle, Results }
+        private enum GamePhase { LevelSelect, HeroSelect, EquipSetup, Battle, Results, Loading }
         private GamePhase _gamePhase = GamePhase.LevelSelect;
         private bool _heroConfirmClicked;  // 选人阶段已确认
 
@@ -2552,26 +2552,65 @@ namespace ZhenguanWarriors.View.BattleView
             }
         }
 
-        /// <summary>选择关卡，进入战前编组</summary>
+        /// <summary>选择关卡，进入战前编组（带加载页）</summary>
         public void SelectLevel(string levelId)
         {
+            StartCoroutine(SelectLevelAsync(levelId));
+        }
+
+        private IEnumerator SelectLevelAsync(string levelId)
+        {
+            _gamePhase = GamePhase.Loading;
+
             _currentLevel = LevelLibrary.Get(levelId);
-            if (_currentLevel == null) { _debugErr = "Level is null"; return; }
+            if (_currentLevel == null)
+            {
+                _debugErr = "Level is null";
+                _gamePhase = GamePhase.LevelSelect;
+                yield break;
+            }
             _currentLevelIndex = _levelOrder.IndexOf(levelId);
 
+            LoadingScreen.Instance?.Show(
+                setter => LoadLevelSteps(setter),
+                () =>
+                {
+                    // ★ 关前剧情：如有则先播放，再进入 HeroSelect
+                    string preStoryId = $"story_{levelId}_pre";
+                    if (StoryLibrary.Get(preStoryId) != null && _dialogueUI != null)
+                        PlayLevelStory(preStoryId);
+                    else
+                        GameManager.Instance.TransitionTo(GamePage.HeroSelect);
+                });
+        }
+
+        private IEnumerator LoadLevelSteps(System.Action<float> setter)
+        {
+            setter(0.05f);
+            yield return null;
+
+            setter(0.2f);
+            yield return null;
+
             _hexView.RebuildFromLevelData(_currentLevel);
-            try { InitHeroPool(); }
-            catch (System.Exception ex) { _debugErr = "InitHeroPool: " + ex.Message; return; }
+            setter(0.6f);
+            yield return null;
 
-            // ★ 关前剧情：如有则先播放，再进入 HeroSelect
-            string preStoryId = $"story_{levelId}_pre";
-            if (StoryLibrary.Get(preStoryId) != null && _dialogueUI != null)
+            try
             {
-                PlayLevelStory(preStoryId);
-                return;
+                InitHeroPool();
             }
+            catch (System.Exception ex)
+            {
+                _debugErr = "InitHeroPool: " + ex.Message;
+                setter(1f);
+                yield break;
+            }
+            setter(0.9f);
+            yield return null;
 
-            GameManager.Instance.TransitionTo(GamePage.HeroSelect);
+            setter(1f);
+            yield return null;
         }
         private string _debugErr;
 
