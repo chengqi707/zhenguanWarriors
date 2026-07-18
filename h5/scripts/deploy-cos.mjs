@@ -88,22 +88,23 @@ function mime(filePath) {
 
 function uploadFile(localPath, cosKey, opts = {}) {
   return new Promise((resolve, reject) => {
-    cos.putObject(
-      {
-        Bucket: BUCKET,
-        Region: REGION,
-        Key: cosKey,
-        Body: fs.createReadStream(localPath),
-        ContentType: mime(localPath),
-        ContentDisposition: opts.contentDisposition ?? 'inline',
-        // html/js/css 建议开启浏览器缓存；index.html 可短缓存便于更新
-        CacheControl: opts.cacheControl ?? (localPath.endsWith('index.html') ? 'max-age=60' : 'max-age=86400'),
-      },
-      (err, data) => {
-        if (err) reject(err);
-        else resolve(data);
-      },
-    );
+    const params = {
+      Bucket: BUCKET,
+      Region: REGION,
+      Key: cosKey,
+      Body: fs.createReadStream(localPath),
+      ContentType: mime(localPath),
+      // html/js/css 建议开启浏览器缓存；index.html 可短缓存便于更新
+      CacheControl: opts.cacheControl ?? (localPath.endsWith('index.html') ? 'max-age=60' : 'max-age=86400'),
+    };
+    // 默认 inline；显式传 undefined 表示不设置 Content-Disposition
+    if (opts.contentDisposition !== undefined) {
+      params.ContentDisposition = opts.contentDisposition;
+    }
+    cos.putObject(params, (err, data) => {
+      if (err) reject(err);
+      else resolve(data);
+    });
   });
 }
 
@@ -121,7 +122,9 @@ async function main() {
   }
 
   const files = walk(distDir);
-  const total = Object.keys(files).length + 2; // dist/ 全部 + 中文单文件 + ASCII 单文件
+  const playFile = path.join(ROOT, 'play.html');
+  const hasPlayFile = fs.existsSync(playFile);
+  const total = Object.keys(files).length + 2 + (hasPlayFile ? 1 : 0); // dist/ + 中文单文件 + ASCII 单文件 + play.html
   let done = 0;
 
   console.log(`\n🚀 开始部署到 COS：${BUCKET} / ${REGION}`);
@@ -142,9 +145,18 @@ async function main() {
   await uploadFile(singleFile, singleKey);
   done += 1;
   console.log(`[${done}/${total}] ${singleKey}`);
-  await uploadFile(singleFile, asciiSingleKey, { contentDisposition: 'inline; filename="game.html"' });
+  // 对单文件版不设 Content-Disposition，避免 Chrome 把 inline + filename 识别为下载
+  await uploadFile(singleFile, asciiSingleKey, { contentDisposition: undefined });
   done += 1;
   console.log(`[${done}/${total}] ${asciiSingleKey}`);
+
+  // 备用入口：轻量落地页，绝对不会再触发下载
+  if (hasPlayFile) {
+    const playKey = `${PREFIX}play.html`;
+    await uploadFile(playFile, playKey);
+    done += 1;
+    console.log(`[${done}/${total}] ${playKey}`);
+  }
 
   // 配置跨域：Vite 生成的 index.html 对 JS/CSS 带 crossorigin 属性，
   // 静态网站入口需要 CORS 头才能正常加载资源
@@ -174,11 +186,13 @@ async function main() {
   const websiteEndpoint = `https://${BUCKET}.cos-website.${REGION}.myqcloud.com/${PREFIX}`;
   const singleUrl = `https://${BUCKET}.cos-website.${REGION}.myqcloud.com/${singleKey}`;
   const asciiSingleUrl = `https://${BUCKET}.cos-website.${REGION}.myqcloud.com/${asciiSingleKey}`;
+  const playUrl = `https://${BUCKET}.cos-website.${REGION}.myqcloud.com/${PREFIX}play.html`;
 
   console.log('\n✅ 部署完成');
   console.log(`   静态网站入口：${websiteEndpoint}`);
   console.log(`   单文件版链接：${singleUrl}`);
   console.log(`   单文件版（ASCII 文件名）：${asciiSingleUrl}`);
+  if (hasPlayFile) console.log(`   落地页入口（防下载）：${playUrl}`);
   console.log('\n提示：若已开启自定义域名，请把上述链接里的 cos-website 域名替换为你的域名。');
 }
 
