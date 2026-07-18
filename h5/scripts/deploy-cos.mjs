@@ -86,7 +86,7 @@ function mime(filePath) {
   return table[ext] || 'application/octet-stream';
 }
 
-function uploadFile(localPath, cosKey) {
+function uploadFile(localPath, cosKey, opts = {}) {
   return new Promise((resolve, reject) => {
     cos.putObject(
       {
@@ -95,8 +95,9 @@ function uploadFile(localPath, cosKey) {
         Key: cosKey,
         Body: fs.createReadStream(localPath),
         ContentType: mime(localPath),
+        ContentDisposition: opts.contentDisposition ?? 'inline',
         // html/js/css 建议开启浏览器缓存；index.html 可短缓存便于更新
-        CacheControl: localPath.endsWith('index.html') ? 'max-age=60' : 'max-age=86400',
+        CacheControl: opts.cacheControl ?? (localPath.endsWith('index.html') ? 'max-age=60' : 'max-age=86400'),
       },
       (err, data) => {
         if (err) reject(err);
@@ -120,7 +121,7 @@ async function main() {
   }
 
   const files = walk(distDir);
-  const total = Object.keys(files).length + 1;
+  const total = Object.keys(files).length + 2; // dist/ 全部 + 中文单文件 + ASCII 单文件
   let done = 0;
 
   console.log(`\n🚀 开始部署到 COS：${BUCKET} / ${REGION}`);
@@ -135,17 +136,24 @@ async function main() {
   }
 
   // 同时上传单文件版，便于直接分享一个 HTML 链接
+  // 额外上传一个 ASCII 文件名 game.html，避免部分浏览器/聊天软件对中文 URL 处理异常
   const singleKey = `${PREFIX}贞观勇士.html`;
+  const asciiSingleKey = `${PREFIX}game.html`;
   await uploadFile(singleFile, singleKey);
   done += 1;
   console.log(`[${done}/${total}] ${singleKey}`);
+  await uploadFile(singleFile, asciiSingleKey);
+  done += 1;
+  console.log(`[${done}/${total}] ${asciiSingleKey}`);
 
   const websiteEndpoint = `https://${BUCKET}.cos-website.${REGION}.myqcloud.com/${PREFIX}`;
   const singleUrl = `https://${BUCKET}.cos-website.${REGION}.myqcloud.com/${singleKey}`;
+  const asciiSingleUrl = `https://${BUCKET}.cos-website.${REGION}.myqcloud.com/${asciiSingleKey}`;
 
   console.log('\n✅ 部署完成');
   console.log(`   静态网站入口：${websiteEndpoint}`);
   console.log(`   单文件版链接：${singleUrl}`);
+  console.log(`   单文件版（ASCII 文件名）：${asciiSingleUrl}`);
   console.log('\n提示：若已开启自定义域名，请把上述链接里的 cos-website 域名替换为你的域名。');
 }
 
