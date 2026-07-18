@@ -24,6 +24,14 @@ zhenguanWarriors/local.properties
 # IDE
 .idea/
 
+# H5 版（h5/）
+h5/node_modules/
+h5/dist/
+h5/dist-single/
+h5/shots/
+h5/.env*
+!h5/.env.example
+
 # OS
 .DS_Store
 Thumbs.db

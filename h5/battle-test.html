@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>战斗自检 · 贞观勇士 H5</title>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #1F140D; }
+    /* flex 列容器：.zg-battle 靠 flex:1 撑满（否则 stage 高度塌为 0、相机比例异常） */
+    #app { width: 100%; height: 100%; display: flex; flex-direction: column; }
+    .test-result {
+      height: 100%; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 16px; color: #F2EBD9;
+      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    .test-result h1 { color: #E6BF33; font-size: 28px; margin: 0; }
+    .test-result button {
+      min-width: 200px; min-height: 48px; font-size: 16px; border-radius: 8px;
+      border: 1px solid #E85D4E; background: #B7261E; color: #FAFAFA; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/battle/test-entry.ts"></script>
+</body>
+</html>

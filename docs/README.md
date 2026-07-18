@@ -1,9 +1,16 @@
 # 贞观勇士 文档索引
 
 ## 顶层文档
-- [PRD.md](./PRD.md) —— 产品总览（目标、范围、优先级、风险）
+- [PRD.md](./PRD.md) —— 产品总览（目标、范围、优先级、风险；§15/§16 为 H5 迭代需求）
 - [ARCHITECTURE.md](./ARCHITECTURE.md) —— 技术架构
 - [ROADMAP.md](./ROADMAP.md) —— 4 阶段开发路线图
+
+## H5 重制版（当前主线）
+- [H5_ITERATION_SUMMARY.md](./H5_ITERATION_SUMMARY.md) —— **H5 开发迭代总结（全部需求与实现一览）**
+- [H5_DESIGN.md](./H5_DESIGN.md) —— H5 技术设计与版本记录
+- [EVALUATION_R2.md](./EVALUATION_R2.md) —— 数值机制评估与调整记录
+- [PORTRAIT_PROMPTS.md](./PORTRAIT_PROMPTS.md) —— 15 人 AI 生图提示词包（立绘图片管线：`h5/public/portraits/`，有图用图、无图程序绘制）
+- [h5/README.md](../h5/README.md) —— H5 工程使用（开发/构建/验证脚本）
 
 ## 专题细化文档（v0.2 启动）
 | 文档 | 主题 | 状态 |

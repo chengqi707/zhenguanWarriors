@@ -1,0 +1,15 @@
+# 依赖与构建产物
+node_modules/
+dist/
+dist-single/
+shots/
+*.log
+
+# 环境变量与密钥（绝不可提交到仓库）
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,542 @@
+/* ============================================================
+   战斗场景样式——唐风色板（PRD §9.4 / H5_DESIGN §6）：
+   朱红 #B7261E / 宣纸黄 #F5EBD1 / 金 #E6BF33 /
+   深褐底 #1F140D / 面板 #332318 / 卡片 #473320
+   布局：顶部回合栏 36px + 中央 canvas（填满剩余）+ 底部操作区 120px
+   ============================================================ */
+
+.zg-battle {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  flex: 1 1 auto; /* 撑满父级 flex 容器（height:100% 对 min-height 父级无效） */
+  min-height: 0;
+  background: #1f140d;
+  color: #f2ebd9;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------- 顶部回合栏（36px） ---------- */
+.zg-topbar {
+  flex: 0 0 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 0 12px;
+  background: #332318;
+  border-bottom: 1px solid #473320;
+  font-size: 14px;
+  z-index: 5;
+}
+.zg-turn {
+  color: #e6bf33;
+  font-weight: 700;
+}
+.zg-top-mid {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.zg-phase.player {
+  color: #8fc7a2;
+}
+.zg-phase.enemy {
+  color: #e85d4e;
+}
+.zg-weather {
+  font-size: 15px;
+}
+.zg-menu-btn {
+  min-width: 44px;
+  height: 30px;
+  border: 1px solid #806b5c;
+  border-radius: 6px;
+  background: transparent;
+  color: #f2ebd9;
+  font-size: 15px;
+  cursor: pointer;
+}
+.zg-menu-btn:active {
+  background: #473320;
+}
+
+/* 顶栏常驻「结束回合」（任何交互模式可用；doEndTurn 内部校验回合/动画锁） */
+.zg-endturn-top {
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid #b7261e;
+  border-radius: 6px;
+  background: #b7261e;
+  color: #f5ebd1;
+  font-size: 13px;
+  font-weight: bold;
+  font-family: inherit;
+  cursor: pointer;
+}
+.zg-endturn-top:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ---------- 新手引导横幅 ---------- */
+.zg-tuto {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  background: rgba(230, 191, 51, 0.14);
+  border-bottom: 1px solid rgba(230, 191, 51, 0.45);
+  color: #e6bf33;
+  font-size: 13px;
+  text-align: center;
+  z-index: 5;
+}
+.zg-tuto.hide {
+  display: none;
+}
+
+/* ---------- 中央战场 ---------- */
+.zg-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.zg-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  touch-action: none; /* 触控手势全部交给 Pointer Events */
+}
+
+/* ---------- 底部操作区（约 120px） ---------- */
+.zg-bottom {
+  flex: 0 0 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  background: #332318;
+  border-top: 1px solid #473320;
+  z-index: 5;
+  box-sizing: border-box;
+}
+.zg-hint {
+  text-align: center;
+  color: #b9a88f;
+  font-size: 13px;
+}
+.zg-info {
+  text-align: center;
+  font-size: 14px;
+  color: #f2ebd9;
+}
+.zg-btnrow {
+  display: flex;
+  gap: 8px;
+}
+.zg-btnrow .zg-btn {
+  flex: 1;
+}
+
+/* 按钮（触控目标 ≥44px） */
+.zg-btn {
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid #806b5c;
+  border-radius: 8px;
+  background: #473320;
+  color: #f2ebd9;
+  font-size: 15px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.zg-btn:active {
+  background: #5a4229;
+}
+.zg-btn:disabled,
+.zg-btn.nomp {
+  opacity: 0.42;
+  cursor: default;
+}
+.zg-btn-primary {
+  background: #b7261e;
+  border-color: #e85d4e;
+  color: #fafafa;
+  font-weight: 700;
+}
+.zg-btn-primary:active {
+  background: #d03329;
+}
+.zg-btn-danger {
+  background: #7a1a14;
+  border-color: #b7261e;
+  color: #fafafa;
+}
+/* 结束回合：未选中时唯一大按钮 */
+.zg-btn-end {
+  min-height: 52px;
+  width: 100%;
+  background: #b7261e;
+  border-color: #e85d4e;
+  color: #fafafa;
+  font-size: 17px;
+  font-weight: 700;
+}
+.zg-btn-end.pulse {
+  animation: zg-pulse 1s ease-in-out infinite;
+}
+@keyframes zg-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(230, 191, 51, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(230, 191, 51, 0);
+  }
+}
+
+/* 计策列表（2×2 网格，避免 4 个技能横向溢出） */
+.zg-skillrow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.zg-skillrow .zg-btn {
+  flex: 1 1 calc(50% - 4px);
+  min-width: 0;
+}
+
+/* 攻击/计策预览面板 */
+.zg-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 8px;
+  background: rgba(71, 51, 32, 0.6);
+  border: 1px solid #806b5c;
+  border-radius: 8px;
+}
+.zg-preview-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e6bf33;
+  text-align: center;
+}
+.zg-preview-line {
+  font-size: 13px;
+  color: #f2ebd9;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.zg-preview-warn {
+  font-size: 12px;
+  color: #e85d4e;
+  text-align: center;
+}
+
+/* ---------- 回合/结果横幅 ---------- */
+.zg-banner {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 38%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.92);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+  z-index: 20;
+}
+.zg-banner.show {
+  opacity: 1;
+  transform: scale(1);
+}
+.zg-banner-text {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: 6px;
+  color: #e6bf33;
+  text-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.75),
+    0 0 18px rgba(230, 191, 51, 0.35);
+}
+.zg-banner.result .zg-banner-text {
+  font-size: 44px;
+}
+.zg-banner-sub {
+  font-size: 15px;
+  color: #f2ebd9;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+/* ---------- 轻提示 ---------- */
+.zg-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 132px;
+  transform: translateX(-50%) translateY(8px);
+  max-width: 86%;
+  padding: 8px 14px;
+  background: rgba(26, 20, 13, 0.92);
+  border: 1px solid #806b5c;
+  border-radius: 8px;
+  color: #f2ebd9;
+  font-size: 13px;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+  z-index: 25;
+}
+.zg-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ---------- 菜单弹窗 ---------- */
+.zg-menu-mask {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 10, 6, 0.72);
+  z-index: 30;
+}
+.zg-menu-mask.show {
+  display: flex;
+}
+.zg-menu-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(78%, 300px);
+  padding: 18px 16px;
+  background: #332318;
+  border: 2px solid #b7261e;
+  border-radius: 12px;
+}
+.zg-menu-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #e6bf33;
+  text-align: center;
+  margin-bottom: 2px;
+}
+.zg-menu-item {
+  width: 100%;
+  min-height: 48px;
+}
+/* 菜单面板顶部的胜/败条件两行 */
+.zg-menu-cond {
+  font-size: 13px;
+  color: #f2ebd9;
+  text-align: center;
+}
+.zg-menu-cond.lose {
+  color: #e85d4e;
+}
+
+/* 物品列表按钮（图标 + 名称×数量 + 效果简述，在 .zg-skillrow 内横滚） */
+.zg-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 96px;
+  padding: 4px 8px;
+  line-height: 1.2;
+}
+.zg-item-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 11px;
+  color: #fafafa;
+}
+.zg-item-ico.heal_hp {
+  background: #3a7d44;
+}
+.zg-item-ico.heal_mp {
+  background: #2b5a8c;
+}
+.zg-item-ico.buff_atk {
+  background: #b34d1a;
+}
+.zg-item-name {
+  font-size: 13px;
+}
+.zg-item-desc {
+  font-size: 11px;
+  color: #b9a88f;
+}
+.zg-item-back {
+  flex: 0 0 auto;
+  min-width: 64px;
+}
+
+/* ---------- 地形信息条（idle 点空白格浮出，底部操作区上方） ---------- */
+.zg-terrainbar {
+  position: absolute;
+  left: 50%;
+  bottom: calc(128px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  max-width: 92%;
+  padding: 6px 12px;
+  background: rgba(26, 20, 13, 0.92);
+  border: 1px solid #806b5c;
+  border-radius: 8px;
+  text-align: center;
+  pointer-events: none;
+  z-index: 15;
+}
+.zg-terrainbar.hide {
+  display: none;
+}
+.zg-tb-title {
+  font-size: 13px;
+  color: #f2ebd9;
+}
+.zg-tb-name {
+  color: #e6bf33;
+  font-weight: 700;
+  margin-right: 8px;
+}
+.zg-tb-mods {
+  font-variant-numeric: tabular-nums;
+}
+.zg-tb-rule {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #e0a040;
+}
+
+/* 选中单位信息行下的兵种特性一句话 */
+.zg-trait {
+  text-align: center;
+  font-size: 13px;
+  color: #c9a86a; /* 暗金 */
+}
+
+/* ---------- 单位属性卡（第三轮迭代：底部操作区顶部，替代原单行信息） ---------- */
+/* 底部操作区改为按内容自适应（属性卡 3 行比原单行高），保持最小 120px */
+.zg-bottom {
+  flex: 0 0 auto;
+  min-height: 120px;
+}
+.zg-unitcard {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px 10px;
+  background: rgba(26, 20, 13, 0.72); /* 深色半透明底 */
+  border: 1px solid #806b5c;
+  border-radius: 8px;
+}
+.zg-uc-row1 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.zg-uc-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #f5ebd1;
+}
+.zg-uc-boss {
+  font-size: 13px;
+  font-weight: 700;
+  color: #e6bf33; /* 敌方 Boss 金色「将」 */
+}
+.zg-uc-sub {
+  font-size: 12px;
+  color: #b9a88f;
+}
+.zg-uc-hpmp {
+  margin-left: auto;
+  font-size: 12px;
+  color: #f2ebd9;
+  font-variant-numeric: tabular-nums;
+}
+/* 五维等宽列 */
+.zg-uc-stats {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.zg-uc-stat {
+  flex: 1 1 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  padding: 1px 0;
+  border-radius: 4px;
+  background: rgba(71, 51, 32, 0.5);
+}
+.zg-uc-sl {
+  font-size: 11px;
+  color: #b9a88f;
+}
+.zg-uc-sv {
+  font-size: 13px;
+  color: #f2ebd9;
+  font-variant-numeric: tabular-nums;
+}
+/* 关键属性：金色放大 1.1 倍 */
+.zg-uc-stat.key .zg-uc-sl,
+.zg-uc-stat.key .zg-uc-sv {
+  color: #e6bf33;
+  font-weight: 700;
+  transform: scale(1.1);
+}
+.zg-uc-note {
+  flex: 0 0 auto;
+  font-size: 10px;
+  color: #b9a88f;
+  white-space: nowrap;
+}
+.zg-uc-row3 {
+  font-size: 12px;
+  color: #c9a86a; /* 暗金（沿用特性行配色） */
+}
+.zg-uc-enemy {
+  font-size: 11px;
+  color: #8a7a66; /* 暗色小字 */
+  text-align: right;
+}
+
+/* ---------- PC（≥768px）：战斗页全宽利用（相机已自适应），顶栏加大 ---------- */
+@media (min-width: 768px) {
+  .zg-battle {
+    width: 100%;
+    max-width: none;
+  }
+  .zg-topbar {
+    flex-basis: 48px;
+  }
+  .zg-menu-btn {
+    height: 40px;
+    min-width: 52px;
+    font-size: 18px;
+  }
+  .zg-endturn-top {
+    height: 40px;
+    padding: 0 16px;
+    font-size: 15px;
+  }
+}
