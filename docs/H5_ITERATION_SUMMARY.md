@@ -92,7 +92,8 @@ Unity 版功能接近完整但体验差、分发重。H5 重制目标：**点开
 
 - 本地试玩：`h5/` 下 `npm run preview --host`（默认 4173 端口；如端口被占会报错，可改端口或直接用单文件版）
 - 单文件分发：`h5/dist-single/贞观勇士.html`（506KB，双击即玩，可直接转发；`npm run build && npm run pack` 重新生成）
-- 线上部署：已配置腾讯云 COS 一键部署脚本（`h5/scripts/deploy-cos.mjs` + `npm run deploy:cos`），密钥存于本地 `.env.local`（已加 `.gitignore`）；当前已上线 `https://zhenguan-warriors-20260718-1455581839.cos-website.ap-beijing.myqcloud.com/`
+- 腾讯云 COS：已配置一键部署脚本（`h5/scripts/deploy-cos.mjs` + `npm run deploy:cos`），密钥存于本地 `.env.local`（已加 `.gitignore`）；当前已上线 `https://zhenguan-warriors-20260718-1455581839.cos-website.ap-beijing.myqcloud.com/`
+- GitHub Pages：已配置 GitHub Actions 工作流（`.github/workflows/deploy-h5-to-pages.yml`），每次 push 到 main 时自动构建并推送到 `gh-pages` 分支；**需用户在仓库 Settings → Pages → Source 选择 "Deploy from a branch" → `gh-pages`**，预计可用地址 `https://chengqi707.github.io/zhenguanWarriors/`（用于解决飞书等环境对 COS 静态网站的下载误识别问题）
 
 ## 8. 已知简化项与二期候选
 
