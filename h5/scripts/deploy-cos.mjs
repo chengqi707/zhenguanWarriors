@@ -50,16 +50,16 @@ const cos = new COS({
 });
 
 /** 遍历目录，返回 { 相对路径: 绝对路径 } */
-function walk(dir) {
+function walk(dir, prefix = '') {
   const map = {};
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
     const abs = path.join(dir, entry.name);
-    const rel = path.relative(dir, abs).replace(/\\/g, '/');
+    const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
     if (entry.isDirectory()) {
-      Object.assign(map, walk(abs));
+      Object.assign(map, walk(abs, rel));
     } else {
-      map[rel] = abs;
+      map[rel.replace(/\\/g, '/')] = abs;
     }
   }
   return map;
@@ -142,9 +142,34 @@ async function main() {
   await uploadFile(singleFile, singleKey);
   done += 1;
   console.log(`[${done}/${total}] ${singleKey}`);
-  await uploadFile(singleFile, asciiSingleKey);
+  await uploadFile(singleFile, asciiSingleKey, { contentDisposition: 'inline; filename="game.html"' });
   done += 1;
   console.log(`[${done}/${total}] ${asciiSingleKey}`);
+
+  // 配置跨域：Vite 生成的 index.html 对 JS/CSS 带 crossorigin 属性，
+  // 静态网站入口需要 CORS 头才能正常加载资源
+  console.log('\n🌐 配置存储桶 CORS...');
+  await new Promise((resolve, reject) => {
+    cos.putBucketCors(
+      {
+        Bucket: BUCKET,
+        Region: REGION,
+        CORSRules: [
+          {
+            AllowedOrigin: ['*'],
+            AllowedMethod: ['GET', 'HEAD'],
+            AllowedHeader: ['*'],
+            MaxAgeSeconds: '600',
+            ExposeHeader: ['ETag', 'x-cos-request-id'],
+          },
+        ],
+      },
+      (err, data) => {
+        if (err) reject(err);
+        else resolve(data);
+      },
+    );
+  });
 
   const websiteEndpoint = `https://${BUCKET}.cos-website.${REGION}.myqcloud.com/${PREFIX}`;
   const singleUrl = `https://${BUCKET}.cos-website.${REGION}.myqcloud.com/${singleKey}`;
