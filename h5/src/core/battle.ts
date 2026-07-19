@@ -890,7 +890,7 @@ export class Battle {
     for (const u of this.state.units) {
       if (!u.alive) continue;
       if (u.buffs.some(b => b.id === 'ignite')) {
-        const dot = rules.igniteTickDamage(u, this.state.weather);
+        const dot = rules.igniteTickDamage(u, this.state.weather, this.grid.terrainAt(u.q, u.r));
         u.hp = Math.max(0, u.hp - dot);
         events.push({ type: 'damage', uid: u.uid, amount: dot, hpAfter: u.hp });
         if (u.hp <= 0) this.killUnit(null, u, events);

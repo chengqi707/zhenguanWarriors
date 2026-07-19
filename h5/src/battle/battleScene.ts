@@ -1046,8 +1046,10 @@ export class BattleScene {
         const lines = m.targets.slice(0, 2).map(t => {
           let suffix = '';
           if (m.skill.kind === 'damage' || m.skill.kind === 'heal') {
-            const v = rules.skillDamage(u, m.skill, t, { weather, terrain: this.terrainAt(t.q, t.r), rng: () => 0.5 });
-            suffix = m.skill.kind === 'heal' ? ` +${v}` : ` -${v}`;
+            const terrain = this.terrainAt(t.q, t.r);
+            const v = rules.skillDamage(u, m.skill, t, { weather, terrain, rng: () => 0.5 });
+            const forestTag = m.skill.id === 'fire_attack' && terrain === 'forest' ? '·林火' : '';
+            suffix = m.skill.kind === 'heal' ? ` +${v}` : ` -${v}${forestTag}`;
           }
           return `${t.name}${suffix}`;
         });

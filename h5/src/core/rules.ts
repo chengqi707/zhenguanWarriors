@@ -99,7 +99,7 @@ export interface SkillOpts {
 /**
  * 计策数值（02-combat §6.1 + data/skills.ts 各条注释）。
  * 返回伤害/治疗量（≥0）；buff/debuff 类恒返回 0（效果由 Battle 落地）。
- * - 火攻：目标 maxHp × 25% × INT/80 × 天气倍率（雨天0/雪天0.5）
+ * - 火攻：目标 maxHp × 25% × INT/80 × 天气倍率（雨天0/雪天0.5）× 林地加成1.5
  * - 水攻：目标 maxHp × 15% × INT/80
  * - 落石/乱射：INT × power/100 - 守方CMD×(1+防御%)，再乘地形防御与±5%浮动（物理向）
  * - 医疗：恢复 maxHp × 30%
@@ -109,7 +109,8 @@ export function skillDamage(caster: Unit, skill: SkillDef, target: Unit, opts: S
   switch (skill.id) {
     case 'fire_attack': {
       const mult = WEATHER_RULES[opts.weather].firePowerMult;
-      return Math.round(target.maxHp * (skill.power / 100) * (int / 80) * mult);
+      const forestBonus = opts.terrain === 'forest' ? COMBAT_FORMULA.fireForestBonus : 1;
+      return Math.round(target.maxHp * (skill.power / 100) * (int / 80) * mult * forestBonus);
     }
     case 'water_attack':
       return Math.round(target.maxHp * (skill.power / 100) * (int / 80));
@@ -146,9 +147,10 @@ export function skillDamage(caster: Unit, skill: SkillDef, target: Unit, opts: S
   }
 }
 
-/** 点燃每回合伤害 = maxHp × 5% × 天气倍率（02-combat §6.1，雨0/雪0.5） */
-export function igniteTickDamage(target: Unit, weather: Weather): number {
-  return Math.max(1, Math.round(target.maxHp * 0.05 * WEATHER_RULES[weather].firePowerMult));
+/** 点燃每回合伤害 = maxHp × 5% × 天气倍率 × 林地加成（02-combat §6.1/6.2） */
+export function igniteTickDamage(target: Unit, weather: Weather, terrain: TerrainType): number {
+  const forestBonus = terrain === 'forest' ? COMBAT_FORMULA.fireForestBonus : 1;
+  return Math.max(1, Math.round(target.maxHp * 0.05 * WEATHER_RULES[weather].firePowerMult * forestBonus));
 }
 
 /** 升级所需经验（05-systems §3.1）：100 + (等级-1) × 20 */

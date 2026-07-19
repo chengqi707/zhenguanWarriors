@@ -130,6 +130,7 @@ export const COMBAT_FORMULA = {
   counterDamageMult: 0.7,  // 反击伤害倍率（不暴击）
   damageVariance: 0.05,    // 伤害随机浮动 ±5%
   minDamage: 1,            // 最低伤害保护
+  fireForestBonus: 1.5,    // 林地火攻增伤倍率（02-combat §6.2 环境联动）
   // R2 平衡调整（docs/EVALUATION_R2.md）：文档原为防御全额减法，
   // 高防单位对低攻敌人近乎免伤（CMD95 vs STR45 仅保底 1 点）→ 改为半减
   defenseCoef: 0.5,        // 防御减免系数：伤害 = 攻STR×克制 - 守CMD × defenseCoef

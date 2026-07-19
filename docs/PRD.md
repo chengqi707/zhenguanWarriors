@@ -922,3 +922,38 @@ v1.0 版本仅接入**激励视频**，具体 placements：
 - [x] 敌方态势在竖屏顶部栏 / 横屏右侧栏双路径显示
 - [x] 顶部栏显示版本号
 - [x] 回归验证：`npm run build` / `npm run sim` 通过
+
+----
+
+## 22. 火攻林地增伤（2026-07-19，R6-fix2）
+
+> 目标：解决「火攻打在森林里伤害过低」的反馈，让环境联动更明显。
+
+### 22.1 需求
+
+- 火攻目标位于 **林地（forest）** 时，直接伤害与后续点燃每回合伤害均 ×1.5。
+- 技能预估面板需标识出「林火」加成，方便玩家判断。
+- 天气倍率（晴1 / 雪0.5 / 雨0）与林地加成叠加，即晴+林地 = 1.5 倍基础伤害。
+
+### 22.2 实现要点
+
+- `h5/src/data/rules.ts`：`COMBAT_FORMULA.fireForestBonus = 1.5`。
+- `h5/src/core/rules.ts`：
+  - `skillDamage` 中 `fire_attack` 根据 `opts.terrain === 'forest'` 乘加成。
+  - `igniteTickDamage` 新增 `terrain` 参数，林地同样乘加成。
+- `h5/src/core/battle.ts`：回合结束点燃结算时传入单位当前所在格地形。
+- `h5/src/battle/battleScene.ts`：技能预估列表中火攻命中林地目标时显示 `-X·林火`。
+
+### 22.3 文件改动
+
+- `h5/src/data/rules.ts`
+- `h5/src/core/rules.ts`
+- `h5/src/core/battle.ts`
+- `h5/src/battle/battleScene.ts`
+
+### 22.4 完成状态
+
+- [x] 林地火攻直接伤害 ×1.5
+- [x] 林地点燃每回合伤害 ×1.5
+- [x] 技能预估面板标识「林火」
+- [x] 回归验证：`npm run build` / `npm run sim` 通过
