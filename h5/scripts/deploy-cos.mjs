@@ -86,6 +86,11 @@ function mime(filePath) {
   return table[ext] || 'application/octet-stream';
 }
 
+/** 是否应显式声明 inline，避免 App 内置浏览器误识别为下载 */
+function shouldInline(cosKey) {
+  return cosKey.endsWith('.html');
+}
+
 function uploadFile(localPath, cosKey, opts = {}) {
   return new Promise((resolve, reject) => {
     const params = {
@@ -97,9 +102,11 @@ function uploadFile(localPath, cosKey, opts = {}) {
       // html/js/css 建议开启浏览器缓存；index.html 可短缓存便于更新
       CacheControl: opts.cacheControl ?? (localPath.endsWith('index.html') ? 'max-age=60' : 'max-age=86400'),
     };
-    // 默认 inline；显式传 undefined 表示不设置 Content-Disposition
+    // 显式设置 Content-Disposition: inline（HTML），或按调用方指定
     if (opts.contentDisposition !== undefined) {
       params.ContentDisposition = opts.contentDisposition;
+    } else if (shouldInline(cosKey)) {
+      params.ContentDisposition = 'inline';
     }
     cos.putObject(params, (err, data) => {
       if (err) reject(err);
@@ -145,8 +152,7 @@ async function main() {
   await uploadFile(singleFile, singleKey);
   done += 1;
   console.log(`[${done}/${total}] ${singleKey}`);
-  // 对单文件版不设 Content-Disposition，避免 Chrome 把 inline + filename 识别为下载
-  await uploadFile(singleFile, asciiSingleKey, { contentDisposition: undefined });
+  await uploadFile(singleFile, asciiSingleKey);
   done += 1;
   console.log(`[${done}/${total}] ${asciiSingleKey}`);
 
@@ -157,6 +163,26 @@ async function main() {
     done += 1;
     console.log(`[${done}/${total}] ${playKey}`);
   }
+
+  // 配置静态网站：明确指定 index.html 为默认页/错误页，确保根目录访问正常
+  console.log('\n🌐 配置存储桶静态网站...');
+  await new Promise((resolve, reject) => {
+    cos.putBucketWebsite(
+      {
+        Bucket: BUCKET,
+        Region: REGION,
+        WebsiteConfiguration: {
+          IndexDocument: { Suffix: 'index.html' },
+          ErrorDocument: { Key: 'index.html' },
+          RedirectAllRequestsTo: undefined,
+        },
+      },
+      (err, data) => {
+        if (err) reject(err);
+        else resolve(data);
+      },
+    );
+  });
 
   // 配置跨域：Vite 生成的 index.html 对 JS/CSS 带 crossorigin 属性，
   // 静态网站入口需要 CORS 头才能正常加载资源
