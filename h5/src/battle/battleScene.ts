@@ -915,10 +915,21 @@ export class BattleScene {
     return card;
   }
 
+  private stanceText(): string {
+    const enemies = this.battle.state.units.filter(u => u.alive && u.faction === 'enemy');
+    const counts = { offensive: 0, defensive: 0, neutral: 0 };
+    for (const u of enemies) counts[getUnitStance(this.battle, u)] += 1;
+    return `敌方态势：攻${counts.offensive} 守${counts.defensive} 中${counts.neutral}`;
+  }
+
   private renderBottom(busyText = '行动中…'): void {
     const b = this.bottom;
     b.textContent = '';
     const m = this.mode;
+    // PC 横屏时把敌方态势放在右侧操作栏顶部（避免顶部空间不足被截断）
+    if (this.battle.state.phase === 'enemy') {
+      b.appendChild(el('div', 'zg-side-status', this.stanceText()));
+    }
     switch (m.kind) {
       case 'idle': {
         // idle 点选敌方单位：只读属性卡（无行动按钮）
@@ -1114,10 +1125,7 @@ export class BattleScene {
     this.weatherEl.textContent = WEATHER_ICONS[s.weather];
     // 敌方回合显示实时态势统计（攻/守/中）
     if (s.phase === 'enemy') {
-      const enemies = s.units.filter(u => u.alive && u.faction === 'enemy');
-      const counts = { offensive: 0, defensive: 0, neutral: 0 };
-      for (const u of enemies) counts[getUnitStance(this.battle, u)] += 1;
-      this.stanceEl.textContent = `敌:攻${counts.offensive} 守${counts.defensive} 中${counts.neutral}`;
+      this.stanceEl.textContent = this.stanceText();
       this.stanceEl.classList.remove('hide');
     } else {
       this.stanceEl.classList.add('hide');

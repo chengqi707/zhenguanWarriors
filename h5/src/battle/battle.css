@@ -32,6 +32,32 @@
 }
 .zg-battle.landscape .zg-topbar {
   grid-area: top;
+  padding: 0 6px;
+  gap: 4px;
+}
+.zg-battle.landscape .zg-turn {
+  font-size: 11px;
+}
+.zg-battle.landscape .zg-phase {
+  font-size: 12px;
+}
+.zg-battle.landscape .zg-weather {
+  font-size: 13px;
+}
+.zg-battle.landscape .zg-stance {
+  display: none; /* 横屏顶部空间紧张，态势移到右侧操作栏顶部 */
+}
+.zg-battle.landscape .zg-top-mid {
+  gap: 4px;
+}
+.zg-battle.landscape .zg-endturn-top {
+  font-size: 12px;
+  min-width: 60px;
+  padding: 0 6px;
+}
+.zg-battle.landscape .zg-menu-btn {
+  min-width: 32px;
+  font-size: 13px;
 }
 .zg-battle.landscape .zg-stage {
   grid-area: stage;
@@ -135,6 +161,24 @@
   cursor: pointer;
 }
 .zg-endturn-top:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* 右侧操作栏顶部的敌方态势（仅横屏可见，避免顶部被截断） */
+.zg-side-status {
+  display: none;
+}
+.zg-battle.landscape .zg-side-status {
+  display: block;
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: #f2ebd9;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 4px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  text-align: center;
+  border: 1px solid rgba(230, 191, 51, 0.35);
+  margin-bottom: 4px;
+}
 
 /* ---------- 新手引导横幅 ---------- */
 .zg-tuto {
