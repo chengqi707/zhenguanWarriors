@@ -8,7 +8,7 @@
 // Boss 无特殊逻辑；玩家方自动战斗（sim）复用同一套决策（态势恒为 neutral）。
 // 简化：文档的「移向治疗者」「单挑」「威胁值」「全队协同/诱敌」未实现。
 // ============================================================
-import type { BattleEvent, TerrainType, Unit } from './types';
+import type { AIStance, BattleEvent, TerrainType, Unit } from './types';
 import type { Battle } from './battle';
 import { CLASS_COUNTER, WEATHER_RULES, getSkill } from '../data';
 import { Cell, hexDistance, hexRange, key, parseKey } from './hex';
@@ -16,7 +16,7 @@ import * as rules from './rules';
 
 const isHostile = (a: Unit, b: Unit): boolean => (a.faction === 'enemy') !== (b.faction === 'enemy');
 
-type Stance = 'offensive' | 'defensive' | 'neutral';
+type Stance = AIStance;
 
 /** 地形防御优先级（用于 AI 找有利地形待机） */
 const DEFENSE_PRIORITY: Record<TerrainType, number> = {
@@ -127,6 +127,11 @@ function minDistToFoes(q: number, r: number, foes: Unit[]): number {
   return d;
 }
 
+/** 供 UI 实时查询某单位当前会采取的态势（不修改状态） */
+export function getUnitStance(battle: Battle, unit: Unit): AIStance {
+  return evaluateStance(battle, unit);
+}
+
 /** 跑一个单位的完整决策，事件 push 进 events */
 export function runUnitAI(battle: Battle, unit: Unit, events: BattleEvent[]): void {
   const foes = battle.state.units.filter(u => u.alive && isHostile(unit, u));
@@ -136,6 +141,7 @@ export function runUnitAI(battle: Battle, unit: Unit, events: BattleEvent[]): vo
   }
   const friends = battle.state.units.filter(u => u.alive && !isHostile(unit, u));
   const stance = evaluateStance(battle, unit);
+  unit.aiStance = stance;
   const retreatThreshold = stance === 'defensive' ? 0.5 : stance === 'offensive' ? 0.2 : 0.3;
   const terrainOf = (q: number, r: number) => battle.state.level.terrain[key(q, r)] ?? 'plain';
 

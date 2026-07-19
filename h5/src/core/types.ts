@@ -195,11 +195,14 @@ export interface Unit {
   defensePct: number;   // 装备提供的防御+%
   critBonus: number;    // 装备+羁绊提供的暴击率+%
   mpCostMult: number;   // 计策 MP 消耗倍率（房谋杜断羁绊=0.8，默认 1）
+  // ---- AI 调试用：当前行动选择的态势（仅敌方生效，UI 显示用） ----
+  aiStance?: AIStance;
 }
 
 // ---------- 战斗状态与事件 ----------
 export type BattlePhase = 'player' | 'enemy' | 'ally' | 'over';
 export type BattleOutcome = 'win' | 'lose';
+export type AIStance = 'offensive' | 'defensive' | 'neutral';
 
 export interface BattleState {
   level: LevelDef;

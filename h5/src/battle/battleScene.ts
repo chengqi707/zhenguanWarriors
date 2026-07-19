@@ -19,6 +19,7 @@ import type {
   Unit,
 } from '../core/types';
 import { Battle } from '../core/battle';
+import { getUnitStance } from '../core/ai';
 import { hexDistance, hexRange, key } from '../core/hex';
 import type { Cell } from '../core/hex';
 import * as rules from '../core/rules';
@@ -89,6 +90,7 @@ export class BattleScene {
   private readonly turnEl: HTMLElement;
   private readonly phaseEl: HTMLElement;
   private readonly weatherEl: HTMLElement;
+  private readonly stanceEl: HTMLElement;
   private readonly endTurnBtn: HTMLButtonElement;
   private readonly tutoEl: HTMLElement;
   private readonly banner: HTMLElement;
@@ -127,9 +129,11 @@ export class BattleScene {
     this.turnEl = el('span', 'zg-turn');
     this.phaseEl = el('span', 'zg-phase player');
     this.weatherEl = el('span', 'zg-weather');
+    this.stanceEl = el('span', 'zg-stance');
     const mid = el('div', 'zg-top-mid');
     mid.appendChild(this.phaseEl);
     mid.appendChild(this.weatherEl);
+    mid.appendChild(this.stanceEl);
     const menuBtn = document.createElement('button');
     menuBtn.type = 'button';
     menuBtn.className = 'zg-menu-btn';
@@ -792,6 +796,7 @@ export class BattleScene {
       this.settle();
       return;
     }
+    this.updateTopbar(); // 敌方回合开始，立即显示态势栏
     await this.animator.play(res.events, { enemyPace: true, getUnit: uid => this.battle.getUnit(uid) });
     this.settle();
   }
@@ -1097,6 +1102,16 @@ export class BattleScene {
     this.phaseEl.textContent = phaseText;
     this.phaseEl.className = `zg-phase ${s.phase === 'enemy' ? 'enemy' : 'player'}`;
     this.weatherEl.textContent = WEATHER_ICONS[s.weather];
+    // 敌方回合显示实时态势统计（攻/守/中）
+    if (s.phase === 'enemy') {
+      const enemies = s.units.filter(u => u.alive && u.faction === 'enemy');
+      const counts = { offensive: 0, defensive: 0, neutral: 0 };
+      for (const u of enemies) counts[getUnitStance(this.battle, u)] += 1;
+      this.stanceEl.textContent = `敌:攻${counts.offensive} 守${counts.defensive} 中${counts.neutral}`;
+      this.stanceEl.classList.remove('hide');
+    } else {
+      this.stanceEl.classList.add('hide');
+    }
     // 顶栏结束回合仅我方回合可用
     this.endTurnBtn.disabled = s.phase !== 'player';
   }
