@@ -20,11 +20,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -38,12 +38,33 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -eux
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # 用 worktree 在独立目录操作 gh-pages，避免污染 main 工作区
+          rm -rf /tmp/gh-pages-worktree
           git fetch origin gh-pages:gh-pages || true
-          git checkout gh-pages || git checkout --orphan gh-pages
-          git rm -rf .
-          cp -r h5/dist/* .
+          if git show-ref --verify --quiet refs/heads/gh-pages; then
+            git worktree add /tmp/gh-pages-worktree gh-pages
+          else
+            git worktree add /tmp/gh-pages-worktree --orphan gh-pages
+          fi
+
+          cd /tmp/gh-pages-worktree
+          # 保留 .gitignore（如果存在），其余清空
+          [ -f .gitignore ] && cp .gitignore /tmp/gh-pages-gitignore
+          rm -rf assets index.html portraits .gitignore
+          [ -f /tmp/gh-pages-gitignore ] && mv /tmp/gh-pages-gitignore .gitignore
+
+          # 复制最新构建产物
+          cp -r "${GITHUB_WORKSPACE}/h5/dist/"* .
+
+          # 提交并推送
           git add .
-          git commit -m "deploy: update gh-pages from ${{ github.sha }}" || echo "No changes to commit"
-          git push origin gh-pages
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "deploy: update gh-pages from ${{ github.sha }}"
+            git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git" HEAD:gh-pages
+          fi
