@@ -881,3 +881,44 @@ v1.0 版本仅接入**激励视频**，具体 placements：
 - [x] 进攻态势：低阈值撤退、保持激进集火
 - [x] 坚守/斩首/全灭关卡目标影响态势
 - [x] 回归验证：`npx tsc --noEmit` / `npm run build` / `npm run sim` 27/27 / `autowin.mjs` 胜利链路通过
+
+----
+
+## 21. 战斗 UI：PC 横屏布局与敌方态势显示（2026-07-19，R6-fix）
+
+> 目标：解决 PC 横屏模式下顶部空间不足导致「敌方 AI 策略态势栏」被截断/不可见的问题，并统一版本号展示。
+
+### 21.1 需求
+
+- **PC 横屏模式**：设置页提供开关；开启后战斗页改为左侧战场 + 右侧操作栏的网格布局，适配 PC 浏览器宽屏。
+- **敌方态势可见性**：敌方回合时，实时显示当前敌方单位的策略分布（攻 / 守 / 中）。
+  - 竖屏：态势信息显示在顶部回合栏中央。
+  - 横屏：顶部栏空间紧张，将态势信息移至右侧操作栏顶部，避免被截断。
+- **版本号**：顶部回合栏显示当前版本号（如 `第 1 回合 · v0.6.4`），便于玩家核对线上加载的是最新版本。
+
+### 21.2 实现要点
+
+- `h5/src/core/settings.ts`：新增 `isLandscapeMode / setLandscapeMode`，持久化开关状态。
+- `h5/src/battle/battleScene.ts`：
+  - `applyLandscape()` 监听窗口尺寸与设置开关，给 `.zg-battle` 切换 `landscape` 类。
+  - `updateTopbar()` 在敌方回合计算 `敌方态势：攻X 守X 中X`。
+  - `renderBottom()` 在敌方回合向右侧操作栏顶部插入 `.zg-side-status` 态势节点。
+- `h5/src/battle/battle.css`：
+  - `.zg-battle.landscape` 使用 `grid-template-columns: 1fr 180px; grid-template-rows: 36px 1fr;`。
+  - 横屏下隐藏顶部 `.zg-stance`，显示 `.zg-side-status`。
+  - 横屏下压缩顶部栏字号、按钮尺寸，确保 36px 顶栏不溢出。
+
+### 21.3 文件改动
+
+- `h5/src/battle/battleScene.ts`
+- `h5/src/battle/battle.css`
+- `h5/src/core/settings.ts`（横屏开关）
+- `h5/src/data/version.ts`（版本号）
+
+### 21.4 完成状态
+
+- [x] 设置页横屏开关
+- [x] 横屏下战场 + 右侧操作栏布局
+- [x] 敌方态势在竖屏顶部栏 / 横屏右侧栏双路径显示
+- [x] 顶部栏显示版本号
+- [x] 回归验证：`npm run build` / `npm run sim` 通过
