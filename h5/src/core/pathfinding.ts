@@ -3,7 +3,8 @@
 // 移动消耗规则（02-combat.md §1.2/§1.3，常量在 data/rules.ts）：
 // - 水域/城墙不可进；骑兵/投石车不可进山地（§16.2 投石车特例）
 // - 雨天移动消耗+1（骑兵豁免）；雪天全员+1
-// - 占据格不可穿越、不可落脚（occupied 双方单位都算）
+// - 敌对阵营单位格：不可穿越、不可落脚（blocked）
+// - 同阵营单位格：可以穿越，但不能作为落脚点（noStop）
 // ============================================================
 import type { TerrainType, Unit } from './types';
 import { TERRAIN_RULES, WEATHER_RULES } from '../data/rules';
@@ -36,12 +37,15 @@ export function moveCost(grid: GridLike, unit: Unit, q: number, r: number): numb
 
 /**
  * 从 unit 当前位置出发、移动力 movePoints 内所有可达格及代价（含起点，代价 0）。
- * occupied 为不可进入格（双方单位占据；不应包含 unit 自身格）。
+ * - blocked：完全不可进入（敌对阵营单位）
+ * - noStop：可以穿越，但不能作为落脚点（同阵营单位）
+ * 返回的 Map 不含 noStop 格（但会以它们为跳板扩展更远格）。
  */
 export function reachableCells(
   grid: GridLike,
   unit: Unit,
-  occupied: Set<string>,
+  blocked: Set<string>,
+  noStop: Set<string>,
   movePoints: number = unit.move,
 ): Map<string, number> {
   const dist = new Map<string, number>();
@@ -58,33 +62,48 @@ export function reachableCells(
     for (const n of neighbors(cur.q, cur.r)) {
       if (!inBounds(grid, n.q, n.r)) continue;
       const k = key(n.q, n.r);
-      if (occupied.has(k)) continue;
+      if (blocked.has(k)) continue;
       const step = moveCost(grid, unit, n.q, n.r);
       if (!isFinite(step)) continue;
       const nc = cur.cost + step;
       if (nc > movePoints) continue;
+      // noStop 格可以穿越，但不作为落脚点加入结果集
+      if (noStop.has(k)) {
+        if (nc < (dist.get(k) ?? Infinity)) {
+          dist.set(k, nc);
+          frontier.push({ q: n.q, r: n.r, cost: nc });
+        }
+        continue;
+      }
       if (nc < (dist.get(k) ?? Infinity)) {
         dist.set(k, nc);
         frontier.push({ q: n.q, r: n.r, cost: nc });
       }
     }
   }
+  // 过滤掉同阵营占用格（可作为跳板，但不能落脚）
+  for (const k of noStop) {
+    dist.delete(k);
+  }
   return dist;
 }
 
 /**
  * A* 寻路：from → to 的完整路径（含起终点）；不可达返回 null。
- * occupied 格不可穿越；to 被占据时直接返回 null。
+ * - blocked 格完全不可穿越；to 落在 blocked/noStop 时直接返回 null。
+ * - noStop 格可以穿越，但不能作为终点。
  */
 export function findPath(
   grid: GridLike,
   from: Cell,
   to: Cell,
   unit: Unit,
-  occupied: Set<string>,
+  blocked: Set<string>,
+  noStop: Set<string>,
 ): Cell[] | null {
+  const toK = key(to.q, to.r);
   if (from.q === to.q && from.r === to.r) return [{ q: from.q, r: from.r }];
-  if (!inBounds(grid, to.q, to.r) || occupied.has(key(to.q, to.r))) return null;
+  if (!inBounds(grid, to.q, to.r) || blocked.has(toK) || noStop.has(toK)) return null;
   if (!isFinite(moveCost(grid, unit, to.q, to.r))) return null;
 
   const startK = key(from.q, from.r);
@@ -121,7 +140,8 @@ export function findPath(
       const nk = key(n.q, n.r);
       if (closed.has(nk)) continue;
       const isGoal = n.q === to.q && n.r === to.r;
-      if (occupied.has(nk) && !isGoal) continue;
+      if (blocked.has(nk) && !isGoal) continue;
+      if (noStop.has(nk) && !isGoal) continue;
       const step = moveCost(grid, unit, n.q, n.r);
       if (!isFinite(step)) continue;
       const g = cur.g + step;

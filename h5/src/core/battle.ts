@@ -136,12 +136,14 @@ export class Battle {
 
   /** AI 用：unit 的可达格及代价（含起点） */
   reachableFor(unit: Unit): Map<string, number> {
-    return reachableCells(this.grid, unit, this.occupiedExcept(unit), rules.effectiveMove(unit));
+    const { blocked, noStop } = this.occupiedExcept(unit);
+    return reachableCells(this.grid, unit, blocked, noStop, rules.effectiveMove(unit));
   }
 
   /** AI 用：A* 寻路到 dest（含起终点；不可达返回 null） */
   pathFor(unit: Unit, dest: Cell): Cell[] | null {
-    return findPath(this.grid, { q: unit.q, r: unit.r }, dest, unit, this.occupiedExcept(unit));
+    const { blocked, noStop } = this.occupiedExcept(unit);
+    return findPath(this.grid, { q: unit.q, r: unit.r }, dest, unit, blocked, noStop);
   }
 
   /** AI 用：(q,r) 是否可进入（界内、地形可进、未被占据） */
@@ -185,13 +187,16 @@ export class Battle {
     if (steps.length > 0 && steps[0].q === u.q && steps[0].r === u.r) steps = steps.slice(1);
     let dest: Cell = { q: u.q, r: u.r };
     if (steps.length > 0) {
-      const occ = this.occupiedExcept(u);
+      const { blocked, noStop } = this.occupiedExcept(u);
       let cost = 0;
       let prev: Cell = { q: u.q, r: u.r };
-      for (const s of steps) {
+      for (let i = 0; i < steps.length; i++) {
+        const s = steps[i];
+        const k = key(s.q, s.r);
         if (hexDistance(prev.q, prev.r, s.q, s.r) !== 1) return fail('路径不连续');
         if (!inBounds(this.grid, s.q, s.r)) return fail('路径越界');
-        if (occ.has(key(s.q, s.r))) return fail('路径被占据');
+        if (blocked.has(k)) return fail('路径被占据');
+        if (noStop.has(k) && i === steps.length - 1) return fail('目标格有友方单位');
         const step = moveCost(this.grid, u, s.q, s.r);
         if (!isFinite(step)) return fail('路径不可通行');
         cost += step;
@@ -246,13 +251,16 @@ export class Battle {
     let steps = path;
     if (steps.length > 0 && steps[0].q === u.q && steps[0].r === u.r) steps = steps.slice(1);
     if (steps.length === 0) return fail('路径为空');
-    const occ = this.occupiedExcept(u);
+    const { blocked, noStop } = this.occupiedExcept(u);
     let cost = 0;
     let prev: Cell = { q: u.q, r: u.r };
-    for (const s of steps) {
+    for (let i = 0; i < steps.length; i++) {
+      const s = steps[i];
+      const k = key(s.q, s.r);
       if (hexDistance(prev.q, prev.r, s.q, s.r) !== 1) return fail('路径不连续');
       if (!inBounds(this.grid, s.q, s.r)) return fail('路径越界');
-      if (occ.has(key(s.q, s.r))) return fail('路径被占据');
+      if (blocked.has(k)) return fail('路径被占据');
+      if (noStop.has(k) && i === steps.length - 1) return fail('目标格有友方单位');
       const step = moveCost(this.grid, u, s.q, s.r);
       if (!isFinite(step)) return fail('路径不可通行');
       cost += step;
@@ -452,7 +460,8 @@ export class Battle {
   aiMoveAttack(unit: Unit, dest: Cell | null, targetUid: string | null, events: BattleEvent[]): void {
     if (this.state.outcome || !unit.alive) return;
     if (dest && (dest.q !== unit.q || dest.r !== unit.r)) {
-      const path = findPath(this.grid, { q: unit.q, r: unit.r }, dest, unit, this.occupiedExcept(unit));
+      const { blocked, noStop } = this.occupiedExcept(unit);
+      const path = findPath(this.grid, { q: unit.q, r: unit.r }, dest, unit, blocked, noStop);
       if (path && path.length > 1) {
         unit.q = dest.q;
         unit.r = dest.r;
@@ -720,12 +729,18 @@ export class Battle {
     return this.state.units.find(u => u.alive && u.q === q && u.r === r);
   }
 
-  private occupiedExcept(self: Unit): Set<string> {
-    const s = new Set<string>();
+  private occupiedExcept(self: Unit): { blocked: Set<string>; noStop: Set<string> } {
+    const blocked = new Set<string>();
+    const noStop = new Set<string>();
     for (const u of this.state.units) {
-      if (u.alive && u !== self) s.add(key(u.q, u.r));
+      if (!u.alive || u === self) continue;
+      if (u.faction === self.faction) {
+        noStop.add(key(u.q, u.r)); // 同阵营：可穿越，不可落脚
+      } else {
+        blocked.add(key(u.q, u.r)); // 敌对阵营：完全阻挡
+      }
     }
-    return s;
+    return { blocked, noStop };
   }
 
   /** 普攻 + 反击（02-combat §4.5：守方存活+射程内+AGI>攻方×0.8 → 反击×0.7不暴击） */

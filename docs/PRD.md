@@ -957,3 +957,38 @@ v1.0 版本仅接入**激励视频**，具体 placements：
 - [x] 林地点燃每回合伤害 ×1.5
 - [x] 技能预估面板标识「林火」
 - [x] 回归验证：`npm run build` / `npm run sim` 通过
+
+----
+
+## 23. 同阵营单位可穿越但不可落脚（2026-07-19，R6-fix3）
+
+> 目标：修复「我方棋子互相阻挡移动」的问题——同一阵营不应卡位，敌对阵营才完全阻挡。
+
+### 23.1 需求
+
+- 移动时：
+  - **敌对阵营单位**：所在格不可穿越、不可落脚（完全阻挡）。
+  - **同阵营单位**：所在格可以穿越，但不能作为移动终点（不可落脚）。
+- 寻路算法需要能区分「完全阻挡」与「仅不可落脚」两种占用状态。
+
+### 23.2 实现要点
+
+- `h5/src/core/pathfinding.ts`：
+  - `reachableCells` 新增 `blocked` / `noStop` 两个集合参数；`noStop` 格（同阵营）可作为跳板扩展更远格，但不加入可达结果。
+  - `findPath` 新增 `blocked` / `noStop` 参数；终点不能是 `blocked` 或 `noStop`，路径中间可以穿越 `noStop`。
+- `h5/src/core/battle.ts`：
+  - `occupiedExcept(self)` 改为返回 `{ blocked, noStop }`：同阵营进 `noStop`，敌对阵营进 `blocked`。
+  - `reachableFor`、`pathFor`、`aiMoveAttack` 使用新的两集合寻路。
+  - `moveUnit` / `moveAndAttack` 路径校验：中间格遇到 `blocked` 失败；终点格遇到 `noStop` 失败（提示「目标格有友方单位」）。
+
+### 23.3 文件改动
+
+- `h5/src/core/pathfinding.ts`
+- `h5/src/core/battle.ts`
+
+### 23.4 完成状态
+
+- [x] 同阵营单位不再互相卡位
+- [x] 敌对阵营单位仍完全阻挡移动
+- [x] 终点不能落在同阵营单位格上
+- [x] 回归验证：`npm run build` / `npm run sim` 通过
