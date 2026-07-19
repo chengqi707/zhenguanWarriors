@@ -2,6 +2,7 @@
 // 设置页——难度 4 档（radio + 各档修正说明，即时写入存档）/
 // 清空存档（二次确认）/ 关于。无存档时难度先记在游戏上下文中，新游戏时应用。
 // ============================================================
+import { APP_VERSION } from '../data/version';
 import { clear, save as persist } from '../core/save';
 import { DIFFICULTY_DESC } from '../data';
 import type { Difficulty } from '../core/types';
@@ -89,7 +90,7 @@ export class SettingsPage implements Page {
     const aboutPanel = h('div', 'panel');
     aboutPanel.appendChild(h('div', 'panel-title', '关于'));
     aboutPanel.appendChild(
-      h('p', 'about-text', '《贞观勇士》——以李世民开国征程为主线的六边形战棋小游戏。版本 v0.1'),
+      h('p', 'about-text', `《贞观勇士》——以李世民开国征程为主线的六边形战棋小游戏。版本 ${APP_VERSION}`),
     );
     content.appendChild(aboutPanel);
 

@@ -1,6 +1,7 @@
 // ============================================================
 // 启动页——金色标题淡入，2.5s 后自动进入主菜单。
 // ============================================================
+import { APP_VERSION } from '../data/version';
 import type { Game } from './game';
 import { h, type Page } from './common';
 
@@ -16,7 +17,7 @@ export class SplashPage implements Page {
     const inner = h('div', 'splash-inner');
     inner.appendChild(h('div', 'splash-title', '贞观勇士'));
     inner.appendChild(h('div', 'splash-sub', '李世民战棋录'));
-    inner.appendChild(h('div', 'splash-ver', 'v0.1'));
+    inner.appendChild(h('div', 'splash-ver', APP_VERSION));
     page.appendChild(inner);
     root.appendChild(page);
     this.timer = window.setTimeout(() => this.game.toMainMenu(), SPLASH_MS);
