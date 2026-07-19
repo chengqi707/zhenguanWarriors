@@ -37,8 +37,8 @@ export const STORIES: StoryScene[] = [
     lines: [
       { speaker: '李世民', portrait: 'lishimin', text: '隋炀帝无道，天下大乱。父亲李渊在晋阳起兵，正是英雄用武之时。' },
       { speaker: '李世民', portrait: 'lishimin', text: '我李世民愿率精兵，扫平群雄，开创太平盛世！' },
-      { speaker: '李靖', portrait: 'li_jing', text: '世民兄，前方即是隋军校尉的营寨。你我联手，必能一鼓而下！' },
-      { speaker: '李世民', portrait: 'lishimin', text: '好！此战乃我大唐开国第一战，只许胜，不许败！全军出击！' },
+      { speaker: '李靖', portrait: 'li_jing', text: '世民兄，前方即是隋将高德儒的营寨。此人曾以祥瑞谄媚炀帝，今却成为晋阳起兵的第一块绊脚石。' },
+      { speaker: '李世民', portrait: 'lishimin', text: '高德儒？徒有虚名之辈。此战乃我大唐开国第一战，只许胜，不许败！全军出击！' },
     ],
   },
   {
@@ -70,9 +70,9 @@ export const STORIES: StoryScene[] = [
   {
     id: 'story_3_pre', // 直取长安
     lines: [
-      { speaker: '李世民', portrait: 'lishimin', text: '长安乃隋都，城墙坚固，护城河深阔。' },
+      { speaker: '李世民', portrait: 'lishimin', text: '长安乃隋都，城墙坚固，护城河深阔；卫文升、阴世师负隅顽抗，不可大意。' },
       { speaker: '平阳公主', portrait: 'pingyang_princess', text: '二弟放心！我已联络城内各方势力，届时里应外合，长安必破！' },
-      { speaker: '李世民', portrait: 'lishimin', text: '三姐深谋远虑，世民佩服。好，攻取长安，定鼎关中！' },
+      { speaker: '李世民', portrait: 'lishimin', text: '三姐深谋远虑，世民佩服。好，攻取大兴城，定鼎关中！' },
     ],
   },
   {
@@ -87,8 +87,8 @@ export const STORIES: StoryScene[] = [
   {
     id: 'story_4_pre', // 浅水原之战
     lines: [
-      { speaker: '李世民', portrait: 'lishimin', text: '薛举占据陇西，号称西秦霸王，兵锋正盛。' },
-      { speaker: '李靖', portrait: 'li_jing', text: '薛举骑兵精锐，平原作战占尽优势。我军应诱敌深入，以计破之。' },
+      { speaker: '李世民', portrait: 'lishimin', text: '薛举占据陇西，号称西秦霸王，麾下宗罗睺骑兵骁勇，兵锋正盛。' },
+      { speaker: '李靖', portrait: 'li_jing', text: '宗罗睺所部骑兵精锐，浅水原一带平原开阔，利于驰骋。我军应诱敌深入，以计破之。' },
       { speaker: '李世民', portrait: 'lishimin', text: '此战关乎关中安危，诸位随我并肩一战！' },
     ],
   },
@@ -104,9 +104,9 @@ export const STORIES: StoryScene[] = [
   {
     id: 'story_5_pre', // 柏壁之战
     lines: [
-      { speaker: '李世民', portrait: 'lishimin', text: '刘武周勾结突厥，攻陷柏壁，形势危急。' },
+      { speaker: '李世民', portrait: 'lishimin', text: '刘武周遣宋金刚率军连克晋州、浍州，兵锋直抵柏壁，形势危急。' },
       { speaker: '尉迟敬德', portrait: 'yuchi_jingde', text: '末将愿率本部精兵，死守柏壁城！人在城在！' },
-      { speaker: '李世民', portrait: 'lishimin', text: '敬德将军勇冠三军！此战只需守住十日，援军必到！' },
+      { speaker: '李世民', portrait: 'lishimin', text: '敬德将军勇冠三军！此战只需守住十日，待宋金刚粮尽自退！' },
     ],
   },
   {
@@ -121,9 +121,9 @@ export const STORIES: StoryScene[] = [
   {
     id: 'story_6_pre', // 洛阳攻坚战
     lines: [
-      { speaker: '李世民', portrait: 'lishimin', text: '洛阳乃中原腹心，王世充据城固守，此战非同小可。' },
+      { speaker: '李世民', portrait: 'lishimin', text: '洛阳乃中原腹心，王世充据城固守，麾下大将单雄信骁勇绝伦，此战非同小可。' },
       { speaker: '殷开山', portrait: 'yin_kaishan', text: '末将愿率器械营破城！洛阳城墙虽厚，也挡不住我军的投石车！' },
-      { speaker: '李世民', portrait: 'lishimin', text: '好！殷将军攻城，李靖将军率骑兵截击援军，此战必胜！' },
+      { speaker: '李世民', portrait: 'lishimin', text: '好！殷将军攻城，李靖将军率骑兵截击援军，先破单雄信，再擒王世充！' },
     ],
   },
   {
@@ -138,10 +138,10 @@ export const STORIES: StoryScene[] = [
   {
     id: 'story_7_pre', // 虎牢关之战
     lines: [
-      { speaker: '李世民', portrait: 'lishimin', text: '虎牢关乃洛阳东部门户，窦建德率十万大军来援王世充。' },
+      { speaker: '李世民', portrait: 'lishimin', text: '虎牢关乃洛阳东部门户，窦建德率十万大军来援王世充，先锋王伏宝勇冠夏军。' },
       { speaker: '秦琼', portrait: 'qin_qiong', text: '末将愿与敬德兄同守关隘！管他十万百万，叫他有来无回！' },
       { speaker: '尉迟敬德', portrait: 'yuchi_jingde', text: '俺也一样！' },
-      { speaker: '李世民', portrait: 'lishimin', text: '哈哈！有二位虎将在，窦建德不足为惧！此战擒贼擒王，击破窦建德则敌军自溃！' },
+      { speaker: '李世民', portrait: 'lishimin', text: '哈哈！有二位虎将在，窦建德、王伏宝不足为惧！此战擒贼擒王，击破窦建德则敌军自溃！' },
     ],
   },
   {
@@ -156,8 +156,8 @@ export const STORIES: StoryScene[] = [
   {
     id: 'story_8_pre', // 玄武门前夜
     lines: [
-      { speaker: '李世民', portrait: 'lishimin', text: '……走到这一步，已无退路。建成、元吉，莫怪世民心狠。' },
-      { speaker: '长孙无忌', portrait: 'zhangsun_wuji', text: '主公，当断不断反受其乱。禁军已经在玄武门集结，成败在此一举。' },
+      { speaker: '李世民', portrait: 'lishimin', text: '……走到这一步，已无退路。李建成、李元吉已在玄武门布下伏兵，莫怪世民心狠。' },
+      { speaker: '长孙无忌', portrait: 'zhangsun_wuji', text: '主公，当断不断反受其乱。禁军已在玄武门集结，成败在此一举。' },
       { speaker: '李世民', portrait: 'lishimin', text: '好。明日玄武门，赌上我李世民的性命，赌上大唐的未来！' },
     ],
   },

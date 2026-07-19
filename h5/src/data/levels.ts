@@ -45,6 +45,7 @@ export const LEVELS: LevelDef[] = [
   {
     id: 1,
     name: '晋阳举义',
+    subName: '617年·晋阳',
     weather: 'sunny',
     wind: 'none',
     width: 16,
@@ -54,17 +55,22 @@ export const LEVELS: LevelDef[] = [
       '7,4': 'forest', '7,5': 'forest', '7,6': 'forest', '7,7': 'forest',
       '8,4': 'forest', '8,5': 'forest', '8,6': 'forest', '8,7': 'forest',
       '9,4': 'forest', '9,5': 'forest', '9,6': 'forest', '9,7': 'forest',
+      // 晋阳城西汾水故道，增加河流隔断与营寨
+      '13,2': 'water', '13,3': 'water', '13,4': 'water',
+      '12,2': 'camp',
     },
     // 注：JSON 第1关可用角色含 li_jing（文档中李靖第4关才解锁），照搬 JSON
     available: ['lishimin', 'li_jing', 'zhangsun_wuji', 'chai_shao', 'liu_hongji'],
     required: ['lishimin'],
     enemies: [
-      { id: 'enemy_boss_01', name: '隋军校尉', classType: 'cavalry', level: 3, base: { str: 55, cmd: 45, int: 25, agi: 35, luk: 25 }, hp: 55, mp: 10, move: 5, range: 1, q: 12, r: 5, isBoss: true },
+      { id: 'enemy_boss_01', name: '高德儒', classType: 'cavalry', level: 3, base: { str: 58, cmd: 46, int: 28, agi: 38, luk: 25 }, hp: 60, mp: 10, move: 5, range: 1, q: 12, r: 5, isBoss: true },
       { id: 'enemy_01_0', name: '隋军步兵', classType: 'infantry', level: 2, base: { str: 45, cmd: 40, int: 20, agi: 30, luk: 20 }, hp: 45, mp: 0, move: 4, range: 1, q: 10, r: 3 },
       { id: 'enemy_01_1', name: '隋军步兵', classType: 'infantry', level: 2, base: { str: 45, cmd: 40, int: 20, agi: 30, luk: 20 }, hp: 45, mp: 0, move: 4, range: 1, q: 11, r: 3 },
       { id: 'enemy_01_2', name: '隋军步兵', classType: 'infantry', level: 2, base: { str: 45, cmd: 40, int: 20, agi: 30, luk: 20 }, hp: 45, mp: 0, move: 4, range: 1, q: 10, r: 4 },
       { id: 'enemy_01_3', name: '隋军步兵', classType: 'infantry', level: 2, base: { str: 45, cmd: 40, int: 20, agi: 30, luk: 20 }, hp: 45, mp: 0, move: 4, range: 1, q: 11, r: 4 },
+      { id: 'enemy_01_4', name: '隋军牙将', classType: 'spear', level: 2, base: { str: 48, cmd: 42, int: 22, agi: 32, luk: 20 }, hp: 48, mp: 0, move: 4, range: 1, q: 12, r: 4 },
     ],
+    intro: '隋大业十三年，李渊晋阳起兵，李世民率前锋击破高德儒所部隋军。',
     victory: 'defeatAll',
     rewardGold: 100,
     rewardEquip: ['w001'],
@@ -72,6 +78,7 @@ export const LEVELS: LevelDef[] = [
   {
     id: 2,
     name: '霍邑攻坚',
+    subName: '617年·霍邑',
     weather: 'rain',
     wind: 'north',
     width: 20,
@@ -98,7 +105,9 @@ export const LEVELS: LevelDef[] = [
       { id: 'enemy_02_3', name: '隋军步兵', classType: 'infantry', level: 3, base: { str: 48, cmd: 42, int: 22, agi: 32, luk: 22 }, hp: 50, mp: 0, move: 4, range: 1, q: 15, r: 4 },
       { id: 'enemy_02_4', name: '隋军步兵', classType: 'infantry', level: 3, base: { str: 48, cmd: 42, int: 22, agi: 32, luk: 22 }, hp: 50, mp: 0, move: 4, range: 1, q: 13, r: 5 },
       { id: 'enemy_02_5', name: '隋军步兵', classType: 'infantry', level: 3, base: { str: 48, cmd: 42, int: 22, agi: 32, luk: 22 }, hp: 50, mp: 0, move: 4, range: 1, q: 14, r: 5 },
+      { id: 'enemy_02_6', name: '宋老生部将', classType: 'cavalry', level: 4, base: { str: 58, cmd: 48, int: 28, agi: 46, luk: 30 }, hp: 62, mp: 10, move: 5, range: 1, q: 15, r: 8 },
     ],
+    intro: '李渊西进关中，霍邑守将宋老生据城死守；李世民诱敌出城，雨地泥泞不利骑兵。',
     victory: 'defeatBoss',
     bossId: 'enemy_boss_02',
     maxTurns: 20,
@@ -108,6 +117,7 @@ export const LEVELS: LevelDef[] = [
   {
     id: 3,
     name: '直取长安',
+    subName: '617年·大兴城',
     weather: 'sunny',
     wind: 'none',
     width: 24,
@@ -121,11 +131,13 @@ export const LEVELS: LevelDef[] = [
       '22,6': 'city', '22,7': 'city', '22,8': 'city', '22,9': 'city', '22,10': 'city',
       '17,7': 'water', '17,8': 'water', '17,9': 'water',
       '18,7': 'water', '18,8': 'water', '18,9': 'water',
+      // 长安外郭城墙与护城河之间增加关隘要冲
+      '16,6': 'pass', '16,10': 'pass',
     },
     available: ['lishimin', 'zhangsun_wuji', 'chai_shao', 'liu_hongji', 'yin_kaishan', 'duan_zhixuan', 'pingyang_princess', 'fang_xuanling'],
     required: ['lishimin'],
     enemies: [
-      { id: 'enemy_boss_03', name: '长安守将', classType: 'heavy', level: 8, base: { str: 65, cmd: 75, int: 30, agi: 40, luk: 35 }, hp: 110, mp: 15, move: 3, range: 1, q: 20, r: 8, isBoss: true },
+      { id: 'enemy_boss_03', name: '卫文升', classType: 'heavy', level: 8, base: { str: 68, cmd: 78, int: 35, agi: 42, luk: 38 }, hp: 120, mp: 15, move: 3, range: 1, q: 20, r: 8, isBoss: true },
       // 注：enemy_03_0 坐标 (18,7) 按地形覆盖后为水域，照搬 JSON
       { id: 'enemy_03_0', name: '隋军重步', classType: 'heavy', level: 5, base: { str: 55, cmd: 60, int: 20, agi: 28, luk: 20 }, hp: 75, mp: 0, move: 3, range: 1, q: 18, r: 7 },
       { id: 'enemy_03_1', name: '隋军重步', classType: 'heavy', level: 5, base: { str: 55, cmd: 60, int: 20, agi: 28, luk: 20 }, hp: 75, mp: 0, move: 3, range: 1, q: 19, r: 7 },
@@ -133,7 +145,9 @@ export const LEVELS: LevelDef[] = [
       { id: 'enemy_03_3', name: '隋军弓兵', classType: 'archer', level: 5, base: { str: 45, cmd: 38, int: 30, agi: 40, luk: 28 }, hp: 50, mp: 10, move: 4, range: 2, q: 19, r: 6, skills: ['volley'] },
       { id: 'enemy_03_4', name: '隋军弓兵', classType: 'archer', level: 5, base: { str: 45, cmd: 38, int: 30, agi: 40, luk: 28 }, hp: 50, mp: 10, move: 4, range: 2, q: 19, r: 7, skills: ['volley'] },
       { id: 'enemy_03_5', name: '隋军弓兵', classType: 'archer', level: 5, base: { str: 45, cmd: 38, int: 30, agi: 40, luk: 28 }, hp: 50, mp: 10, move: 4, range: 2, q: 19, r: 8, skills: ['volley'] },
+      { id: 'enemy_03_6', name: '阴世师', classType: 'strategist', level: 6, base: { str: 30, cmd: 50, int: 70, agi: 45, luk: 50 }, hp: 60, mp: 45, move: 5, range: 2, q: 21, r: 6, skills: ['fire_attack', 'confuse'] },
     ],
+    intro: '李渊军渡黄河、围大兴城，隋将卫文升、阴世师据城固守，唐军需里应外合破长安。',
     victory: 'defeatBoss',
     bossId: 'enemy_boss_03',
     rewardGold: 200,
@@ -142,6 +156,7 @@ export const LEVELS: LevelDef[] = [
   {
     id: 4,
     name: '浅水原雪耻', // JSON name 为「浅水原之战」，按任务指定/文档命名
+    subName: '618年·浅水原',
     weather: 'windy',
     wind: 'north',
     width: 20,
@@ -156,6 +171,8 @@ export const LEVELS: LevelDef[] = [
       '3,2': 'forest', '3,3': 'forest', '3,4': 'forest',
       '4,2': 'forest', '4,3': 'forest', '4,4': 'forest',
       '5,2': 'forest', '5,3': 'forest', '5,4': 'forest',
+      // 浅水原北侧泾水支流，大风天火攻可沿林地蔓延
+      '16,10': 'water', '17,10': 'water', '18,10': 'water',
     },
     // 注：JSON 第4关可用角色含 qin_qiong/yuchi_jingde/hou_junji（文档中第5/6关才解锁），照搬 JSON
     available: ['lishimin', 'li_jing', 'zhangsun_wuji', 'chai_shao', 'liu_hongji', 'duan_zhixuan', 'qin_qiong', 'yuchi_jingde', 'fang_xuanling', 'hou_junji'],
@@ -167,7 +184,9 @@ export const LEVELS: LevelDef[] = [
       { id: 'enemy_04_2', name: '西秦骑兵', classType: 'cavalry', level: 5, base: { str: 60, cmd: 50, int: 25, agi: 50, luk: 30 }, hp: 70, mp: 10, move: 5, range: 1, q: 14, r: 6 },
       { id: 'enemy_04_3', name: '西秦骑兵', classType: 'cavalry', level: 5, base: { str: 60, cmd: 50, int: 25, agi: 50, luk: 30 }, hp: 70, mp: 10, move: 5, range: 1, q: 15, r: 6 },
       { id: 'enemy_04_4', name: '西秦谋士', classType: 'strategist', level: 6, base: { str: 25, cmd: 40, int: 75, agi: 50, luk: 55 }, hp: 60, mp: 50, move: 5, range: 2, q: 15, r: 9, skills: ['fire_attack', 'confuse'] },
+      { id: 'enemy_04_5', name: '宗罗睺', classType: 'cavalry', level: 6, base: { str: 68, cmd: 55, int: 30, agi: 55, luk: 35 }, hp: 78, mp: 15, move: 6, range: 1, q: 17, r: 8 },
     ],
+    intro: '薛举据陇西自称西秦霸王，李世民于浅水原再战西秦；宗罗睺骑兵精锐，不可轻敌。',
     victory: 'defeatBoss',
     bossId: 'enemy_boss_04',
     rewardGold: 250,
@@ -176,6 +195,7 @@ export const LEVELS: LevelDef[] = [
   {
     id: 5,
     name: '柏壁之围', // JSON name 为「柏壁之战」，按任务指定/文档命名
+    subName: '619年·柏壁',
     weather: 'snow',
     wind: 'none',
     width: 22,
@@ -215,7 +235,9 @@ export const LEVELS: LevelDef[] = [
       { id: 'enemy_05_6', name: '刘军弓兵', classType: 'archer', level: 6, base: { str: 50, cmd: 42, int: 30, agi: 45, luk: 28 }, hp: 55, mp: 10, move: 4, range: 2, q: 16, r: 10, skills: ['volley'] },
       { id: 'enemy_05_7', name: '刘军弓兵', classType: 'archer', level: 6, base: { str: 50, cmd: 42, int: 30, agi: 45, luk: 28 }, hp: 55, mp: 10, move: 4, range: 2, q: 17, r: 10, skills: ['volley'] },
       { id: 'enemy_05_8', name: '刘军弓兵', classType: 'archer', level: 6, base: { str: 50, cmd: 42, int: 30, agi: 45, luk: 28 }, hp: 55, mp: 10, move: 4, range: 2, q: 18, r: 10, skills: ['volley'] },
+      { id: 'enemy_05_9', name: '宋金刚', classType: 'cavalry', level: 7, base: { str: 68, cmd: 58, int: 30, agi: 55, luk: 35 }, hp: 80, mp: 15, move: 6, range: 1, q: 17, r: 6 },
     ],
+    intro: '刘武周遣大将宋金刚连克晋州、浍州，李世民率主力于柏壁坚壁清野、以守待攻。',
     victory: 'defendTurns',
     defendTurns: 10,
     maxTurns: 15,
@@ -225,6 +247,7 @@ export const LEVELS: LevelDef[] = [
   {
     id: 6,
     name: '洛阳坚城', // JSON name 为「洛阳攻坚战」，按任务指定/文档命名
+    subName: '620年·洛阳',
     weather: 'sunny',
     wind: 'none',
     width: 24,
@@ -243,6 +266,9 @@ export const LEVELS: LevelDef[] = [
       '14,8': 'water', '14,9': 'water', '14,10': 'water', '14,11': 'water',
       '15,8': 'water', '15,9': 'water', '15,10': 'water', '15,11': 'water',
       '16,8': 'water', '16,9': 'water', '16,10': 'water', '16,11': 'water',
+      // 洛阳外郭北侧邙山余脉，高地可俯瞰城池
+      '6,3': 'mountain', '7,3': 'mountain', '8,3': 'mountain',
+      '6,4': 'mountain', '7,4': 'mountain', '8,4': 'mountain',
     },
     available: ['lishimin', 'li_jing', 'yuchi_jingde', 'qin_qiong', 'zhangsun_wuji', 'chai_shao', 'liu_hongji', 'yin_kaishan', 'duan_zhixuan', 'cheng_yaojin', 'hou_junji', 'fang_xuanling'],
     required: ['lishimin', 'yin_kaishan'],
@@ -258,7 +284,9 @@ export const LEVELS: LevelDef[] = [
       { id: 'enemy_06_6', name: '郑军投石车', classType: 'catapult', level: 7, base: { str: 47, cmd: 45, int: 30, agi: 42, luk: 28 }, hp: 58, mp: 10, move: 2, range: 4, q: 19, r: 12 },
       { id: 'enemy_06_7', name: '郑军弓兵', classType: 'archer', level: 7, base: { str: 52, cmd: 45, int: 30, agi: 42, luk: 28 }, hp: 58, mp: 10, move: 4, range: 3, q: 20, r: 12, skills: ['volley'] },
       { id: 'enemy_06_8', name: '郑军谋士', classType: 'strategist', level: 8, base: { str: 28, cmd: 45, int: 80, agi: 55, luk: 60 }, hp: 65, mp: 55, move: 5, range: 2, q: 21, r: 7, skills: ['fire_attack', 'rock_slide'] },
+      { id: 'enemy_06_9', name: '单雄信', classType: 'cavalry', level: 9, base: { str: 75, cmd: 60, int: 35, agi: 58, luk: 45 }, hp: 95, mp: 15, move: 6, range: 1, q: 22, r: 9 },
     ],
+    intro: '王世充据东都洛阳称帝，李世民围城打援；大将单雄信骁勇善战，把守王城要道。',
     victory: 'defeatBoss',
     bossId: 'enemy_boss_06',
     maxTurns: 25,
@@ -268,6 +296,7 @@ export const LEVELS: LevelDef[] = [
   {
     id: 7,
     name: '虎牢决战', // JSON name 为「虎牢关之战」，按任务指定/文档命名
+    subName: '621年·虎牢关',
     weather: 'sunny',
     wind: 'east',
     width: 24,
@@ -304,7 +333,9 @@ export const LEVELS: LevelDef[] = [
       { id: 'enemy_07_5', name: '夏军步兵', classType: 'infantry', level: 7, base: { str: 58, cmd: 52, int: 28, agi: 38, luk: 28 }, hp: 70, mp: 0, move: 4, range: 1, q: 14, r: 10 },
       { id: 'enemy_07_6', name: '夏军步兵', classType: 'infantry', level: 7, base: { str: 58, cmd: 52, int: 28, agi: 38, luk: 28 }, hp: 70, mp: 0, move: 4, range: 1, q: 14, r: 11 },
       { id: 'enemy_07_7', name: '夏军谋士', classType: 'strategist', level: 8, base: { str: 30, cmd: 48, int: 78, agi: 52, luk: 58 }, hp: 62, mp: 50, move: 5, range: 2, q: 16, r: 11, skills: ['water_attack', 'confuse'] },
+      { id: 'enemy_07_8', name: '王伏宝', classType: 'cavalry', level: 9, base: { str: 75, cmd: 62, int: 35, agi: 60, luk: 40 }, hp: 95, mp: 15, move: 6, range: 1, q: 12, r: 10 },
     ],
+    intro: '窦建德率十万大军援救洛阳，李世民率三千五百骑扼守虎牢关，以少胜多擒贼擒王。',
     victory: 'defeatBoss',
     bossId: 'enemy_boss_07',
     rewardGold: 400,
@@ -313,6 +344,7 @@ export const LEVELS: LevelDef[] = [
   {
     id: 8,
     name: '玄武门前夜',
+    subName: '626年·长安',
     weather: 'rain',
     wind: 'north',
     width: 18,
@@ -341,7 +373,10 @@ export const LEVELS: LevelDef[] = [
       { id: 'enemy_08_4', name: '禁军弓兵', classType: 'archer', level: 10, base: { str: 58, cmd: 50, int: 35, agi: 48, luk: 32 }, hp: 65, mp: 15, move: 4, range: 3, q: 13, r: 8, skills: ['volley'] },
       { id: 'enemy_08_5', name: '禁军弓兵', classType: 'archer', level: 10, base: { str: 58, cmd: 50, int: 35, agi: 48, luk: 32 }, hp: 65, mp: 15, move: 4, range: 3, q: 13, r: 9, skills: ['volley'] },
       { id: 'enemy_08_6', name: '禁军谋士', classType: 'strategist', level: 10, base: { str: 30, cmd: 50, int: 82, agi: 55, luk: 60 }, hp: 68, mp: 55, move: 5, range: 2, q: 14, r: 6, skills: ['fire_attack', 'rock_slide', 'heal'] },
+      { id: 'enemy_08_7', name: '李建成', classType: 'strategist', level: 13, base: { str: 35, cmd: 55, int: 72, agi: 50, luk: 55 }, hp: 80, mp: 60, move: 5, range: 2, q: 15, r: 7, skills: ['rally', 'confuse'] },
+      { id: 'enemy_08_8', name: '李元吉', classType: 'cavalry', level: 13, base: { str: 75, cmd: 65, int: 30, agi: 60, luk: 45 }, hp: 110, mp: 15, move: 6, range: 1, q: 15, r: 8 },
     ],
+    intro: '武德九年，李建成、李元吉于玄武门设伏，李世民率心腹先发制人，大唐皇位在此一役。',
     victory: 'defeatAll',
     rewardGold: 500,
     rewardEquip: ['w011'],
