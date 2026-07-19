@@ -18,6 +18,7 @@ import type {
   TerrainType,
   Unit,
 } from '../core/types';
+import { APP_VERSION } from '../data/version';
 import { Battle } from '../core/battle';
 import { getUnitStance } from '../core/ai';
 import { hexDistance, hexRange, key } from '../core/hex';
@@ -1096,7 +1097,7 @@ export class BattleScene {
   // ============================================================
   private updateTopbar(): void {
     const s = this.battle.state;
-    this.turnEl.textContent = `第 ${s.turn} 回合`;
+    this.turnEl.textContent = `第 ${s.turn} 回合 · ${APP_VERSION}`;
     const phaseText =
       s.phase === 'player' ? '我方行动' : s.phase === 'enemy' ? '敌方行动' : s.phase === 'ally' ? '友军行动' : '战斗结束';
     this.phaseEl.textContent = phaseText;

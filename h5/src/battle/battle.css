@@ -36,6 +36,8 @@
 .zg-turn {
   color: #e6bf33;
   font-weight: 700;
+  white-space: nowrap;
+  font-size: 13px;
 }
 .zg-top-mid {
   display: flex;

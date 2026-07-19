@@ -1,6 +1,7 @@
 // ============================================================
 // 主菜单——新游戏（有存档时二次确认清档）/ 继续游戏（无存档置灰）/ 设置。
 // ============================================================
+import { APP_VERSION } from '../data/version';
 import { hasSave } from '../core/save';
 import type { Game } from './game';
 import { h, showConfirm, type Page } from './common';
@@ -49,7 +50,7 @@ export class MainMenuPage implements Page {
 
     btns.append(newBtn, contBtn, galleryBtn, setBtn);
     page.appendChild(btns);
-    page.appendChild(h('div', 'menu-ver', 'v0.1'));
+    page.appendChild(h('div', 'menu-ver', APP_VERSION));
     root.appendChild(page);
   }
 
