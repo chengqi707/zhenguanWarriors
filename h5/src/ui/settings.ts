@@ -3,6 +3,7 @@
 // 清空存档（二次确认）/ 关于。无存档时难度先记在游戏上下文中，新游戏时应用。
 // ============================================================
 import { APP_VERSION } from '../data/version';
+import { isLandscapeMode, setLandscapeMode } from '../core/settings';
 import { clear, save as persist } from '../core/save';
 import { DIFFICULTY_DESC } from '../data';
 import type { Difficulty } from '../core/types';
@@ -60,6 +61,18 @@ export class SettingsPage implements Page {
       audioPanel.appendChild(row);
     }
     content.appendChild(audioPanel);
+
+    // ---------- 画面 ----------
+    const viewPanel = h('div', 'panel');
+    viewPanel.appendChild(h('div', 'panel-title', '画面'));
+    const landscapeRow = h('label', 'check-row');
+    const landscapeCb = document.createElement('input');
+    landscapeCb.type = 'checkbox';
+    landscapeCb.checked = isLandscapeMode();
+    landscapeCb.onchange = () => setLandscapeMode(landscapeCb.checked);
+    landscapeRow.append(landscapeCb, h('span', 'check-label', 'PC 横屏模式（战斗页右侧操作栏）'));
+    viewPanel.appendChild(landscapeRow);
+    content.appendChild(viewPanel);
 
     // ---------- 存档管理 ----------
     const savePanel = h('div', 'panel');

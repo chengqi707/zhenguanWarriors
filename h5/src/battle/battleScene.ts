@@ -19,6 +19,7 @@ import type {
   Unit,
 } from '../core/types';
 import { APP_VERSION } from '../data/version';
+import { isLandscapeMode } from '../core/settings';
 import { Battle } from '../core/battle';
 import { getUnitStance } from '../core/ai';
 import { hexDistance, hexRange, key } from '../core/hex';
@@ -240,11 +241,19 @@ export class BattleScene {
   };
 
   private onResize(): void {
+    this.applyLandscape();
     const w = this.stage.clientWidth;
     const h = this.stage.clientHeight;
     if (w <= 0 || h <= 0) return;
     this.renderer.resize(w, h);
     this.camera.setView(w, h);
+  }
+
+  /** 若设置开启 PC 横屏且视口足够宽，切换为右侧操作栏布局 */
+  private applyLandscape(): void {
+    const enabled = isLandscapeMode();
+    const wide = window.innerWidth >= 640 && window.innerWidth > window.innerHeight;
+    this.root.classList.toggle('landscape', enabled && wide);
   }
 
   /** 按当前交互模式组装渲染视图 */

@@ -21,6 +21,49 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* PC 横屏模式：操作栏移到右侧，战场画布占左侧 */
+.zg-battle.landscape {
+  display: grid;
+  grid-template-columns: 1fr 180px;
+  grid-template-rows: 36px 1fr;
+  grid-template-areas:
+    "top side"
+    "stage side";
+}
+.zg-battle.landscape .zg-topbar {
+  grid-area: top;
+}
+.zg-battle.landscape .zg-stage {
+  grid-area: stage;
+}
+.zg-battle.landscape .zg-bottom {
+  grid-area: side;
+  flex: 1 1 auto;
+  border-top: none;
+  border-left: 1px solid #473320;
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  gap: 6px;
+  overflow-y: auto;
+}
+.zg-battle.landscape .zg-hint {
+  font-size: 12px;
+}
+.zg-battle.landscape .zg-info {
+  font-size: 12px;
+}
+.zg-battle.landscape .zg-btn {
+  font-size: 13px;
+  min-height: 36px;
+  padding: 4px 6px;
+}
+.zg-battle.landscape .zg-btn-end {
+  min-height: 40px;
+  font-size: 14px;
+}
+.zg-battle.landscape .zg-skillrow .zg-btn {
+  flex: 1 1 100%;
+}
+
 /* ---------- 顶部回合栏（36px） ---------- */
 .zg-topbar {
   flex: 0 0 36px;
